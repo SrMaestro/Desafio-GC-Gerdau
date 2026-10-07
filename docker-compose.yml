@@ -1,0 +1,13 @@
+services:
+  pgsql-db-teste:
+    image: postgres:16-alpine
+    container_name: pgsql-db-gerdau
+    restart: always
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - ./data-db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
