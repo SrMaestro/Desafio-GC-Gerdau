@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Detalhe do serviço')}"></head>
+<body>
+<header><a th:href="@{/}">Catálogo de Serviços</a></header>
+<main>
+    <p><a th:href="@{/}">&larr; Voltar</a></p>
+    <div class="card">
+        <h2 th:text="${servico.textoBreve}"></h2>
+        <dl>
+            <dt>Área</dt><dd th:text="${servico.areaServico}"></dd>
+            <dt>Código padronizado</dt><dd th:text="${servico.codigoPadronizado}"></dd>
+            <dt>Abreviatura</dt><dd th:text="${servico.abreviatura}"></dd>
+            <dt>Complemento</dt><dd th:text="${servico.complemento} ?: '—'"></dd>
+            <dt>Condição</dt><dd th:text="${servico.id1Condicao}"></dd>
+            <dt>CNAE</dt><dd th:text="${servico.id2Cnae}"></dd>
+            <dt>Criador</dt><dd th:text="${servico.criadorCodigo} ?: '—'"></dd>
+            <dt>Criado em</dt><dd th:text="${#temporals.format(servico.dataCriacao, 'dd/MM/yyyy HH:mm')}"></dd>
+        </dl>
+    </div>
+</main>
+</body>
+</html>
