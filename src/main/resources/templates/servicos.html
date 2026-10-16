@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Serviços')}"></head>
+<body>
+<header><a th:href="@{/}">Catálogo de Serviços</a></header>
+<main>
+    <form method="get" th:action="@{/}" style="margin-bottom:1rem">
+        <label for="area">Área:</label>
+        <select id="area" name="area" onchange="this.form.submit()">
+            <option value="">Todas</option>
+            <option th:each="a : ${areas}" th:value="${a}" th:text="${a}" th:selected="${a == areaSelecionada}"></option>
+        </select>
+        <input type="search" id="busca" placeholder="Buscar na tabela..." autocomplete="off" style="margin-left:1rem;padding:.4rem .6rem;font-size:1rem">
+        <noscript><button type="submit">Filtrar</button></noscript>
+    </form>
+
+    <table id="tabela-servicos">
+        <thead>
+        <tr><th>ID</th><th>Área</th><th>Texto breve</th><th>Código padronizado</th><th>CNAE</th><th>Criador</th></tr>
+        </thead>
+        <tbody>
+        <tr th:each="s : ${servicos}" data-linha>
+            <td th:text="${s.id}"></td>
+            <td th:text="${s.areaServico}"></td>
+            <td><a th:href="@{/ui/servicos/{id}(id=${s.id})}" th:text="${s.textoBreve}"></a></td>
+            <td th:text="${s.codigoPadronizado}"></td>
+            <td th:text="${s.id2Cnae}"></td>
+            <td th:text="${s.criadorCodigo} ?: '—'"></td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(servicos)}"><td colspan="6">Nenhum serviço encontrado.</td></tr>
+        <tr id="sem-resultados" hidden><td colspan="6">Nenhum serviço corresponde à busca.</td></tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>
