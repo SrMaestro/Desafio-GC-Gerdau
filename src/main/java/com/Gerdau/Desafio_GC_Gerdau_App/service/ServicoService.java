@@ -1,0 +1,85 @@
+package com.Gerdau.Desafio_GC_Gerdau_App.service;
+
+import com.Gerdau.Desafio_GC_Gerdau_App.dto.AnaliseSimilaridade;
+import com.Gerdau.Desafio_GC_Gerdau_App.dto.AnaliseSimilaridade.SimilarDto;
+import com.Gerdau.Desafio_GC_Gerdau_App.dto.NovoServicoForm;
+import com.Gerdau.Desafio_GC_Gerdau_App.dto.ServicoSimilar;
+import com.Gerdau.Desafio_GC_Gerdau_App.exception.CadastroRejeitadoException;
+import com.Gerdau.Desafio_GC_Gerdau_App.model.Servico;
+import com.Gerdau.Desafio_GC_Gerdau_App.repository.ServicoRepository;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Locale;
+
+@Service
+public class ServicoService {
+
+    /** A partir daqui o serviço é sugerido como "parecido". */
+    static final double LIMIAR_SUGESTAO = 0.4;
+    /** A partir daqui, com mesma condição e CNAE, é tratado como duplicado e bloqueado. */
+    static final double LIMIAR_BLOQUEIO = 0.8;
+    static final int TAMANHO_MAX_CODIGO = 40;
+    private static final int MAX_SUGESTOES = 5;
+
+    private final ServicoRepository repository;
+
+    public ServicoService(ServicoRepository repository) {
+        this.repository = repository;
+    }
+
+    public String gerarCodigo(NovoServicoForm form) {
+        String complemento = form.getComplemento() == null ? "" : form.getComplemento();
+        String codigo = form.getAbreviatura() + complemento + "_" + form.getCondicao().getSufixo() + form.getCnae();
+        return codigo.toUpperCase(Locale.ROOT);
+    }
+
+    public AnaliseSimilaridade analisar(NovoServicoForm form) {
+        String codigo = gerarCodigo(form);
+        boolean codigoExistente = repository.findByCodigoPadronizado(codigo).isPresent();
+
+        List<ServicoSimilar> encontrados = repository.buscarSimilares(
+                form.getTextoBreve().trim(), LIMIAR_SUGESTAO, MAX_SUGESTOES);
+
+        boolean duplicadoPorTexto = encontrados.stream().anyMatch(s ->
+                s.getScore() >= LIMIAR_BLOQUEIO
+                        && s.getId1Condicao().equals(form.getCondicao().getDescricao())
+                        && s.getId2Cnae().equals(form.getCnae()));
+
+        List<SimilarDto> similares = encontrados.stream()
+                .map(s -> new SimilarDto(s.getId(), s.getTextoBreve(), s.getCodigoPadronizado(), s.getScore()))
+                .toList();
+
+        return new AnaliseSimilaridade(codigo, codigoExistente, similares, codigoExistente || duplicadoPorTexto);
+    }
+
+    public Servico cadastrar(NovoServicoForm form, boolean confirmarMesmoAssim) {
+        AnaliseSimilaridade analise = analisar(form);
+        if (analise.codigoGerado().length() > TAMANHO_MAX_CODIGO) {
+            throw new IllegalArgumentException(
+                    "Código gerado excede " + TAMANHO_MAX_CODIGO + " caracteres: " + analise.codigoGerado());
+        }
+        if (analise.bloqueado() || (analise.requerConfirmacao() && !confirmarMesmoAssim)) {
+            throw new CadastroRejeitadoException(analise);
+        }
+
+        Servico servico = new Servico();
+        servico.setAreaServico(form.getAreaServico().trim());
+        servico.setTextoBreve(form.getTextoBreve().trim());
+        servico.setAbreviatura(form.getAbreviatura().toUpperCase(Locale.ROOT));
+        servico.setComplemento(form.getComplemento() == null ? "" : form.getComplemento().toUpperCase(Locale.ROOT));
+        servico.setId1Condicao(form.getCondicao().getDescricao());
+        servico.setId2Cnae(form.getCnae());
+        servico.setCodigoPadronizado(analise.codigoGerado());
+        servico.setCriadorCodigo(form.getCriadorCodigo() == null || form.getCriadorCodigo().isBlank()
+                ? null : form.getCriadorCodigo().trim());
+        try {
+            return repository.saveAndFlush(servico);
+        } catch (DataIntegrityViolationException e) {
+            // corrida: outro usuário criou o mesmo código entre a análise e o insert
+            throw new CadastroRejeitadoException(new AnaliseSimilaridade(
+                    analise.codigoGerado(), true, analise.similares(), true));
+        }
+    }
+}

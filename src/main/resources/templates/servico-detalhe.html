@@ -5,6 +5,7 @@
 <header><a th:href="@{/}">Catálogo de Serviços</a></header>
 <main>
     <p><a th:href="@{/}">&larr; Voltar</a></p>
+    <p th:if="${mensagem}" th:text="${mensagem}" style="color:green"></p>
     <div class="card">
         <h2 th:text="${servico.textoBreve}"></h2>
         <dl>

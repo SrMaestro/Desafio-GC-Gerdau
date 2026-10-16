@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Novo serviço')}"></head>
+<body>
+<header><a th:href="@{/}">Catálogo de Serviços</a></header>
+<main>
+    <p><a th:href="@{/}">&larr; Voltar</a></p>
+    <h2>Novo serviço</h2>
+
+    <div th:if="${analise != null and analise.bloqueado}" class="card" style="border-left:4px solid #c00">
+        <strong>Cadastro bloqueado:</strong>
+        <span th:if="${analise.codigoExistente}">o código <code th:text="${analise.codigoGerado}"></code> já existe.</span>
+        <span th:unless="${analise.codigoExistente}">já existe um serviço praticamente idêntico.</span>
+    </div>
+    <div th:if="${analise != null and analise.requerConfirmacao}" class="card" style="border-left:4px solid #e90">
+        <strong>Existem serviços parecidos.</strong> Confira antes de continuar.
+    </div>
+    <div th:if="${analise != null and not #lists.isEmpty(analise.similares)}" class="card">
+        <p>Serviços parecidos já cadastrados:</p>
+        <ul>
+            <li th:each="s : ${analise.similares}">
+                <a th:href="@{/ui/servicos/{id}(id=${s.id})}" th:text="${s.textoBreve}"></a>
+                — <code th:text="${s.codigoPadronizado}"></code>
+                (<span th:text="${#numbers.formatDecimal(s.score * 100, 1, 0)}"></span>% parecido)
+            </li>
+        </ul>
+    </div>
+    <form method="post" th:action="@{/ui/servicos}" th:object="${form}">
+        <div th:if="${#fields.hasGlobalErrors()}" class="card" style="border-left:4px solid #c00">
+            <p th:each="e : ${#fields.globalErrors()}" th:text="${e}"></p>
+        </div>
+        <p>
+            <label>Área<br>
+                <input th:field="*{areaServico}" list="lista-areas" maxlength="50" required>
+            </label>
+            <datalist id="lista-areas"><option th:each="a : ${areas}" th:value="${a}"></option></datalist>
+            <small th:errors="*{areaServico}" style="color:#c00"></small>
+        </p>
+        <p>
+            <label>Texto breve<br>
+                <input th:field="*{textoBreve}" maxlength="255" size="60" required>
+            </label>
+            <small th:errors="*{textoBreve}" style="color:#c00"></small>
+        </p>
+        <p>
+            <label>Abreviatura (até 10)<br>
+                <input th:field="*{abreviatura}" maxlength="10" required>
+            </label>
+            <small th:errors="*{abreviatura}" style="color:#c00"></small>
+        </p>
+        <p>
+            <label>Complemento (ex.: _CONCRE)<br>
+                <input th:field="*{complemento}" maxlength="15">
+            </label>
+            <small th:errors="*{complemento}" style="color:#c00"></small>
+        </p>
+        <p>
+            <label>Condição<br>
+                <select th:field="*{condicao}" required>
+                    <option value="">Selecione</option>
+                    <option th:each="c : ${condicoes}" th:value="${c}" th:text="${c.descricao}"></option>
+                </select>
+            </label>
+            <small th:errors="*{condicao}" style="color:#c00"></small>
+        </p>
+        <p>
+            <label>CNAE (7 dígitos)<br>
+                <input th:field="*{cnae}" maxlength="7" pattern="\d{7}" required>
+            </label>
+            <small th:errors="*{cnae}" style="color:#c00"></small>
+        </p>
+        <p>
+            <label>Criador<br>
+                <input th:field="*{criadorCodigo}" maxlength="100">
+            </label>
+        </p>
+        <p th:if="${analise != null and analise.requerConfirmacao}">
+            <label><input type="checkbox" name="confirmar" value="true"> Cadastrar mesmo assim</label>
+        </p>
+        <button type="submit">Cadastrar</button>
+    </form>
+</main>
+</body>
+</html>

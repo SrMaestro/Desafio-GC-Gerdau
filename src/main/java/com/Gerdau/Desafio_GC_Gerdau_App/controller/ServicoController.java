@@ -2,7 +2,18 @@ package com.Gerdau.Desafio_GC_Gerdau_App.controller;
 
 import com.Gerdau.Desafio_GC_Gerdau_App.model.Servico;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.ServicoRepository;
+import com.Gerdau.Desafio_GC_Gerdau_App.dto.AnaliseSimilaridade;
+import com.Gerdau.Desafio_GC_Gerdau_App.dto.NovoServicoForm;
+import com.Gerdau.Desafio_GC_Gerdau_App.exception.CadastroRejeitadoException;
+import com.Gerdau.Desafio_GC_Gerdau_App.service.ServicoService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,9 +25,11 @@ import java.util.List;
 public class ServicoController {
 
     private final ServicoRepository repository;
+    private final ServicoService service;
 
-    public ServicoController(ServicoRepository repository) {
+    public ServicoController(ServicoRepository repository, ServicoService service) {
         this.repository = repository;
+        this.service = service;
     }
 
     @GetMapping
@@ -32,5 +45,21 @@ public class ServicoController {
     @GetMapping("/area/{area}")
     public List<Servico> porArea(@PathVariable String area) {
         return repository.findByAreaServico(area);
+    }
+
+    @PostMapping("/analise")
+    public AnaliseSimilaridade analisar(@Valid @RequestBody NovoServicoForm form) {
+        return service.analisar(form);
+    }
+
+    @PostMapping
+    public ResponseEntity<Servico> criar(@Valid @RequestBody NovoServicoForm form,
+                                         @RequestParam(defaultValue = "false") boolean confirmar) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.cadastrar(form, confirmar));
+    }
+
+    @ExceptionHandler(CadastroRejeitadoException.class)
+    public ResponseEntity<AnaliseSimilaridade> rejeitado(CadastroRejeitadoException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getAnalise());
     }
 }

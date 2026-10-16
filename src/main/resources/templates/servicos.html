@@ -4,6 +4,7 @@
 <body>
 <header><a th:href="@{/}">Catálogo de Serviços</a></header>
 <main>
+    <p><a th:href="@{/ui/servicos/novo}">+ Novo serviço</a></p>
     <form method="get" th:action="@{/}" style="margin-bottom:1rem">
         <label for="area">Área:</label>
         <select id="area" name="area" onchange="this.form.submit()">
