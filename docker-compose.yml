@@ -12,6 +12,26 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
 
+  # Banco de homologação: descartável (tmpfs), sobe vazio a cada execução.
+  # Só inicia com `docker compose --profile hml up -d` (ou scripts/hml.sh).
+  pgsql-db-hml:
+    image: postgres:16-alpine
+    container_name: pgsql-db-gerdau-hml
+    profiles: ["hml"]
+    ports:
+      - "${HML_DB_PORT:-5433}:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${HML_DB_NAME:-gerdau_hml}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${HML_DB_NAME:-gerdau_hml}"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
   pgadmin:
     image: dpage/pgadmin4
     container_name: pgadmin-gerdau

@@ -78,6 +78,18 @@ Na primeira execução o Flyway cria a tabela e insere os dados mock. A API fica
 
 > O projeto exige **JDK 21+**. Se `./mvnw` acusar `release version 21 not supported`, aponte o `JAVA_HOME` para um JDK 21.
 
+## Homologação
+
+Ambiente isolado para validar alterações (migrations, entidades, telas) sem tocar no banco de desenvolvimento. Usa o perfil Spring `hml`, um Postgres **descartável** (`tmpfs`, sobe vazio a cada execução) na porta `5433` e a aplicação na porta `8081`.
+
+```bash
+scripts/hml.sh run    # recria o banco, aplica todas as migrations e sobe a aplicação em http://localhost:8081
+scripts/hml.sh up     # só sobe o banco de homologação
+scripts/hml.sh down   # derruba o banco (os dados são descartados)
+```
+
+Variáveis opcionais no `.env`: `HML_DB_PORT` (padrão `5433`) e `HML_DB_NAME` (padrão `gerdau_hml`). Usuário e senha são os mesmos `DB_USER`/`DB_PASSWORD`. O container só sobe com o profile do compose (`--profile hml`), então `docker compose up -d` continua subindo apenas o ambiente de desenvolvimento.
+
 ## Configuração do banco
 
 O `application.properties` importa o `.env` e monta a conexão:
