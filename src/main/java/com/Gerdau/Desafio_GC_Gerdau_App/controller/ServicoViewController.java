@@ -1,6 +1,7 @@
 package com.Gerdau.Desafio_GC_Gerdau_App.controller;
 
 import com.Gerdau.Desafio_GC_Gerdau_App.model.Servico;
+import com.Gerdau.Desafio_GC_Gerdau_App.repository.CatHorarioRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.ServicoRepository;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -14,9 +15,17 @@ import java.util.List;
 public class ServicoViewController {
 
     private final ServicoRepository repository;
+    private final CatHorarioRepository horarioRepository;
 
-    public ServicoViewController(ServicoRepository repository) {
+    public ServicoViewController(ServicoRepository repository, CatHorarioRepository horarioRepository) {
         this.repository = repository;
+        this.horarioRepository = horarioRepository;
+    }
+
+    @GetMapping("/buscar")
+    public String buscar(Model model) {
+        model.addAttribute("horarios", horarioRepository.findAllByOrderByDescricaoHorarioAsc());
+        return "buscar";
     }
 
     @GetMapping("/")

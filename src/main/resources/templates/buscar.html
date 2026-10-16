@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Gerar Smart Key')}"></head>
+<body>
+<header><a th:href="@{/}">Catálogo de Serviços</a><nav style="display:inline"><a th:href="@{/buscar}">Gerar Smart Key</a></nav></header>
+<main>
+    <div class="card">
+        <h2>Gerar Smart Key</h2>
+
+        <label for="termo">Descreva o serviço</label>
+        <input type="search" id="termo" placeholder="ex.: instalaa eletrica" autocomplete="off">
+        <ul id="sugestoes" class="sugestoes" hidden></ul>
+
+        <label for="horario">Turno de trabalho</label>
+        <select id="horario" disabled>
+            <option value="">Selecione...</option>
+            <option th:each="h : ${horarios}" th:value="${h.sufixoCodigo}"
+                    th:text="${h.descricaoHorario + ' (' + h.sufixoCodigo + ')'}"></option>
+        </select>
+
+        <p id="selecionado" class="muted" hidden></p>
+        <p id="chave" class="chave" hidden></p>
+        <p id="aviso" class="muted" hidden></p>
+    </div>
+</main>
+<script th:src="@{/js/smart-key.js}" defer></script>
+</body>
+</html>

@@ -11,3 +11,14 @@ select, button { padding: .4rem .6rem; font-size: 1rem; }
 .card { background: #fff; padding: 1.5rem; box-shadow: 0 1px 3px #0002; }
 dt { font-weight: 600; margin-top: .8rem; color: #555; }
 dd { margin: 0; }
+
+/* Smart Key */
+.card label { display: block; margin: 1rem 0 .3rem; font-weight: 600; color: #555; }
+.card input[type="search"], .card select { width: 100%; box-sizing: border-box; padding: .5rem .6rem; font-size: 1rem; }
+.sugestoes { list-style: none; margin: 0; padding: 0; border: 1px solid #ccd3db; border-top: 0; background: #fff; }
+.sugestoes li { padding: .5rem .6rem; cursor: pointer; display: flex; justify-content: space-between; gap: 1rem; }
+.sugestoes li:hover { background: #e8edf3; }
+.sugestoes .score { color: #777; font-size: .85rem; white-space: nowrap; }
+.chave { font-family: ui-monospace, monospace; font-size: 1.6rem; font-weight: 700; color: #003b71; }
+.muted { color: #666; }
+nav a { margin-left: 1.5rem; font-size: 1rem; font-weight: 400; }
