@@ -1,5 +1,6 @@
 package com.Gerdau.Desafio_GC_Gerdau_App.service;
 
+import com.Gerdau.Desafio_GC_Gerdau_App.exception.DeParaNaoEncontradoException;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.DicionarioDePara;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.DicionarioDeParaHistorico;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.StatusDePara;
@@ -123,7 +124,7 @@ public class DeParaService {
 
     private DicionarioDePara carregar(Long id) {
         return repository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Mapeamento não encontrado: " + id));
+                .orElseThrow(() -> new DeParaNaoEncontradoException(id));
     }
 
     private void exigirStatus(DicionarioDePara mapeamento, StatusDePara esperado, String acao) {
