@@ -45,9 +45,14 @@
         </p>
         <p>
             <label>Texto breve<br>
-                <input th:field="*{textoBreve}" maxlength="255" size="60" required>
+                <input th:field="*{textoBreve}" maxlength="255" size="60" required autocomplete="off"
+                       th:attr="data-url=@{/servicos/similares}">
             </label>
             <small th:errors="*{textoBreve}" style="color:#c00"></small>
+            <span id="similares-ao-digitar" class="card" hidden aria-live="polite">
+                <strong>Já existem serviços parecidos:</strong>
+                <ul id="similares-lista"></ul>
+            </span>
         </p>
         <p>
             <label>Abreviatura (até 10)<br>
@@ -93,5 +98,6 @@
     </form>
 </main>
 <script th:src="@{/js/form.js}"></script>
+<script th:src="@{/js/similares.js}"></script>
 </body>
 </html>

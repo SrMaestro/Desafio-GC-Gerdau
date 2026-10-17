@@ -47,6 +47,11 @@ public class ServicoController {
         return repository.findByAreaServico(area);
     }
 
+    @GetMapping("/similares")
+    public List<AnaliseSimilaridade.SimilarDto> similares(@RequestParam String texto) {
+        return service.similares(texto);
+    }
+
     @PostMapping("/analise")
     public AnaliseSimilaridade analisar(@Valid @RequestBody NovoServicoForm form) {
         return service.analisar(form);

@@ -70,6 +70,25 @@ class ServicoServiceTest {
     }
 
     @Test
+    void similaresDevolveOsServicosParecidosComOScore() {
+        when(repository.buscarSimilares("concretagem", ServicoService.LIMIAR_SUGESTAO, 5))
+                .thenReturn(List.of(similar(0.7, "Hora normal", "4399103")));
+
+        var similares = service.similares("  concretagem ");
+
+        assertEquals(1, similares.size());
+        assertEquals("CONC_CONCRE_HN4399103", similares.get(0).codigoPadronizado());
+        assertEquals(0.7, similares.get(0).score());
+    }
+
+    @Test
+    void similaresIgnoraTextoCurtoOuVazio() {
+        assertTrue(service.similares(null).isEmpty());
+        assertTrue(service.similares(" ab ").isEmpty());
+        verify(repository, never()).buscarSimilares(anyString(), anyDouble(), anyInt());
+    }
+
+    @Test
     void bloqueiaQuandoCodigoJaExiste() {
         when(repository.findByCodigoPadronizado("CONC_CONCRE_HN4399103")).thenReturn(Optional.of(new Servico()));
         when(repository.buscarSimilares(anyString(), anyDouble(), anyInt())).thenReturn(List.of());
