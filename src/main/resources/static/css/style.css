@@ -101,3 +101,15 @@ td.titulo a:hover { text-decoration: underline; }
 .sugestoes .selo { background: var(--azul); color: #fff; padding: .15rem .6rem; border-radius: 999px; font-size: .85rem; }
 .sugestoes button:disabled { cursor: default; }
 .topo > span { display: flex; align-items: center; gap: 1.25rem; }
+
+/* Smart Key na busca */
+.smart-key { margin-top: 1.5rem; padding: 1.25rem 1.5rem; background: var(--superficie); border: 1px solid var(--linha); border-left: 4px solid var(--brasa); }
+.smart-key h2 { margin: 0 0 .5rem; font-size: 1.1rem; }
+.sk-nbs { margin: 0 0 1rem; }
+.sk-nbs code { font-family: var(--mono); background: var(--papel); padding: .15rem .45rem; border-radius: 2px; }
+.sk-horario { display: flex; flex-direction: column; gap: .25rem; max-width: 26rem; color: var(--texto-suave); font-size: .9rem; }
+.sk-horario select { padding: .5rem .7rem; border: 2px solid var(--linha); border-radius: 3px; background: var(--superficie); color: var(--texto); }
+.sk-chave { display: flex; align-items: center; gap: .75rem; margin-top: 1rem; flex-wrap: wrap; }
+.sk-chave code { font-family: var(--mono); font-size: 1.5rem; font-weight: 600; background: var(--papel); padding: .35rem .75rem; border-radius: 3px; word-break: break-all; }
+.sk-erro { margin: .5rem 0 0; color: #b3261e; }
+.sk-erro:empty { display: none; }
