@@ -28,6 +28,10 @@ public class DicionarioDePara {
     @JoinColumn(name = "codigo_nbs", nullable = false)
     private CatNbs catNbs;
 
+    /** Leitura do código sem inicializar o proxy de catNbs (a sessão já está fechada fora do serviço). */
+    @Column(name = "codigo_nbs", insertable = false, updatable = false)
+    private String codigoNbs;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "origem", nullable = false, length = 10)
     private OrigemDePara origem;
