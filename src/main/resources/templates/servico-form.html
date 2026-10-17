@@ -65,7 +65,7 @@
             <label>Condição<br>
                 <select th:field="*{condicao}" required>
                     <option value="">Selecione</option>
-                    <option th:each="c : ${condicoes}" th:value="${c}" th:text="${c.descricao}"></option>
+                    <option th:each="c : ${condicoes}" th:value="${c}" th:attr="data-sufixo=${c.sufixo}" th:text="${c.descricao}"></option>
                 </select>
             </label>
             <small th:errors="*{condicao}" style="color:#c00"></small>
@@ -81,11 +81,17 @@
                 <input th:field="*{criadorCodigo}" maxlength="100">
             </label>
         </p>
+        <p id="previa-codigo" data-max="40" aria-live="polite">
+            Código gerado: <code id="previa-valor">—</code>
+            <strong id="previa-contador"></strong>
+            <small id="previa-aviso" style="color:#c00" hidden>Passa de 40 caracteres (limite do SAP). Encurte a abreviatura ou o complemento.</small>
+        </p>
         <p th:if="${analise != null and analise.requerConfirmacao}">
             <label><input type="checkbox" name="confirmar" value="true"> Cadastrar mesmo assim</label>
         </p>
         <button type="submit">Cadastrar</button>
     </form>
 </main>
+<script th:src="@{/js/form.js}"></script>
 </body>
 </html>
