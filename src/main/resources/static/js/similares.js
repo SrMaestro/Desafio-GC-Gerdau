@@ -17,9 +17,12 @@ document.addEventListener('DOMContentLoaded', () => {
             link.target = '_blank';
             link.rel = 'noopener';
             link.textContent = s.textoBreve;
+            const score = document.createElement('span');
+            score.className = 'score';
+            score.textContent = `${Math.round(s.score * 100)}% parecido`;
             const codigo = document.createElement('code');
             codigo.textContent = s.codigoPadronizado;
-            li.append(link, ' — ', codigo, ` (${Math.round(s.score * 100)}% parecido)`);
+            li.append(link, codigo, score);
             lista.appendChild(li);
         });
         caixa.hidden = similares.length === 0;

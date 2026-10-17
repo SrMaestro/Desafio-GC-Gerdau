@@ -2,99 +2,126 @@
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{layout :: head('Novo serviço')}"></head>
 <body>
-<header><a th:href="@{/}">Catálogo de Serviços</a></header>
+<header><a th:href="@{/}">Catálogo de Serviços</a><a class="nav" th:href="@{/ui/revisao}">Revisão</a></header>
 <main>
     <p><a th:href="@{/}">&larr; Voltar</a></p>
-    <h2>Novo serviço</h2>
-
-    <div th:if="${analise != null and analise.bloqueado}" class="card" style="border-left:4px solid #c00">
-        <strong>Cadastro bloqueado:</strong>
-        <span th:if="${analise.codigoExistente}">o código <code th:text="${analise.codigoGerado}"></code> já existe.</span>
-        <span th:unless="${analise.codigoExistente}">já existe um serviço praticamente idêntico.</span>
-    </div>
-    <div th:if="${analise != null and analise.requerConfirmacao}" class="card" style="border-left:4px solid #e90">
-        <strong>Existem serviços parecidos.</strong> Confira antes de continuar.
-    </div>
-    <div th:if="${analise != null and not #lists.isEmpty(analise.similares)}" class="card">
-        <p>Serviços parecidos já cadastrados:</p>
-        <ul>
-            <li th:each="s : ${analise.similares}">
-                <a th:href="@{/ui/servicos/{id}(id=${s.id})}" th:text="${s.textoBreve}"></a>
-                — <code th:text="${s.codigoPadronizado}"></code>
-                (<span th:text="${#numbers.formatDecimal(s.score * 100, 1, 0)}"></span>% parecido)
-            </li>
-        </ul>
-    </div>
-    <div th:if="${nbsSelecionado != null}" class="card" style="border-left:4px solid #003b71">
-        <strong>Código NBS:</strong> <code th:text="${nbsSelecionado.codigoNbs}"></code>
-        <span th:text="${nbsSelecionado.descricaoAtividade}"></span>
-    </div>
-    <p th:if="${nbsSelecionado == null and form.codigoNbs != null and !#strings.isEmpty(form.codigoNbs)}"
-       style="color:#c00">Código NBS desconhecido: <code th:text="${form.codigoNbs}"></code></p>
-    <form method="post" th:action="@{/ui/servicos}" th:object="${form}">
-        <input type="hidden" th:field="*{codigoNbs}">
-        <div th:if="${#fields.hasGlobalErrors()}" class="card" style="border-left:4px solid #c00">
-            <p th:each="e : ${#fields.globalErrors()}" th:text="${e}"></p>
+    <div class="topo">
+        <div>
+            <h1>Novo serviço</h1>
+            <p>Confira os parecidos antes de criar: reaproveitar um código evita duplicidade.</p>
         </div>
-        <p>
-            <label>Área<br>
-                <input th:field="*{areaServico}" list="lista-areas" maxlength="50" required>
-            </label>
-            <datalist id="lista-areas"><option th:each="a : ${areas}" th:value="${a}"></option></datalist>
-            <small th:errors="*{areaServico}" style="color:#c00"></small>
-        </p>
-        <p>
-            <label>Texto breve<br>
-                <input th:field="*{textoBreve}" maxlength="255" size="60" required autocomplete="off"
-                       th:attr="data-url=@{/servicos/similares}">
-            </label>
-            <small th:errors="*{textoBreve}" style="color:#c00"></small>
-            <span id="similares-ao-digitar" class="card" hidden aria-live="polite">
-                <strong>Já existem serviços parecidos:</strong>
+    </div>
+
+    <div th:if="${analise != null and analise.bloqueado}" class="aviso bloqueio" role="alert">
+        <strong>Cadastro bloqueado.</strong>
+        <span th:if="${analise.codigoExistente}">O código <code th:text="${analise.codigoGerado}"></code> já existe.</span>
+        <span th:unless="${analise.codigoExistente}">Já existe um serviço praticamente idêntico. Use o código dele.</span>
+    </div>
+    <div th:if="${analise != null and analise.requerConfirmacao}" class="aviso atencao" role="alert">
+        <strong>Existem serviços parecidos.</strong> Confira a lista ao lado e marque "Cadastrar mesmo assim" só se for outro serviço.
+    </div>
+
+    <form method="post" th:action="@{/ui/servicos}" th:object="${form}" class="novo-servico">
+        <input type="hidden" th:field="*{codigoNbs}">
+
+        <div class="campos">
+            <div th:if="${#fields.hasGlobalErrors()}" class="aviso bloqueio" role="alert">
+                <p th:each="e : ${#fields.globalErrors()}" th:text="${e}"></p>
+            </div>
+
+            <fieldset>
+                <legend>O serviço</legend>
+                <label class="campo">Área
+                    <input th:field="*{areaServico}" list="lista-areas" maxlength="50" required>
+                    <datalist id="lista-areas"><option th:each="a : ${areas}" th:value="${a}"></option></datalist>
+                    <small class="erro" th:errors="*{areaServico}"></small>
+                </label>
+                <label class="campo">Texto breve
+                    <input th:field="*{textoBreve}" maxlength="255" required autocomplete="off"
+                           th:attr="data-url=@{/servicos/similares}">
+                    <small class="dica">Descreva o serviço com suas palavras. É com este texto que o sistema procura duplicados.</small>
+                    <small class="erro" th:errors="*{textoBreve}"></small>
+                </label>
+            </fieldset>
+
+            <fieldset>
+                <legend>Como o código é montado</legend>
+                <div class="grade">
+                    <label class="campo parte-abrev">Abreviatura
+                        <input th:field="*{abreviatura}" maxlength="10" required>
+                        <small class="dica">Até 10 letras ou números.</small>
+                        <small class="erro" th:errors="*{abreviatura}"></small>
+                    </label>
+                    <label class="campo parte-compl">Complemento <span class="opcional">(opcional)</span>
+                        <input th:field="*{complemento}" maxlength="15">
+                        <small class="dica">Começa com _, como em _CONCRE.</small>
+                        <small class="erro" th:errors="*{complemento}"></small>
+                    </label>
+                    <label class="campo parte-cond">Condição
+                        <select th:field="*{condicao}" required>
+                            <option value="">Selecione</option>
+                            <option th:each="c : ${condicoes}" th:value="${c}" th:attr="data-sufixo=${c.sufixo}" th:text="${c.descricao}"></option>
+                        </select>
+                        <small class="erro" th:errors="*{condicao}"></small>
+                    </label>
+                    <label class="campo parte-cnae">CNAE
+                        <input th:field="*{cnae}" maxlength="7" pattern="\d{7}" inputmode="numeric" required>
+                        <small class="dica">7 dígitos.</small>
+                        <small class="erro" th:errors="*{cnae}"></small>
+                    </label>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Registro</legend>
+                <label class="campo">Criador <span class="opcional">(opcional)</span>
+                    <input th:field="*{criadorCodigo}" maxlength="100">
+                </label>
+                <p th:if="${analise != null and analise.requerConfirmacao}" class="confirmar">
+                    <label><input type="checkbox" name="confirmar" value="true"> Cadastrar mesmo assim</label>
+                </p>
+            </fieldset>
+
+            <button type="submit" class="botao">Cadastrar serviço</button>
+        </div>
+
+        <aside class="chapa" aria-label="Resumo do código">
+            <section class="placa" id="previa-codigo" data-max="40" aria-live="polite">
+                <h2>Código gerado</h2>
+                <p class="gravacao"><code id="previa-valor">—</code></p>
+                <div class="regua" id="previa-regua" aria-hidden="true"></div>
+                <p class="medida">
+                    <strong id="previa-contador"></strong>
+                    <span>caracteres, limite do SAP</span>
+                </p>
+                <p id="previa-aviso" class="erro" hidden>O código passa de 40 caracteres. Encurte a abreviatura ou o complemento.</p>
+                <ul class="legenda" id="previa-legenda"></ul>
+            </section>
+
+            <section th:if="${nbsSelecionado != null}" class="nbs-escolhido">
+                <h2>Código NBS escolhido</h2>
+                <p><strong>Código NBS:</strong> <code th:text="${nbsSelecionado.codigoNbs}"></code></p>
+                <p th:text="${nbsSelecionado.descricaoAtividade}"></p>
+            </section>
+            <p th:if="${nbsSelecionado == null and form.codigoNbs != null and !#strings.isEmpty(form.codigoNbs)}"
+               class="erro">Código NBS desconhecido: <code th:text="${form.codigoNbs}"></code></p>
+
+            <section class="parecidos" id="similares-ao-digitar" hidden aria-live="polite">
+                <h2>Já existem serviços parecidos</h2>
                 <ul id="similares-lista"></ul>
-            </span>
-        </p>
-        <p>
-            <label>Abreviatura (até 10)<br>
-                <input th:field="*{abreviatura}" maxlength="10" required>
-            </label>
-            <small th:errors="*{abreviatura}" style="color:#c00"></small>
-        </p>
-        <p>
-            <label>Complemento (ex.: _CONCRE)<br>
-                <input th:field="*{complemento}" maxlength="15">
-            </label>
-            <small th:errors="*{complemento}" style="color:#c00"></small>
-        </p>
-        <p>
-            <label>Condição<br>
-                <select th:field="*{condicao}" required>
-                    <option value="">Selecione</option>
-                    <option th:each="c : ${condicoes}" th:value="${c}" th:attr="data-sufixo=${c.sufixo}" th:text="${c.descricao}"></option>
-                </select>
-            </label>
-            <small th:errors="*{condicao}" style="color:#c00"></small>
-        </p>
-        <p>
-            <label>CNAE (7 dígitos)<br>
-                <input th:field="*{cnae}" maxlength="7" pattern="\d{7}" required>
-            </label>
-            <small th:errors="*{cnae}" style="color:#c00"></small>
-        </p>
-        <p>
-            <label>Criador<br>
-                <input th:field="*{criadorCodigo}" maxlength="100">
-            </label>
-        </p>
-        <p id="previa-codigo" data-max="40" aria-live="polite">
-            Código gerado: <code id="previa-valor">—</code>
-            <strong id="previa-contador"></strong>
-            <small id="previa-aviso" style="color:#c00" hidden>Passa de 40 caracteres (limite do SAP). Encurte a abreviatura ou o complemento.</small>
-        </p>
-        <p th:if="${analise != null and analise.requerConfirmacao}">
-            <label><input type="checkbox" name="confirmar" value="true"> Cadastrar mesmo assim</label>
-        </p>
-        <button type="submit">Cadastrar</button>
+            </section>
+
+            <section class="parecidos" th:if="${analise != null and not #lists.isEmpty(analise.similares)}">
+                <h2>Parecidos encontrados ao cadastrar</h2>
+                <ul>
+                    <li th:each="s : ${analise.similares}">
+                        <a th:href="@{/ui/servicos/{id}(id=${s.id})}" th:text="${s.textoBreve}"></a>
+                        <code th:text="${s.codigoPadronizado}"></code>
+                        <span class="score" th:text="${#numbers.formatDecimal(s.score * 100, 1, 0)} + '% parecido'"></span>
+                    </li>
+                </ul>
+            </section>
+        </aside>
     </form>
 </main>
 <script th:src="@{/js/form.js}"></script>
