@@ -43,6 +43,9 @@ public class Servico {
     @Column(name = "criador_codigo")
     private String criadorCodigo;
 
+    @Column(name = "codigo_nbs", length = 20)
+    private String codigoNbs;
+
     @Column(name = "data_criacao", insertable = false, updatable = false)
     private LocalDateTime dataCriacao;
 }

@@ -6,6 +6,7 @@ import com.Gerdau.Desafio_GC_Gerdau_App.dto.NovoServicoForm;
 import com.Gerdau.Desafio_GC_Gerdau_App.dto.ServicoSimilar;
 import com.Gerdau.Desafio_GC_Gerdau_App.exception.CadastroRejeitadoException;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.Servico;
+import com.Gerdau.Desafio_GC_Gerdau_App.repository.CatNbsRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.ServicoRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -24,9 +25,11 @@ public class ServicoService {
     private static final int MAX_SUGESTOES = 5;
 
     private final ServicoRepository repository;
+    private final CatNbsRepository catNbsRepository;
 
-    public ServicoService(ServicoRepository repository) {
+    public ServicoService(ServicoRepository repository, CatNbsRepository catNbsRepository) {
         this.repository = repository;
+        this.catNbsRepository = catNbsRepository;
     }
 
     public String gerarCodigo(NovoServicoForm form) {
@@ -55,6 +58,11 @@ public class ServicoService {
     }
 
     public Servico cadastrar(NovoServicoForm form, boolean confirmarMesmoAssim) {
+        String codigoNbs = form.getCodigoNbs() == null || form.getCodigoNbs().isBlank()
+                ? null : form.getCodigoNbs().trim();
+        if (codigoNbs != null && !catNbsRepository.existsById(codigoNbs)) {
+            throw new IllegalArgumentException("Código NBS desconhecido: " + codigoNbs);
+        }
         AnaliseSimilaridade analise = analisar(form);
         if (analise.codigoGerado().length() > TAMANHO_MAX_CODIGO) {
             throw new IllegalArgumentException(
@@ -72,6 +80,7 @@ public class ServicoService {
         servico.setId1Condicao(form.getCondicao().getDescricao());
         servico.setId2Cnae(form.getCnae());
         servico.setCodigoPadronizado(analise.codigoGerado());
+        servico.setCodigoNbs(codigoNbs);
         servico.setCriadorCodigo(form.getCriadorCodigo() == null || form.getCriadorCodigo().isBlank()
                 ? null : form.getCriadorCodigo().trim());
         try {

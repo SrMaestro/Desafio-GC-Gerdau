@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const urlConfirmar = input.dataset.confirmar;
     const urlHorarios = input.dataset.horarios;
     const urlSmartKey = input.dataset.smartKey;
+    const urlCadastrar = input.dataset.cadastrar;
 
     const painel = document.getElementById('smart-key');
     const painelNbs = document.getElementById('sk-nbs');
@@ -15,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const chave = document.getElementById('sk-chave');
     const copiar = document.getElementById('sk-copiar');
     const erro = document.getElementById('sk-erro');
+    const cadastrar = document.getElementById('sk-cadastrar');
 
     let timer;
     let ultimaBusca = 0;
@@ -95,6 +97,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function escolher(sugestao) {
         nbsEscolhido = sugestao;
+        chave.textContent = '';
+        erro.textContent = '';
+        cadastrar.hidden = true;
+        copiar.textContent = 'Copiar';
+        copiar.classList.remove('copiado');
         painel.hidden = false;
         painelNbs.replaceChildren();
         const codigo = document.createElement('code');
@@ -112,9 +119,10 @@ document.addEventListener('DOMContentLoaded', () => {
     async function gerarChave() {
         if (!nbsEscolhido) return;
         const nbs = nbsEscolhido.codigoNbs;
-        const url = urlSmartKey + '?nbs=' + encodeURIComponent(nbs) + '&horario=' + encodeURIComponent(seletor.value);
+        const horario = seletor.value;
+        const url = urlSmartKey + '?nbs=' + encodeURIComponent(nbs) + '&horario=' + encodeURIComponent(horario);
         const resp = await fetch(url);
-        if (nbs !== nbsEscolhido.codigoNbs) return; // escolha mudou durante a chamada
+        if (nbs !== nbsEscolhido.codigoNbs || horario !== seletor.value) return; // escolha mudou durante a chamada
         if (!resp.ok) {
             chave.textContent = '';
             erro.textContent = 'Não foi possível montar o código. Tente de novo.';
@@ -123,6 +131,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const dados = await resp.json();
         erro.textContent = '';
         chave.textContent = dados.chave;
+        cadastrar.href = urlCadastrar + '?nbs=' + encodeURIComponent(nbs) + '&horario=' + encodeURIComponent(horario);
+        cadastrar.hidden = false;
         copiar.textContent = 'Copiar';
         copiar.classList.remove('copiado');
     }
