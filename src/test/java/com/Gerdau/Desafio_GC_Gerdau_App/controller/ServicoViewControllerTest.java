@@ -53,6 +53,7 @@ class ServicoViewControllerTest {
                 .andExpect(content().string(containsString("value=\"1.0105.40.00\"")))
                 .andExpect(content().string(containsString("value=\"HORA_EXTRA_SEG_SAB\" selected")))
                 .andExpect(content().string(containsString("data-sufixo=\"HES\"")))
+                .andExpect(content().string(containsString("data-url=\"/servicos/similares\"")))
                 .andExpect(content().string(containsString("id=\"previa-codigo\" data-max=\"40\"")));
     }
 

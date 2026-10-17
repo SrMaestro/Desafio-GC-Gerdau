@@ -23,6 +23,7 @@ public class ServicoService {
     static final double LIMIAR_BLOQUEIO = 0.8;
     static final int TAMANHO_MAX_CODIGO = 40;
     private static final int MAX_SUGESTOES = 5;
+    private static final int TAMANHO_MIN_BUSCA = 3;
 
     private final ServicoRepository repository;
     private final CatNbsRepository catNbsRepository;
@@ -36,6 +37,16 @@ public class ServicoService {
         String complemento = form.getComplemento() == null ? "" : form.getComplemento();
         String codigo = form.getAbreviatura() + complemento + "_" + form.getCondicao().getSufixo() + form.getCnae();
         return codigo.toUpperCase(Locale.ROOT);
+    }
+
+    /** Serviços já cadastrados parecidos com o texto, para sugerir enquanto o comprador digita. */
+    public List<SimilarDto> similares(String texto) {
+        if (texto == null || texto.trim().length() < TAMANHO_MIN_BUSCA) {
+            return List.of();
+        }
+        return repository.buscarSimilares(texto.trim(), LIMIAR_SUGESTAO, MAX_SUGESTOES).stream()
+                .map(s -> new SimilarDto(s.getId(), s.getTextoBreve(), s.getCodigoPadronizado(), s.getScore()))
+                .toList();
     }
 
     public AnaliseSimilaridade analisar(NovoServicoForm form) {
