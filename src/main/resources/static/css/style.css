@@ -15,6 +15,8 @@
 body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; background: var(--papel); color: var(--texto); line-height: 1.5; }
 header { background: var(--azul); color: #fff; padding: .9rem 2rem; border-bottom: 3px solid var(--brasa); }
 header a { color: #fff; text-decoration: none; font-weight: 700; font-size: 1.15rem; letter-spacing: .01em; }
+header .nav { margin-left: 1.5rem; font-weight: 400; font-size: 1rem; opacity: .9; }
+header .nav:hover { opacity: 1; text-decoration: underline; }
 main { max-width: 1180px; margin: 2rem auto; padding: 0 1rem; }
 a { color: var(--azul); }
 a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--brasa); outline-offset: 2px; }

@@ -1,0 +1,18 @@
+/* Revisão De-Para */
+.revisor { display: flex; flex-direction: column; gap: .25rem; font-size: .9rem; color: var(--texto-suave); }
+.revisor input { padding: .45rem .7rem; border: 2px solid var(--linha); border-radius: 3px; min-width: 14rem; }
+h2 .contador { font-weight: 400; color: var(--texto-suave); font-size: 1rem; }
+.aviso { padding: .7rem 1rem; border-left: 4px solid var(--azul); background: var(--superficie); margin: 0 0 1rem; }
+.aviso.erro { border-left-color: #b3261e; }
+.vazio-msg { color: var(--texto-suave); }
+table.revisao td { vertical-align: top; }
+table.revisao tr.conflito td { background: #fff8f3; }
+.selo-conflito { margin-left: .5rem; padding: .1rem .5rem; border-radius: 999px; background: var(--brasa); color: #fff; font-size: .8rem; }
+table.revisao code { font-family: var(--mono); background: var(--papel); padding: .1rem .4rem; border-radius: 2px; }
+td.acoes { display: flex; flex-wrap: wrap; gap: .5rem; }
+td.acoes form { display: flex; gap: .4rem; align-items: center; }
+td.acoes input[type="text"] { padding: .35rem .5rem; border: 1px solid var(--linha); border-radius: 3px; width: 11rem; }
+td.acoes button { background: var(--superficie); border: 1px solid var(--linha); border-radius: 3px; color: var(--azul); }
+td.acoes button:hover { border-color: var(--azul); }
+td.acoes button.aprovar { background: var(--azul); border-color: var(--azul); color: #fff; }
+@media (max-width: 720px) { td.acoes { display: block; } td.acoes form { margin-bottom: .4rem; } }

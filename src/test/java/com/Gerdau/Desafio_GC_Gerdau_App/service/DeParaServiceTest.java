@@ -182,4 +182,13 @@ class DeParaServiceTest {
 
         assertThrows(IllegalArgumentException.class, () -> service.aprovar(99L, "ana"));
     }
+
+    @Test
+    void listarAprovados_consultaPorStatusAprovado() {
+        DicionarioDePara aprovado = mapeamento(1, "motor", StatusDePara.APROVADO);
+        when(repository.findByStatusOrderByConfirmacoesDescCriadoEmAsc(StatusDePara.APROVADO))
+                .thenReturn(List.of(aprovado));
+
+        assertEquals(List.of(aprovado), service.listarAprovados());
+    }
 }
