@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Revisão')}"></head>
+<body>
+<link rel="stylesheet" th:href="@{/css/revisao.css}">
+<script th:src="@{/js/revisao.js}" defer></script>
+<header><a th:href="@{/}">Catálogo de Serviços</a><a class="nav" th:href="@{/ui/revisao}">Revisão</a></header>
+<main>
+    <div class="topo">
+        <div>
+            <h1>Revisão de mapeamentos</h1>
+            <p>Confirme ou recuse o que os compradores escolheram. Só o que for aprovado vira busca exata.</p>
+        </div>
+        <label class="revisor">Seu nome
+            <input type="text" id="revisor" autocomplete="name" placeholder="ex.: ana.souza">
+        </label>
+    </div>
+
+    <p th:if="${mensagem}" class="aviso ok" role="status" th:text="${mensagem}"></p>
+    <p th:if="${erro}" class="aviso erro" role="alert" th:text="${erro}"></p>
+
+    <h2>Pendentes <span class="contador" th:text="'(' + ${totalPendentes} + ')'"></span></h2>
+    <p th:if="${#lists.isEmpty(grupos)}" class="vazio-msg">Nada para revisar. As escolhas dos compradores aparecem aqui.</p>
+
+    <div class="tabela-wrap" th:unless="${#lists.isEmpty(grupos)}">
+        <table class="revisao">
+            <thead>
+            <tr><th>Digitado</th><th>Sugestão NBS</th><th>Escolhas</th><th>Score</th><th>Ação</th></tr>
+            </thead>
+            <tbody th:each="g : ${grupos}">
+            <tr th:each="i, st : ${g.itens}" th:classappend="${g.conflito} ? 'conflito'">
+                <td>
+                    <span th:if="${st.first}" th:text="${g.nome}"></span>
+                    <span th:if="${st.first and g.conflito}" class="selo-conflito">conflito</span>
+                </td>
+                <td>
+                    <code th:text="${i.codigoNbs}"></code>
+                    <span th:text="${descricoes[i.codigoNbs]}"></span>
+                </td>
+                <td th:text="${i.confirmacoes}"></td>
+                <td th:text="${i.score != null} ? ${#numbers.formatDecimal(i.score * 100, 1, 0)} + '%' : '—'"></td>
+                <td class="acoes">
+                    <form method="post" th:action="@{/ui/revisao/{id}/aprovar(id=${i.id})}" data-revisor>
+                        <input type="hidden" name="revisor">
+                        <button type="submit" class="aprovar">Aprovar</button>
+                    </form>
+                    <form method="post" th:action="@{/ui/revisao/{id}/rejeitar(id=${i.id})}" data-revisor>
+                        <input type="hidden" name="revisor">
+                        <input type="text" name="motivo" required maxlength="255" placeholder="Motivo" aria-label="Motivo da rejeição">
+                        <button type="submit">Rejeitar</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h2>Aprovados <span class="contador" th:text="'(' + ${#lists.size(aprovados)}  + ')'"></span></h2>
+    <p th:if="${#lists.isEmpty(aprovados)}" class="vazio-msg">Nenhum mapeamento aprovado ainda.</p>
+    <div class="tabela-wrap" th:unless="${#lists.isEmpty(aprovados)}">
+        <table class="revisao">
+            <thead>
+            <tr><th>Digitado</th><th>NBS</th><th>Aprovado por</th><th>Ação</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="a : ${aprovados}">
+                <td th:text="${a.nomeOriginal}"></td>
+                <td><code th:text="${a.codigoNbs}"></code> <span th:text="${descricoes[a.codigoNbs]}"></span></td>
+                <td th:text="${a.revisadoPor} ?: '—'"></td>
+                <td class="acoes">
+                    <form method="post" th:action="@{/ui/revisao/{id}/revogar(id=${a.id})}" data-revisor>
+                        <input type="hidden" name="revisor">
+                        <input type="text" name="motivo" required maxlength="255" placeholder="Motivo" aria-label="Motivo da revogação">
+                        <button type="submit">Revogar</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

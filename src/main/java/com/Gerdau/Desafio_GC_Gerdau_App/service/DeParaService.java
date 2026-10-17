@@ -66,6 +66,10 @@ public class DeParaService {
         return repository.findByStatusOrderByConfirmacoesDescCriadoEmAsc(StatusDePara.PENDENTE);
     }
 
+    public List<DicionarioDePara> listarAprovados() {
+        return repository.findByStatusOrderByConfirmacoesDescCriadoEmAsc(StatusDePara.APROVADO);
+    }
+
     /** Aprova um pendente e rejeita os outros pendentes do mesmo nome. */
     @Transactional
     public DicionarioDePara aprovar(Long id, String revisor) {
