@@ -1,6 +1,6 @@
 # Desafio GC Gerdau App
 
-API REST em **Spring Boot** conectada a um banco **PostgreSQL** executado em container **Docker**. O projeto consulta um catálogo de serviços (área, descrição, condição, CNAE e código padronizado).
+API REST em **Spring Boot** conectada a um banco **PostgreSQL** executado em container **Docker**. O projeto padroniza códigos de serviço e bloqueia a criação de duplicados.
 
 ## Tecnologias
 
@@ -11,34 +11,31 @@ API REST em **Spring Boot** conectada a um banco **PostgreSQL** executado em con
 - Lombok
 - Maven
 
-## O que foi feito
+## O que a aplicação faz
 
-1. **Criação do projeto** Spring Boot com as dependências Web, Data JPA, Lombok e DevTools.
-2. **Driver do PostgreSQL** adicionado ao `pom.xml`.
-3. **Containers** configurados no `docker-compose.yml`: PostgreSQL 16 na porta `5431` (persistência em `./data-db`) e pgAdmin na porta `5050`.
-4. **Credenciais em variáveis de ambiente**, lidas do arquivo `.env` tanto pelo Docker Compose quanto pelo Spring Boot.
-5. **Migrations com Flyway**: a tabela `servicos_mock` e os dados mock são criados automaticamente na primeira execução da aplicação.
-6. **Conexão com o banco** configurada no `application.properties`, com `ddl-auto=validate` (o Hibernate só confere se a entidade bate com a tabela criada pelo Flyway) e `open-in-view` desativado.
-7. **Entidade `Servico`**, **`ServicoRepository`** (Spring Data JPA) e **`ServicoController`** com endpoints de consulta.
+Resolve o problema de códigos de serviço duplicados (TAP do Desafio GC 2026) na trilha Java:
+
+1. **Cadastro com filtro**: ao criar um serviço, o sistema gera o código padronizado, compara o texto com os serviços existentes (`pg_trgm`) e **bloqueia duplicados**, avisando o comprador. Parecidos pedem confirmação.
+2. **Busca de NBS**: o comprador digita o serviço (mesmo com erro) e recebe o código NBS oficial, por busca exata no De-Para ou por sugestões de similaridade.
+3. **Smart Key**: junta o NBS ao sufixo de horário (ex.: `1.01.01-HN`).
+4. **De-Para com revisão**: confirmações de usuários viram mapeamentos `PENDENTE`; um revisor aprova, rejeita ou revoga, com histórico. Só `APROVADO` vale como busca exata.
+
+Passo a passo de uso: [docs/GUIA_DE_USO.md](docs/GUIA_DE_USO.md). Regras de negócio e decisões: [docs/REGRAS_DE_NEGOCIO.md](docs/REGRAS_DE_NEGOCIO.md).
 
 ## Estrutura
 
 ```
-Desafio-GC-Gerdau-App/
-├── docker-compose.yml
-├── env.example
-├── pom.xml
-└── src/main/
-    ├── java/com/Gerdau/Desafio_GC_Gerdau_App/
-    │   ├── controller/ServicoController.java
-    │   ├── model/Servico.java
-    │   ├── repository/ServicoRepository.java
-    │   └── DesafioGcGerdauAppApplication.java
-    └── resources/
-        ├── application.properties
-        └── db/migration/
-            ├── V1__create_servicos_mock.sql
-            └── V2__insert_servicos_mock.sql
+src/main/java/com/Gerdau/Desafio_GC_Gerdau_App/
+├── controller/   REST (/api, /servicos) e telas Thymeleaf (/ui)
+├── service/      ServicoService, BuscaNbsService, DeParaService, SmartKeyService
+├── repository/   Spring Data JPA + queries nativas com pg_trgm
+├── model/        entidades e enums (Condicao, StatusDePara, OrigemDePara)
+├── dto/          requests e responses
+└── exception/    CadastroRejeitadoException, DeParaNaoEncontradoException
+src/main/resources/
+├── db/migration/ migrations Flyway (V1 a V7)
+├── templates/    telas (busca, servicos, formulário, revisão)
+└── static/       css e js
 ```
 
 ## Como executar
@@ -99,42 +96,52 @@ O schema do banco é versionado em `src/main/resources/db/migration`. Ao iniciar
 
 | Arquivo | Conteúdo |
 |---------|----------|
-| `V1__create_servicos_mock.sql` | Cria a tabela `servicos_mock` (constraints de unicidade e de condições válidas) |
-| `V2__insert_servicos_mock.sql` | Insere os 15 serviços mock |
+| `V1__create_servicos_mock.sql` | Tabela `servicos_mock` (unicidade e condições válidas) |
+| `V2__insert_servicos_mock.sql` | 15 serviços mock |
+| `V3__pg_trgm_similaridade.sql` | Extensão `pg_trgm` e índice de similaridade em `servicos_mock` |
+| `V4__dicionario_de_para_revisao.sql` | `cat_nbs`, `dicionario_de_para` e histórico de revisão |
+| `V5__popula_cat_nbs.sql` | Recorte da NBS 2.0 em `cat_nbs` |
+| `V6__cat_horarios.sql` | `cat_horarios` com os sufixos da Smart Key |
+| `V7__servicos_mock_codigo_nbs.sql` | Coluna `codigo_nbs` em `servicos_mock` |
 
 Para alterar o banco, crie um novo arquivo seguindo a convenção `V{n}__descricao.sql` (ex.: `V3__add_coluna_x.sql`). **Nunca edite uma migration já aplicada**: o Flyway valida o checksum e a aplicação deixa de subir.
 
+## Telas
+
+| Rota | Tela |
+|------|------|
+| `/` | Lista de serviços |
+| `/ui/busca` | Busca de NBS e Smart Key |
+| `/ui/servicos/novo` | Cadastro de novo serviço (com filtro de duplicados) |
+| `/ui/servicos/{id}` | Detalhe do serviço |
+| `/ui/revisao` | Fila de revisão do De-Para |
+
 ## Endpoints
 
-| Método | Rota                     | Descrição                       |
-|--------|--------------------------|---------------------------------|
-| GET    | `/servicos`              | Lista todos os serviços         |
-| GET    | `/servicos/{id}`         | Busca um serviço pelo id        |
-| GET    | `/servicos/area/{area}`  | Lista os serviços de uma área   |
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/servicos` | Lista todos os serviços |
+| GET | `/servicos/{id}` | Busca um serviço pelo id |
+| GET | `/servicos/area/{area}` | Lista os serviços de uma área |
+| POST | `/servicos/analise` | Simula o cadastro: código gerado, similares e se bloquearia |
+| POST | `/servicos?confirmar=false` | Cadastra. `201` criado; `409` com a análise se bloqueado ou se pede confirmação |
+| GET | `/api/nbs/busca?texto=` | Busca de NBS: `EXATO` (De-Para aprovado) ou `SUGESTOES` |
+| GET | `/api/horarios` | Lista os horários e sufixos |
+| GET | `/api/smart-key?nbs=&horario=` | Monta a Smart Key (`400` se NBS ou horário não existem) |
+| POST | `/api/de-para/confirmacoes` | Registra a confirmação de um usuário como `PENDENTE` |
+| GET | `/api/de-para/fila` | Lista os pendentes |
+| POST | `/api/de-para/{id}/aprovar` | Aprova (corpo: `revisor`) |
+| POST | `/api/de-para/{id}/rejeitar` | Rejeita (corpo: `revisor`, `motivo`) |
+| POST | `/api/de-para/{id}/revogar` | Revoga um aprovado (corpo: `revisor`, `motivo`) |
 
-### Exemplo
+### Exemplos
 
 ```bash
-curl localhost:8080/servicos
-curl localhost:8080/servicos/1
-curl localhost:8080/servicos/area/Civil
-```
-
-Resposta de `/servicos/1`:
-
-```json
-{
-  "id": 1,
-  "areaServico": "Civil",
-  "textoBreve": "Concretagem de fundação",
-  "abreviatura": "CONC",
-  "complemento": "_CONCRE",
-  "id1Condicao": "Hora normal",
-  "id2Cnae": "4399103",
-  "codigoPadronizado": "CONC_CONCRE_HN4399103",
-  "criadorCodigo": "bruno.fernandes",
-  "dataCriacao": "2026-10-16T15:43:24.431946"
-}
+curl localhost:8080/api/nbs/busca?texto=instalaa%20eletrica
+curl "localhost:8080/api/smart-key?nbs=1.01.01&horario=HN"
+curl -X POST localhost:8080/servicos/analise -H 'Content-Type: application/json' -d '{
+  "areaServico":"Civil","textoBreve":"Concretagem de fundação","abreviatura":"CONC",
+  "complemento":"_CONCRE","condicao":"HORA_NORMAL","cnae":"4399103"}'
 ```
 
 ## Verificando o banco
