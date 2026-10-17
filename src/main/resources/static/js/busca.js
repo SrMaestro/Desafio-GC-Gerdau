@@ -6,8 +6,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const status = document.getElementById('busca-status');
     const urlBusca = input.dataset.url;
     const urlConfirmar = input.dataset.confirmar;
+    const urlHorarios = input.dataset.horarios;
+    const urlSmartKey = input.dataset.smartKey;
+
+    const painel = document.getElementById('smart-key');
+    const painelNbs = document.getElementById('sk-nbs');
+    const seletor = document.getElementById('sk-horario');
+    const chave = document.getElementById('sk-chave');
+    const copiar = document.getElementById('sk-copiar');
+    const erro = document.getElementById('sk-erro');
+
     let timer;
     let ultimaBusca = 0;
+    let nbsEscolhido = null;
+    let horariosCarregados = null;
 
     const pct = (score) => Math.round(score * 100) + '% parecido';
 
@@ -25,20 +37,25 @@ document.addEventListener('DOMContentLoaded', () => {
         info.append(codigo, descricao);
         li.appendChild(info);
 
+        const botao = document.createElement('button');
+        botao.type = 'button';
+        botao.className = 'copiar';
+        botao.textContent = 'Usar este';
+
         if (tipo === 'EXATO') {
             const selo = document.createElement('span');
             selo.className = 'selo';
             selo.textContent = 'Aprovado';
-            li.appendChild(selo);
+            botao.addEventListener('click', () => escolher(sugestao));
+            li.append(selo, botao);
         } else {
             const detalhe = document.createElement('span');
             detalhe.className = 'score';
             detalhe.textContent = pct(sugestao.score);
-            const botao = document.createElement('button');
-            botao.type = 'button';
-            botao.className = 'copiar';
-            botao.textContent = 'Usar este';
-            botao.addEventListener('click', () => confirmar(sugestao, texto, botao));
+            botao.addEventListener('click', () => {
+                escolher(sugestao);
+                confirmar(sugestao, texto, botao);
+            });
             li.append(detalhe, botao);
         }
         return li;
@@ -58,9 +75,74 @@ document.addEventListener('DOMContentLoaded', () => {
             status.textContent = 'Escolha registrada para revisão.';
         } catch (e) {
             botao.disabled = false;
-            status.textContent = 'Não foi possível registrar a escolha. Tente de novo.';
+            status.textContent = 'Não foi possível registrar a escolha para revisão, mas você pode copiar o código abaixo.';
         }
     }
+
+    async function carregarHorarios() {
+        if (horariosCarregados) return horariosCarregados;
+        const resp = await fetch(urlHorarios);
+        if (!resp.ok) throw new Error();
+        horariosCarregados = await resp.json();
+        horariosCarregados.forEach((h) => {
+            const opcao = document.createElement('option');
+            opcao.value = h.sufixo;
+            opcao.textContent = h.descricao + ' (' + h.sufixo + ')';
+            seletor.appendChild(opcao);
+        });
+        return horariosCarregados;
+    }
+
+    async function escolher(sugestao) {
+        nbsEscolhido = sugestao;
+        painel.hidden = false;
+        painelNbs.replaceChildren();
+        const codigo = document.createElement('code');
+        codigo.textContent = sugestao.codigoNbs;
+        painelNbs.append(codigo, ' ' + sugestao.descricao);
+        try {
+            await carregarHorarios();
+            await gerarChave();
+        } catch (e) {
+            chave.textContent = '';
+            erro.textContent = 'Não foi possível carregar os horários. Tente de novo.';
+        }
+    }
+
+    async function gerarChave() {
+        if (!nbsEscolhido) return;
+        const nbs = nbsEscolhido.codigoNbs;
+        const url = urlSmartKey + '?nbs=' + encodeURIComponent(nbs) + '&horario=' + encodeURIComponent(seletor.value);
+        const resp = await fetch(url);
+        if (nbs !== nbsEscolhido.codigoNbs) return; // escolha mudou durante a chamada
+        if (!resp.ok) {
+            chave.textContent = '';
+            erro.textContent = 'Não foi possível montar o código. Tente de novo.';
+            return;
+        }
+        const dados = await resp.json();
+        erro.textContent = '';
+        chave.textContent = dados.chave;
+        copiar.textContent = 'Copiar';
+        copiar.classList.remove('copiado');
+    }
+
+    seletor.addEventListener('change', () => {
+        gerarChave().catch(() => {
+            erro.textContent = 'Não foi possível montar o código. Tente de novo.';
+        });
+    });
+
+    copiar.addEventListener('click', async () => {
+        if (!chave.textContent) return;
+        try {
+            await navigator.clipboard.writeText(chave.textContent);
+            copiar.textContent = 'Copiado';
+            copiar.classList.add('copiado');
+        } catch (e) {
+            copiar.textContent = 'Falhou';
+        }
+    });
 
     async function buscar() {
         const texto = input.value.trim();
