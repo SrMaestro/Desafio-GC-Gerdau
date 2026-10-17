@@ -14,7 +14,7 @@ import java.util.List;
 @Service
 public class BuscaNbsService {
 
-    static final double LIMIAR_SUGESTAO = 0.3;
+    static final double LIMIAR_SUGESTAO = 0.2;
     static final int MAX_SUGESTOES = 5;
     static final int TAMANHO_MIN_TEXTO = 2;
 
