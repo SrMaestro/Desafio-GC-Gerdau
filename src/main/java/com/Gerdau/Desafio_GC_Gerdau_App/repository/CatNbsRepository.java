@@ -1,5 +1,6 @@
 package com.Gerdau.Desafio_GC_Gerdau_App.repository;
 
+import com.Gerdau.Desafio_GC_Gerdau_App.dto.NbsSimilar;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.CatNbs;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -12,12 +13,14 @@ import java.util.List;
 public interface CatNbsRepository extends JpaRepository<CatNbs, String> {
 
     @Query(value = """
-            SELECT * FROM cat_nbs
+            SELECT codigo_nbs AS codigoNbs, descricao_atividade AS descricao,
+                   similarity(lower(descricao_atividade), lower(:texto)) AS score
+            FROM cat_nbs
             WHERE similarity(lower(descricao_atividade), lower(:texto)) >= :minimo
-            ORDER BY similarity(lower(descricao_atividade), lower(:texto)) DESC
+            ORDER BY score DESC
             LIMIT :limite
             """, nativeQuery = true)
-    List<CatNbs> buscarSugestoes(@Param("texto") String texto,
-                                 @Param("minimo") double minimo,
-                                 @Param("limite") int limite);
+    List<NbsSimilar> buscarSugestoes(@Param("texto") String texto,
+                                     @Param("minimo") double minimo,
+                                     @Param("limite") int limite);
 }

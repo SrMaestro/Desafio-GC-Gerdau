@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Buscar NBS')}"></head>
+<body>
+<header><a th:href="@{/}">Catálogo de Serviços</a></header>
+<main>
+    <p><a th:href="@{/}">&larr; Voltar</a></p>
+    <div class="topo">
+        <div>
+            <h1>Buscar código NBS</h1>
+            <p>Descreva o serviço e escolha a sugestão que corresponde.</p>
+        </div>
+    </div>
+
+    <input type="search" id="busca-nbs" class="busca" aria-label="Descrição do serviço"
+           placeholder="Ex.: instalação elétrica" autocomplete="off" th:attr="data-url=@{/api/nbs/busca}, data-confirmar=@{/api/de-para/confirmacoes}">
+
+    <p id="busca-status" class="contador" aria-live="polite"></p>
+    <ul id="busca-lista" class="sugestoes"></ul>
+</main>
+</body>
+</html>

@@ -88,3 +88,14 @@ td.titulo a:hover { text-decoration: underline; }
 @media (prefers-reduced-motion: no-preference) {
     .copiar, .chip, .botao { transition: background-color .15s, border-color .15s, color .15s; }
 }
+
+/* Busca de NBS */
+.sugestoes { list-style: none; margin: 1rem 0 0; padding: 0; background: var(--superficie); border: 1px solid var(--linha); }
+.sugestoes:empty { display: none; }
+.sugestoes li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .75rem .9rem; border-bottom: 1px solid var(--linha); }
+.sugestoes li:last-child { border-bottom: 0; }
+.sugestoes code { font-family: var(--mono); background: var(--papel); padding: .15rem .45rem; border-radius: 2px; }
+.sugestoes .score { margin-left: auto; color: var(--texto-suave); font-size: .9rem; white-space: nowrap; }
+.sugestoes .selo { background: var(--azul); color: #fff; padding: .15rem .6rem; border-radius: 999px; font-size: .85rem; }
+.sugestoes button:disabled { cursor: default; }
+.topo > span { display: flex; align-items: center; gap: 1.25rem; }
