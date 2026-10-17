@@ -42,6 +42,11 @@ public class ServicoViewController {
         return "servicos";
     }
 
+    @GetMapping("/ui/busca")
+    public String busca() {
+        return "busca";
+    }
+
     @GetMapping("/ui/servicos/{id}")
     public String detalhe(@PathVariable Integer id, Model model) {
         model.addAttribute("servico", repository.findById(id).orElseThrow());

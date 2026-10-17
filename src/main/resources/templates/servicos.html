@@ -9,7 +9,8 @@
             <h1>Serviços</h1>
             <p>Busque pelo nome, área ou código e copie o código padronizado.</p>
         </div>
-        <a class="botao" th:href="@{/ui/servicos/novo}">Novo serviço</a>
+        <span><a th:href="@{/ui/busca}">Buscar código NBS</a>
+            <a class="botao" th:href="@{/ui/servicos/novo}">Novo serviço</a></span>
     </div>
 
     <input type="search" id="busca" class="busca" aria-label="Buscar serviços" placeholder="Buscar serviço, área, código ou CNAE" autocomplete="off">
