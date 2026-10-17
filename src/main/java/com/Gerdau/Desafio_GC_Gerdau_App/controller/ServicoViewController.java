@@ -1,6 +1,7 @@
 package com.Gerdau.Desafio_GC_Gerdau_App.controller;
 
 import com.Gerdau.Desafio_GC_Gerdau_App.model.Servico;
+import com.Gerdau.Desafio_GC_Gerdau_App.repository.CatNbsRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.ServicoRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.dto.NovoServicoForm;
 import com.Gerdau.Desafio_GC_Gerdau_App.exception.CadastroRejeitadoException;
@@ -24,10 +25,13 @@ public class ServicoViewController {
 
     private final ServicoRepository repository;
     private final ServicoService service;
+    private final CatNbsRepository catNbsRepository;
 
-    public ServicoViewController(ServicoRepository repository, ServicoService service) {
+    public ServicoViewController(ServicoRepository repository, ServicoService service,
+                                 CatNbsRepository catNbsRepository) {
         this.repository = repository;
         this.service = service;
+        this.catNbsRepository = catNbsRepository;
     }
 
     @GetMapping("/")
@@ -53,9 +57,16 @@ public class ServicoViewController {
         return "servico-detalhe";
     }
 
+    /** nbs e horario (sufixo) vêm da busca de NBS e pré-preenchem o formulário. */
     @GetMapping("/ui/servicos/novo")
-    public String novo(Model model) {
-        model.addAttribute("form", new NovoServicoForm());
+    public String novo(@RequestParam(required = false) String nbs,
+                       @RequestParam(required = false) String horario, Model model) {
+        NovoServicoForm form = new NovoServicoForm();
+        if (nbs != null && !nbs.isBlank()) {
+            form.setCodigoNbs(nbs.trim());
+        }
+        Condicao.daSufixo(horario).ifPresent(form::setCondicao);
+        model.addAttribute("form", form);
         return formulario(model);
     }
 
@@ -80,6 +91,11 @@ public class ServicoViewController {
     }
 
     private String formulario(Model model) {
+        NovoServicoForm form = (NovoServicoForm) model.getAttribute("form");
+        if (form != null && form.getCodigoNbs() != null && !form.getCodigoNbs().isBlank()) {
+            catNbsRepository.findById(form.getCodigoNbs().trim())
+                    .ifPresent(nbs -> model.addAttribute("nbsSelecionado", nbs));
+        }
         model.addAttribute("condicoes", Condicao.values());
         model.addAttribute("areas", repository.findAreas());
         return "servico-form";

@@ -25,7 +25,14 @@
             </li>
         </ul>
     </div>
+    <div th:if="${nbsSelecionado != null}" class="card" style="border-left:4px solid #003b71">
+        <strong>Código NBS:</strong> <code th:text="${nbsSelecionado.codigoNbs}"></code>
+        <span th:text="${nbsSelecionado.descricaoAtividade}"></span>
+    </div>
+    <p th:if="${nbsSelecionado == null and form.codigoNbs != null and !#strings.isEmpty(form.codigoNbs)}"
+       style="color:#c00">Código NBS desconhecido: <code th:text="${form.codigoNbs}"></code></p>
     <form method="post" th:action="@{/ui/servicos}" th:object="${form}">
+        <input type="hidden" th:field="*{codigoNbs}">
         <div th:if="${#fields.hasGlobalErrors()}" class="card" style="border-left:4px solid #c00">
             <p th:each="e : ${#fields.globalErrors()}" th:text="${e}"></p>
         </div>

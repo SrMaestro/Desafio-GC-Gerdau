@@ -15,6 +15,7 @@
             <dt>Complemento</dt><dd th:text="${servico.complemento} ?: '—'"></dd>
             <dt>Condição</dt><dd th:text="${servico.id1Condicao}"></dd>
             <dt>CNAE</dt><dd th:text="${servico.id2Cnae}"></dd>
+            <dt>Código NBS</dt><dd th:text="${servico.codigoNbs} ?: '—'"></dd>
             <dt>Criador</dt><dd th:text="${servico.criadorCodigo} ?: '—'"></dd>
             <dt>Criado em</dt><dd th:text="${#temporals.format(servico.dataCriacao, 'dd/MM/yyyy HH:mm')}"></dd>
         </dl>

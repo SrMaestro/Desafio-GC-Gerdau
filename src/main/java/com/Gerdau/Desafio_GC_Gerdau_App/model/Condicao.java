@@ -1,6 +1,7 @@
 package com.Gerdau.Desafio_GC_Gerdau_App.model;
 
 import java.util.Arrays;
+import java.util.Optional;
 
 /** Valores aceitos em id1_condicao (espelha o CHECK da V1) com o sufixo usado no código padronizado. */
 public enum Condicao {
@@ -33,6 +34,13 @@ public enum Condicao {
 
     public String getSufixo() {
         return sufixo;
+    }
+
+    public static Optional<Condicao> daSufixo(String sufixo) {
+        if (sufixo == null) {
+            return Optional.empty();
+        }
+        return Arrays.stream(values()).filter(c -> c.sufixo.equalsIgnoreCase(sufixo.trim())).findFirst();
     }
 
     public static Condicao daDescricao(String descricao) {

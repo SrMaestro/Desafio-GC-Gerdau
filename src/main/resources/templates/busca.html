@@ -13,7 +13,7 @@
     </div>
 
     <input type="search" id="busca-nbs" class="busca" aria-label="Descrição do serviço"
-           placeholder="Ex.: instalação elétrica" autocomplete="off" th:attr="data-url=@{/api/nbs/busca}, data-confirmar=@{/api/de-para/confirmacoes}, data-horarios=@{/api/horarios}, data-smart-key=@{/api/smart-key}">
+           placeholder="Ex.: instalação elétrica" autocomplete="off" th:attr="data-url=@{/api/nbs/busca}, data-confirmar=@{/api/de-para/confirmacoes}, data-horarios=@{/api/horarios}, data-smart-key=@{/api/smart-key}, data-cadastrar=@{/ui/servicos/novo}">
 
     <p id="busca-status" class="contador" aria-live="polite"></p>
     <ul id="busca-lista" class="sugestoes"></ul>
@@ -28,6 +28,7 @@
             <code id="sk-chave" aria-live="polite"></code>
             <button type="button" id="sk-copiar" class="copiar">Copiar</button>
         </div>
+        <p><a id="sk-cadastrar" class="botao" href="#" hidden>Cadastrar serviço com este código</a></p>
         <p id="sk-erro" class="sk-erro" role="alert"></p>
     </section>
 </main>

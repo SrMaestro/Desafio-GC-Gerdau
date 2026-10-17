@@ -6,6 +6,7 @@ import com.Gerdau.Desafio_GC_Gerdau_App.dto.ServicoSimilar;
 import com.Gerdau.Desafio_GC_Gerdau_App.exception.CadastroRejeitadoException;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.Condicao;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.Servico;
+import com.Gerdau.Desafio_GC_Gerdau_App.repository.CatNbsRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.ServicoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,11 +32,14 @@ class ServicoServiceTest {
     @Mock
     ServicoRepository repository;
 
+    @Mock
+    CatNbsRepository catNbsRepository;
+
     ServicoService service;
 
     @BeforeEach
     void setUp() {
-        service = new ServicoService(repository);
+        service = new ServicoService(repository, catNbsRepository);
     }
 
     private NovoServicoForm form() {
@@ -131,5 +135,38 @@ class ServicoServiceTest {
         when(repository.buscarSimilares(anyString(), anyDouble(), anyInt())).thenReturn(List.of());
 
         assertThrows(IllegalArgumentException.class, () -> service.cadastrar(f, false));
+    }
+
+    @Test
+    void cadastrar_guardaOCodigoNbsQuandoExiste() {
+        NovoServicoForm f = form();
+        f.setCodigoNbs(" 1.0105.40.00 ");
+        when(catNbsRepository.existsById("1.0105.40.00")).thenReturn(true);
+        when(repository.findByCodigoPadronizado(anyString())).thenReturn(Optional.empty());
+        when(repository.buscarSimilares(anyString(), anyDouble(), anyInt())).thenReturn(List.of());
+        when(repository.saveAndFlush(any(Servico.class))).thenAnswer(i -> i.getArgument(0));
+
+        Servico salvo = service.cadastrar(f, false);
+
+        assertEquals("1.0105.40.00", salvo.getCodigoNbs());
+    }
+
+    @Test
+    void cadastrar_semNbsContinuaFuncionando() {
+        when(repository.findByCodigoPadronizado(anyString())).thenReturn(Optional.empty());
+        when(repository.buscarSimilares(anyString(), anyDouble(), anyInt())).thenReturn(List.of());
+        when(repository.saveAndFlush(any(Servico.class))).thenAnswer(i -> i.getArgument(0));
+
+        assertNull(service.cadastrar(form(), false).getCodigoNbs());
+    }
+
+    @Test
+    void cadastrar_recusaCodigoNbsInexistenteSemSalvar() {
+        NovoServicoForm f = form();
+        f.setCodigoNbs("9.9999.99.99");
+        when(catNbsRepository.existsById("9.9999.99.99")).thenReturn(false);
+
+        assertThrows(IllegalArgumentException.class, () -> service.cadastrar(f, false));
+        verify(repository, never()).saveAndFlush(any());
     }
 }

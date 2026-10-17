@@ -38,4 +38,8 @@ public class NovoServicoForm {
 
     @Size(max = 100)
     private String criadorCodigo;
+
+    /** Código NBS escolhido na busca; opcional. */
+    @Size(max = 20)
+    private String codigoNbs;
 }
