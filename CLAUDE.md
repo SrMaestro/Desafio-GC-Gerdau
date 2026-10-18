@@ -6,6 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Aplicação Spring Boot 4.1 / Java 21 (Maven, Lombok, Thymeleaf, Flyway, PostgreSQL 16) do Desafio GC Gerdau 2026. Padroniza códigos de serviço e impede duplicados. O código-fonte, a documentação e os nomes de domínio estão em português. Regras de negócio detalhadas: `docs/REGRAS_DE_NEGOCIO.md`; uso das telas: `docs/GUIA_DE_USO.md`.
 
+## Contexto do projeto (TAP)
+
+Origem: TAP do Desafio GC 2026 (Gerdau | Geração Caldeira), em `tap_termo_de_abertura_do_projeto.md`. Hoje cada comprador cria os próprios códigos de serviço sem nenhum filtro, o que gerou milhares de duplicados e esquecidos. O limite de 40 caracteres vem do SAP.
+
+- Este repositório é a **trilha Java**: entrada de novos códigos, filtro que compara com os existentes, bloqueio de duplicados e aviso a quem cria. A trilha IA & Dados cuida do saneamento da base completa e entrega a lista padronizada que o filtro deve usar. Essa lista não está aqui: `servicos_mock` é só dado de exemplo.
+- Critérios de sucesso do TAP que guiam decisões: a checagem de um código novo deve ser rápida, a tela deve ser simples para compradores, e a documentação deve servir a quem não participou do projeto (por isso mantenha `README.md` e `docs/` em dia ao mudar comportamento).
+
 ## Comandos
 
 ```bash
