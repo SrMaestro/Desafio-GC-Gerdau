@@ -29,11 +29,11 @@ src/main/java/com/Gerdau/Desafio_GC_Gerdau_App/
 ├── controller/   REST (/api, /servicos) e telas Thymeleaf (/ui)
 ├── service/      ServicoService, BuscaNbsService, DeParaService, SmartKeyService
 ├── repository/   Spring Data JPA + queries nativas com pg_trgm
-├── model/        entidades e enums (Condicao, StatusDePara, OrigemDePara)
+├── model/        entidades e enums (StatusDePara, OrigemDePara)
 ├── dto/          requests e responses
 └── exception/    CadastroRejeitadoException, DeParaNaoEncontradoException
 src/main/resources/
-├── db/migration/ migrations Flyway (V1 a V7)
+├── db/migration/ migrations Flyway (V1 a V8)
 ├── templates/    telas (busca, servicos, formulário, revisão)
 └── static/       css e js
 ```
@@ -103,6 +103,7 @@ O schema do banco é versionado em `src/main/resources/db/migration`. Ao iniciar
 | `V5__popula_cat_nbs.sql` | Recorte da NBS 2.0 em `cat_nbs` |
 | `V6__cat_horarios.sql` | `cat_horarios` com os sufixos da Smart Key |
 | `V7__servicos_mock_codigo_nbs.sql` | Coluna `codigo_nbs` em `servicos_mock` |
+| `V8__cat_horarios_unica_fonte.sql` | `cat_horarios.ativo` e remoção do `CHECK` de condição em `servicos_mock` |
 
 Para alterar o banco, crie um novo arquivo seguindo a convenção `V{n}__descricao.sql` (ex.: `V3__add_coluna_x.sql`). **Nunca edite uma migration já aplicada**: o Flyway valida o checksum e a aplicação deixa de subir.
 

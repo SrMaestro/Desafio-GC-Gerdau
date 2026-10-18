@@ -60,7 +60,7 @@
                     <label class="campo parte-cond">Condição
                         <select th:field="*{condicao}" required>
                             <option value="">Selecione</option>
-                            <option th:each="c : ${condicoes}" th:value="${c}" th:attr="data-sufixo=${c.sufixo}" th:text="${c.descricao}"></option>
+                            <option th:each="c : ${condicoes}" th:value="${c.sufixoCodigo}" th:attr="data-sufixo=${c.sufixoCodigo}" th:text="${c.descricaoHorario}"></option>
                         </select>
                         <small class="erro" th:errors="*{condicao}"></small>
                     </label>

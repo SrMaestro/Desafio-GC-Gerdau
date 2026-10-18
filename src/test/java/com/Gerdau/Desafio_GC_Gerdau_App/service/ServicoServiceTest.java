@@ -4,8 +4,9 @@ import com.Gerdau.Desafio_GC_Gerdau_App.dto.AnaliseSimilaridade;
 import com.Gerdau.Desafio_GC_Gerdau_App.dto.NovoServicoForm;
 import com.Gerdau.Desafio_GC_Gerdau_App.dto.ServicoSimilar;
 import com.Gerdau.Desafio_GC_Gerdau_App.exception.CadastroRejeitadoException;
-import com.Gerdau.Desafio_GC_Gerdau_App.model.Condicao;
+import com.Gerdau.Desafio_GC_Gerdau_App.model.CatHorario;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.Servico;
+import com.Gerdau.Desafio_GC_Gerdau_App.repository.CatHorarioRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.CatNbsRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.ServicoRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,11 +36,21 @@ class ServicoServiceTest {
     @Mock
     CatNbsRepository catNbsRepository;
 
+    @Mock
+    CatHorarioRepository catHorarioRepository;
+
     ServicoService service;
 
     @BeforeEach
     void setUp() {
-        service = new ServicoService(repository, catNbsRepository);
+        service = new ServicoService(repository, catNbsRepository, catHorarioRepository);
+    }
+
+    private void condicaoAtiva(String sufixo, String descricao) {
+        CatHorario h = new CatHorario();
+        h.setSufixoCodigo(sufixo);
+        h.setDescricaoHorario(descricao);
+        when(catHorarioRepository.findBySufixoCodigoAndAtivoTrue(sufixo)).thenReturn(Optional.of(h));
     }
 
     private NovoServicoForm form() {
@@ -48,7 +59,7 @@ class ServicoServiceTest {
         f.setTextoBreve("Concretagem de fundação");
         f.setAbreviatura("conc");
         f.setComplemento("_CONCRE");
-        f.setCondicao(Condicao.HORA_NORMAL);
+        f.setCondicao("HN");
         f.setCnae("4399103");
         return f;
     }
@@ -66,6 +77,7 @@ class ServicoServiceTest {
 
     @Test
     void geraCodigoNoPadraoDoCatalogo() {
+        condicaoAtiva("HN", "Hora normal");
         assertEquals("CONC_CONCRE_HN4399103", service.gerarCodigo(form()));
     }
 
@@ -90,6 +102,7 @@ class ServicoServiceTest {
 
     @Test
     void bloqueiaQuandoCodigoJaExiste() {
+        condicaoAtiva("HN", "Hora normal");
         when(repository.findByCodigoPadronizado("CONC_CONCRE_HN4399103")).thenReturn(Optional.of(new Servico()));
         when(repository.buscarSimilares(anyString(), anyDouble(), anyInt())).thenReturn(List.of());
 
@@ -101,6 +114,7 @@ class ServicoServiceTest {
 
     @Test
     void bloqueiaTextoQuaseIdenticoComMesmaCondicaoECnae() {
+        condicaoAtiva("HN", "Hora normal");
         when(repository.findByCodigoPadronizado(anyString())).thenReturn(Optional.empty());
         when(repository.buscarSimilares(anyString(), anyDouble(), anyInt()))
                 .thenReturn(List.of(similar(0.9, "Hora normal", "4399103")));
@@ -110,6 +124,7 @@ class ServicoServiceTest {
 
     @Test
     void textoIdenticoComOutraCondicaoSoPedeConfirmacao() {
+        condicaoAtiva("HN", "Hora normal");
         when(repository.findByCodigoPadronizado(anyString())).thenReturn(Optional.empty());
         when(repository.buscarSimilares(anyString(), anyDouble(), anyInt()))
                 .thenReturn(List.of(similar(0.95, "Hora extra Seg a Sab", "4399103")));
@@ -122,6 +137,7 @@ class ServicoServiceTest {
 
     @Test
     void cadastrarSemConfirmarComParecidosEhRejeitado() {
+        condicaoAtiva("HN", "Hora normal");
         when(repository.findByCodigoPadronizado(anyString())).thenReturn(Optional.empty());
         when(repository.buscarSimilares(anyString(), anyDouble(), anyInt()))
                 .thenReturn(List.of(similar(0.5, "Hora extra Seg a Sab", "4399103")));
@@ -132,6 +148,7 @@ class ServicoServiceTest {
 
     @Test
     void cadastrarComConfirmacaoSalvaComCodigoGerado() {
+        condicaoAtiva("HN", "Hora normal");
         when(repository.findByCodigoPadronizado(anyString())).thenReturn(Optional.empty());
         when(repository.buscarSimilares(anyString(), anyDouble(), anyInt()))
                 .thenReturn(List.of(similar(0.5, "Hora extra Seg a Sab", "4399103")));
@@ -146,10 +163,11 @@ class ServicoServiceTest {
 
     @Test
     void rejeitaCodigoMaiorQue40Caracteres() {
+        condicaoAtiva("PERS", "Adicional periculosidade s/ hora extra");
         NovoServicoForm f = form();
         f.setAbreviatura("ABCDEFGHIJ");
         f.setComplemento("_ABCDEFGHIJKLMNOPQRS");
-        f.setCondicao(Condicao.ADICIONAL_PERICULOSIDADE_SEM_HE);
+        f.setCondicao("PERS");
         when(repository.findByCodigoPadronizado(anyString())).thenReturn(Optional.empty());
         when(repository.buscarSimilares(anyString(), anyDouble(), anyInt())).thenReturn(List.of());
 
@@ -158,6 +176,7 @@ class ServicoServiceTest {
 
     @Test
     void cadastrar_guardaOCodigoNbsQuandoExiste() {
+        condicaoAtiva("HN", "Hora normal");
         NovoServicoForm f = form();
         f.setCodigoNbs(" 1.0105.40.00 ");
         when(catNbsRepository.existsById("1.0105.40.00")).thenReturn(true);
@@ -172,6 +191,7 @@ class ServicoServiceTest {
 
     @Test
     void cadastrar_semNbsContinuaFuncionando() {
+        condicaoAtiva("HN", "Hora normal");
         when(repository.findByCodigoPadronizado(anyString())).thenReturn(Optional.empty());
         when(repository.buscarSimilares(anyString(), anyDouble(), anyInt())).thenReturn(List.of());
         when(repository.saveAndFlush(any(Servico.class))).thenAnswer(i -> i.getArgument(0));
@@ -187,5 +207,30 @@ class ServicoServiceTest {
 
         assertThrows(IllegalArgumentException.class, () -> service.cadastrar(f, false));
         verify(repository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void cadastrar_recusaCondicaoInexistenteOuAposentadaSemSalvar() {
+        NovoServicoForm f = form();
+        f.setCondicao("XX");
+        when(catHorarioRepository.findBySufixoCodigoAndAtivoTrue("XX")).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> service.cadastrar(f, false));
+        verify(repository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void cadastrar_aceitaCondicaoNovaInseridaNoCatalogo() {
+        NovoServicoForm f = form();
+        f.setCondicao("novo");
+        condicaoAtiva("NOVO", "Condição nova");
+        when(repository.findByCodigoPadronizado(anyString())).thenReturn(Optional.empty());
+        when(repository.buscarSimilares(anyString(), anyDouble(), anyInt())).thenReturn(List.of());
+        when(repository.saveAndFlush(any(Servico.class))).thenAnswer(i -> i.getArgument(0));
+
+        Servico salvo = service.cadastrar(f, false);
+
+        assertEquals("CONC_CONCRE_NOVO4399103", salvo.getCodigoPadronizado());
+        assertEquals("Condição nova", salvo.getId1Condicao());
     }
 }

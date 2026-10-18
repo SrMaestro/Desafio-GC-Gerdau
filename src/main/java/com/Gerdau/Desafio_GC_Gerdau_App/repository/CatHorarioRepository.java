@@ -10,7 +10,7 @@ import java.util.Optional;
 @Repository
 public interface CatHorarioRepository extends JpaRepository<CatHorario, Integer> {
 
-    Optional<CatHorario> findBySufixoCodigo(String sufixoCodigo);
+    Optional<CatHorario> findBySufixoCodigoAndAtivoTrue(String sufixoCodigo);
 
-    List<CatHorario> findAllByOrderByIdAsc();
+    List<CatHorario> findByAtivoTrueOrderByIdAsc();
 }

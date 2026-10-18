@@ -49,7 +49,7 @@ class SmartKeyServiceTest {
     @Test
     void gerar_juntaNbsESufixoComHifen() {
         when(catNbsRepository.findById("1.0106.19.00")).thenReturn(Optional.of(nbs()));
-        when(catHorarioRepository.findBySufixoCodigo("HN")).thenReturn(Optional.of(horario()));
+        when(catHorarioRepository.findBySufixoCodigoAndAtivoTrue("HN")).thenReturn(Optional.of(horario()));
 
         SmartKey chave = service.gerar("1.0106.19.00", "HN");
 
@@ -61,7 +61,7 @@ class SmartKeyServiceTest {
     @Test
     void gerar_aceitaSufixoEmMinusculaEComEspacos() {
         when(catNbsRepository.findById("1.0106.19.00")).thenReturn(Optional.of(nbs()));
-        when(catHorarioRepository.findBySufixoCodigo("HN")).thenReturn(Optional.of(horario()));
+        when(catHorarioRepository.findBySufixoCodigoAndAtivoTrue("HN")).thenReturn(Optional.of(horario()));
 
         assertEquals("1.0106.19.00-HN", service.gerar(" 1.0106.19.00 ", " hn ").chave());
     }
@@ -78,7 +78,7 @@ class SmartKeyServiceTest {
     @Test
     void gerar_recusaHorarioDesconhecido() {
         when(catNbsRepository.findById("1.0106.19.00")).thenReturn(Optional.of(nbs()));
-        when(catHorarioRepository.findBySufixoCodigo("XX")).thenReturn(Optional.empty());
+        when(catHorarioRepository.findBySufixoCodigoAndAtivoTrue("XX")).thenReturn(Optional.empty());
 
         assertThrows(IllegalArgumentException.class, () -> service.gerar("1.0106.19.00", "xx"));
     }

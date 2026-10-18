@@ -33,7 +33,7 @@ class HorarioControllerTest {
 
     @Test
     void listar_devolveSufixoEDescricaoNaOrdemDoCatalogo() throws Exception {
-        when(repository.findAllByOrderByIdAsc())
+        when(repository.findByAtivoTrueOrderByIdAsc())
                 .thenReturn(List.of(horario("HN", "Hora normal"), horario("HES", "Hora extra Seg a Sab")));
 
         mvc.perform(get("/api/horarios"))
