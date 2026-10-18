@@ -33,7 +33,7 @@ public class SmartKeyService {
 
         CatNbs nbs = catNbsRepository.findById(nbsInformado)
                 .orElseThrow(() -> new IllegalArgumentException("Código NBS desconhecido: " + nbsInformado));
-        CatHorario horario = catHorarioRepository.findBySufixoCodigo(sufixoInformado)
+        CatHorario horario = catHorarioRepository.findBySufixoCodigoAndAtivoTrue(sufixoInformado)
                 .orElseThrow(() -> new IllegalArgumentException("Horário desconhecido: " + sufixoInformado));
 
         return new SmartKey(nbs.getCodigoNbs() + "-" + horario.getSufixoCodigo(), nbs.getCodigoNbs(),

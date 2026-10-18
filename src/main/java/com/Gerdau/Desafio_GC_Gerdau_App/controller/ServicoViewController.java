@@ -1,11 +1,11 @@
 package com.Gerdau.Desafio_GC_Gerdau_App.controller;
 
 import com.Gerdau.Desafio_GC_Gerdau_App.model.Servico;
+import com.Gerdau.Desafio_GC_Gerdau_App.repository.CatHorarioRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.CatNbsRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.ServicoRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.dto.NovoServicoForm;
 import com.Gerdau.Desafio_GC_Gerdau_App.exception.CadastroRejeitadoException;
-import com.Gerdau.Desafio_GC_Gerdau_App.model.Condicao;
 import com.Gerdau.Desafio_GC_Gerdau_App.service.ServicoService;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
+import java.util.Locale;
 
 @Controller
 public class ServicoViewController {
@@ -26,12 +27,14 @@ public class ServicoViewController {
     private final ServicoRepository repository;
     private final ServicoService service;
     private final CatNbsRepository catNbsRepository;
+    private final CatHorarioRepository catHorarioRepository;
 
     public ServicoViewController(ServicoRepository repository, ServicoService service,
-                                 CatNbsRepository catNbsRepository) {
+                                 CatNbsRepository catNbsRepository, CatHorarioRepository catHorarioRepository) {
         this.repository = repository;
         this.service = service;
         this.catNbsRepository = catNbsRepository;
+        this.catHorarioRepository = catHorarioRepository;
     }
 
     @GetMapping("/")
@@ -65,7 +68,10 @@ public class ServicoViewController {
         if (nbs != null && !nbs.isBlank()) {
             form.setCodigoNbs(nbs.trim());
         }
-        Condicao.daSufixo(horario).ifPresent(form::setCondicao);
+        if (horario != null && !horario.isBlank()) {
+            catHorarioRepository.findBySufixoCodigoAndAtivoTrue(horario.trim().toUpperCase(Locale.ROOT))
+                    .ifPresent(h -> form.setCondicao(h.getSufixoCodigo()));
+        }
         model.addAttribute("form", form);
         return formulario(model);
     }
@@ -96,7 +102,7 @@ public class ServicoViewController {
             catNbsRepository.findById(form.getCodigoNbs().trim())
                     .ifPresent(nbs -> model.addAttribute("nbsSelecionado", nbs));
         }
-        model.addAttribute("condicoes", Condicao.values());
+        model.addAttribute("condicoes", catHorarioRepository.findByAtivoTrueOrderByIdAsc());
         model.addAttribute("areas", repository.findAreas());
         return "servico-form";
     }

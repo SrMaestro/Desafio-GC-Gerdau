@@ -22,4 +22,8 @@ public class CatHorario {
 
     @Column(name = "sufixo_codigo", nullable = false, length = 10)
     private String sufixoCodigo;
+
+    /** Condição aposentada deixa de ser oferecida, mas os serviços já cadastrados não mudam. */
+    @Column(name = "ativo", nullable = false)
+    private boolean ativo = true;
 }

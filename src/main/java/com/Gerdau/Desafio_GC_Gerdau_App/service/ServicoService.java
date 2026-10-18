@@ -5,7 +5,9 @@ import com.Gerdau.Desafio_GC_Gerdau_App.dto.AnaliseSimilaridade.SimilarDto;
 import com.Gerdau.Desafio_GC_Gerdau_App.dto.NovoServicoForm;
 import com.Gerdau.Desafio_GC_Gerdau_App.dto.ServicoSimilar;
 import com.Gerdau.Desafio_GC_Gerdau_App.exception.CadastroRejeitadoException;
+import com.Gerdau.Desafio_GC_Gerdau_App.model.CatHorario;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.Servico;
+import com.Gerdau.Desafio_GC_Gerdau_App.repository.CatHorarioRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.CatNbsRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.ServicoRepository;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -27,16 +29,32 @@ public class ServicoService {
 
     private final ServicoRepository repository;
     private final CatNbsRepository catNbsRepository;
+    private final CatHorarioRepository catHorarioRepository;
 
-    public ServicoService(ServicoRepository repository, CatNbsRepository catNbsRepository) {
+    public ServicoService(ServicoRepository repository, CatNbsRepository catNbsRepository,
+                          CatHorarioRepository catHorarioRepository) {
         this.repository = repository;
         this.catNbsRepository = catNbsRepository;
+        this.catHorarioRepository = catHorarioRepository;
     }
 
     public String gerarCodigo(NovoServicoForm form) {
+        return montarCodigo(form, condicaoAtiva(form.getCondicao()));
+    }
+
+    private String montarCodigo(NovoServicoForm form, CatHorario condicao) {
         String complemento = form.getComplemento() == null ? "" : form.getComplemento();
-        String codigo = form.getAbreviatura() + complemento + "_" + form.getCondicao().getSufixo() + form.getCnae();
+        String codigo = form.getAbreviatura() + complemento + "_" + condicao.getSufixoCodigo() + form.getCnae();
         return codigo.toUpperCase(Locale.ROOT);
+    }
+
+    private CatHorario condicaoAtiva(String sufixo) {
+        if (sufixo == null || sufixo.isBlank()) {
+            throw new IllegalArgumentException("Informe a condição");
+        }
+        String informado = sufixo.trim().toUpperCase(Locale.ROOT);
+        return catHorarioRepository.findBySufixoCodigoAndAtivoTrue(informado)
+                .orElseThrow(() -> new IllegalArgumentException("Condição desconhecida: " + informado));
     }
 
     /** Serviços já cadastrados parecidos com o texto, para sugerir enquanto o comprador digita. */
@@ -50,7 +68,8 @@ public class ServicoService {
     }
 
     public AnaliseSimilaridade analisar(NovoServicoForm form) {
-        String codigo = gerarCodigo(form);
+        CatHorario condicao = condicaoAtiva(form.getCondicao());
+        String codigo = montarCodigo(form, condicao);
         boolean codigoExistente = repository.findByCodigoPadronizado(codigo).isPresent();
 
         List<ServicoSimilar> encontrados = repository.buscarSimilares(
@@ -58,7 +77,7 @@ public class ServicoService {
 
         boolean duplicadoPorTexto = encontrados.stream().anyMatch(s ->
                 s.getScore() >= LIMIAR_BLOQUEIO
-                        && s.getId1Condicao().equals(form.getCondicao().getDescricao())
+                        && s.getId1Condicao().equals(condicao.getDescricaoHorario())
                         && s.getId2Cnae().equals(form.getCnae()));
 
         List<SimilarDto> similares = encontrados.stream()
@@ -74,6 +93,7 @@ public class ServicoService {
         if (codigoNbs != null && !catNbsRepository.existsById(codigoNbs)) {
             throw new IllegalArgumentException("Código NBS desconhecido: " + codigoNbs);
         }
+        CatHorario condicao = condicaoAtiva(form.getCondicao());
         AnaliseSimilaridade analise = analisar(form);
         if (analise.codigoGerado().length() > TAMANHO_MAX_CODIGO) {
             throw new IllegalArgumentException(
@@ -88,7 +108,7 @@ public class ServicoService {
         servico.setTextoBreve(form.getTextoBreve().trim());
         servico.setAbreviatura(form.getAbreviatura().toUpperCase(Locale.ROOT));
         servico.setComplemento(form.getComplemento() == null ? "" : form.getComplemento().toUpperCase(Locale.ROOT));
-        servico.setId1Condicao(form.getCondicao().getDescricao());
+        servico.setId1Condicao(condicao.getDescricaoHorario());
         servico.setId2Cnae(form.getCnae());
         servico.setCodigoPadronizado(analise.codigoGerado());
         servico.setCodigoNbs(codigoNbs);

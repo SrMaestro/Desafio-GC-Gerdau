@@ -20,6 +20,6 @@ public class HorarioController {
 
     @GetMapping
     public List<HorarioResponse> listar() {
-        return repository.findAllByOrderByIdAsc().stream().map(HorarioResponse::de).toList();
+        return repository.findByAtivoTrueOrderByIdAsc().stream().map(HorarioResponse::de).toList();
     }
 }

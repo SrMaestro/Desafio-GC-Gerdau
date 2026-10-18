@@ -1,6 +1,8 @@
 package com.Gerdau.Desafio_GC_Gerdau_App.controller;
 
 import com.Gerdau.Desafio_GC_Gerdau_App.model.CatNbs;
+import com.Gerdau.Desafio_GC_Gerdau_App.model.CatHorario;
+import com.Gerdau.Desafio_GC_Gerdau_App.repository.CatHorarioRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.CatNbsRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.ServicoRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.service.ServicoService;
@@ -35,6 +37,16 @@ class ServicoViewControllerTest {
     @MockitoBean
     CatNbsRepository catNbsRepository;
 
+    @MockitoBean
+    CatHorarioRepository catHorarioRepository;
+
+    private CatHorario horasExtra() {
+        CatHorario h = new CatHorario();
+        h.setSufixoCodigo("HES");
+        h.setDescricaoHorario("Hora extra Seg a Sab");
+        return h;
+    }
+
     private CatNbs nbs() {
         CatNbs n = new CatNbs();
         n.setCodigoNbs("1.0105.40.00");
@@ -46,12 +58,14 @@ class ServicoViewControllerTest {
     void novo_comNbsEHorarioPreencheOFormulario() throws Exception {
         when(repository.findAreas()).thenReturn(List.of("Civil"));
         when(catNbsRepository.findById("1.0105.40.00")).thenReturn(Optional.of(nbs()));
+        when(catHorarioRepository.findByAtivoTrueOrderByIdAsc()).thenReturn(List.of(horasExtra()));
+        when(catHorarioRepository.findBySufixoCodigoAndAtivoTrue("HES")).thenReturn(Optional.of(horasExtra()));
 
         mvc.perform(get("/ui/servicos/novo").param("nbs", "1.0105.40.00").param("horario", "HES"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Serviços de concretagem")))
                 .andExpect(content().string(containsString("value=\"1.0105.40.00\"")))
-                .andExpect(content().string(containsString("value=\"HORA_EXTRA_SEG_SAB\" data-sufixo=\"HES\" selected")))
+                .andExpect(content().string(containsString("value=\"HES\" data-sufixo=\"HES\" selected")))
                 .andExpect(content().string(containsString("id=\"previa-codigo\" data-max=\"40\"")))
                 .andExpect(content().string(containsString("data-url=\"/servicos/similares\"")));
     }
