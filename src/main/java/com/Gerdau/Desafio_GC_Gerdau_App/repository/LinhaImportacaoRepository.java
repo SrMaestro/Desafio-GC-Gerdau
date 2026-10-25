@@ -58,17 +58,18 @@ public interface LinhaImportacaoRepository extends JpaRepository<LinhaImportacao
 
     /** Descarta a linha se ela ainda estiver em conferência ou pronta. */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("update LinhaImportacao l set l.etapa = com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha.DESCARTADA, l.conferidoPor = :usuario "
+    @Query("update LinhaImportacao l set l.etapa = com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha.DESCARTADA, l.conferidoPor = :usuario, l.conferidoEm = :agora "
             + "where l.id = :id and l.etapa in (com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha.EM_CONFERENCIA, com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha.PRONTA)")
-    int descartarSeEditavel(@Param("id") Long id, @Param("usuario") String usuario);
+    int descartarSeEditavel(@Param("id") Long id, @Param("usuario") String usuario,
+                            @Param("agora") LocalDateTime agora);
 
     /** Registra a decisão e deixa a linha PRONTA, se ainda for PARECIDA em conferência ou pronta. */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("update LinhaImportacao l set l.decisao = :decisao, l.etapa = com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha.PRONTA, l.conferidoPor = :usuario "
+    @Query("update LinhaImportacao l set l.decisao = :decisao, l.etapa = com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha.PRONTA, l.conferidoPor = :usuario, l.conferidoEm = :agora "
             + "where l.id = :id and l.situacao = com.Gerdau.Desafio_GC_Gerdau_App.model.SituacaoLinha.PARECIDA "
             + "and l.etapa in (com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha.EM_CONFERENCIA, com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha.PRONTA)")
     int decidirSeEditavel(@Param("id") Long id, @Param("decisao") DecisaoParecida decisao,
-                          @Param("usuario") String usuario);
+                          @Param("usuario") String usuario, @Param("agora") LocalDateTime agora);
     // Aprovação
 
     /**

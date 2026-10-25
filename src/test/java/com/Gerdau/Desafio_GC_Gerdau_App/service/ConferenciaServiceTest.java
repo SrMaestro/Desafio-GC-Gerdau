@@ -94,6 +94,7 @@ class ConferenciaServiceTest {
         assertThat(r.getCondicao()).isEqualTo("hora normal");
         assertThat(r.getNumero()).isEqualTo(2); // mantém a posição original na planilha
         assertThat(r.getConferidoPor()).isEqualTo("ana");
+        assertThat(r.getConferidoEm()).isNotNull();
         verify(linhaRepository).save(l);
     }
 
@@ -149,24 +150,24 @@ class ConferenciaServiceTest {
         linha(1, SituacaoLinha.NOVA, EtapaLinha.PRONTA);
         linha(2, SituacaoLinha.PARECIDA, EtapaLinha.EM_CONFERENCIA);
         linha(3, SituacaoLinha.PARECIDA, EtapaLinha.ENVIADA);
-        when(linhaRepository.decidirSeEditavel(2L, DecisaoParecida.MESMO_SERVICO, "ana")).thenReturn(1);
+        when(linhaRepository.decidirSeEditavel(eq(2L), eq(DecisaoParecida.MESMO_SERVICO), eq("ana"), any(LocalDateTime.class))).thenReturn(1);
 
         assertThatThrownBy(() -> service.decidir(1L, DecisaoParecida.OUTRO_SERVICO, "ana"))
                 .isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> service.decidir(3L, DecisaoParecida.OUTRO_SERVICO, "ana"))
                 .isInstanceOf(IllegalStateException.class);
-        verify(linhaRepository, never()).decidirSeEditavel(eq(1L), any(), any());
-        verify(linhaRepository, never()).decidirSeEditavel(eq(3L), any(), any());
+        verify(linhaRepository, never()).decidirSeEditavel(eq(1L), any(), any(), any());
+        verify(linhaRepository, never()).decidirSeEditavel(eq(3L), any(), any(), any());
 
         service.decidir(2L, DecisaoParecida.MESMO_SERVICO, "ana");
 
-        verify(linhaRepository).decidirSeEditavel(2L, DecisaoParecida.MESMO_SERVICO, "ana");
+        verify(linhaRepository).decidirSeEditavel(eq(2L), eq(DecisaoParecida.MESMO_SERVICO), eq("ana"), any(LocalDateTime.class));
     }
 
     @Test
     void decidir_linhaJaEnviadaPorOutroProcesso_recusa() {
         linha(2, SituacaoLinha.PARECIDA, EtapaLinha.EM_CONFERENCIA); // lida antes do envio concorrente
-        when(linhaRepository.decidirSeEditavel(2L, DecisaoParecida.MESMO_SERVICO, "ana")).thenReturn(0);
+        when(linhaRepository.decidirSeEditavel(eq(2L), eq(DecisaoParecida.MESMO_SERVICO), eq("ana"), any(LocalDateTime.class))).thenReturn(0);
 
         assertThatThrownBy(() -> service.decidir(2L, DecisaoParecida.MESMO_SERVICO, "ana"))
                 .isInstanceOf(IllegalStateException.class);
@@ -184,6 +185,8 @@ class ConferenciaServiceTest {
         assertThat(a.getDecisao()).isEqualTo(DecisaoParecida.OUTRO_SERVICO);
         assertThat(b.getEtapa()).isEqualTo(EtapaLinha.PRONTA);
         assertThat(b.getConferidoPor()).isEqualTo("ana");
+        assertThat(a.getConferidoEm()).isNotNull();
+        assertThat(b.getConferidoEm()).isNotNull();
         verify(linhaRepository).saveAll(List.of(a, b));
     }
 
@@ -211,11 +214,11 @@ class ConferenciaServiceTest {
     @Test
     void descartar_naoVaiNoEnvio() {
         linha(1, SituacaoLinha.NOVA, EtapaLinha.PRONTA);
-        when(linhaRepository.descartarSeEditavel(1L, "ana")).thenReturn(1);
+        when(linhaRepository.descartarSeEditavel(eq(1L), eq("ana"), any(LocalDateTime.class))).thenReturn(1);
 
         service.descartar(1L, "ana");
 
-        verify(linhaRepository).descartarSeEditavel(1L, "ana");
+        verify(linhaRepository).descartarSeEditavel(eq(1L), eq("ana"), any(LocalDateTime.class));
         // o envio só mexe nas PRONTA via update guardado; descartada já saiu dessa etapa no banco
         verify(linhaRepository, never()).saveAll(any());
     }
@@ -223,7 +226,7 @@ class ConferenciaServiceTest {
     @Test
     void descartar_linhaJaEnviadaPorOutroProcesso_recusa() {
         linha(1, SituacaoLinha.NOVA, EtapaLinha.PRONTA); // lida antes do envio concorrente
-        when(linhaRepository.descartarSeEditavel(1L, "ana")).thenReturn(0);
+        when(linhaRepository.descartarSeEditavel(eq(1L), eq("ana"), any(LocalDateTime.class))).thenReturn(0);
 
         assertThatThrownBy(() -> service.descartar(1L, "ana")).isInstanceOf(IllegalStateException.class);
     }

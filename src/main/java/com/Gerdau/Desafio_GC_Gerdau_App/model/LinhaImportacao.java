@@ -76,6 +76,10 @@ public class LinhaImportacao {
     @Column(name = "conferido_por", length = 100)
     private String conferidoPor;
 
+    /** Quando o comprador decidiu por último (corrigir, decidir, descartar); nulo se não tocou na linha. */
+    @Column(name = "conferido_em")
+    private LocalDateTime conferidoEm;
+
     @Column(name = "enviado_em")
     private LocalDateTime enviadoEm;
 

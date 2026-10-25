@@ -53,6 +53,7 @@ public class ConferenciaService {
         preparador.preencher(linha, dados, lote.getEnviadoPor(), codigosJaVistos);
         linha.setDecisao(null); // a decisão valia para a classificação anterior
         linha.setConferidoPor(usuario);
+        linha.setConferidoEm(LocalDateTime.now());
         linhaRepository.save(linha);
         return linha;
     }
@@ -66,7 +67,7 @@ public class ConferenciaService {
         if (linha.getSituacao() != SituacaoLinha.PARECIDA) {
             throw new IllegalStateException("Só linhas parecidas precisam de decisão");
         }
-        if (linhaRepository.decidirSeEditavel(linhaId, decisao, usuario) == 0) {
+        if (linhaRepository.decidirSeEditavel(linhaId, decisao, usuario, LocalDateTime.now()) == 0) {
             throw linhaMudou(linha);
         }
     }
@@ -79,7 +80,8 @@ public class ConferenciaService {
         }
         carregarLoteDoUsuario(loteId, usuario);
         List<LinhaImportacao> linhas = linhaRepository.findParecidasSemDecisao(loteId, scoreMinimo);
-        linhas.forEach(l -> aplicarDecisao(l, decisao, usuario));
+        LocalDateTime agora = LocalDateTime.now();
+        linhas.forEach(l -> aplicarDecisao(l, decisao, usuario, agora));
         linhaRepository.saveAll(linhas);
         return linhas.size();
     }
@@ -87,7 +89,7 @@ public class ConferenciaService {
     @Transactional
     public void descartar(Long linhaId, String usuario) {
         LinhaImportacao linha = linhaEditavel(linhaId, usuario);
-        if (linhaRepository.descartarSeEditavel(linhaId, usuario) == 0) {
+        if (linhaRepository.descartarSeEditavel(linhaId, usuario, LocalDateTime.now()) == 0) {
             throw linhaMudou(linha);
         }
     }
@@ -102,10 +104,12 @@ public class ConferenciaService {
         return linhaRepository.marcarProntasComoEnviadas(loteId, LocalDateTime.now());
     }
 
-    private static void aplicarDecisao(LinhaImportacao linha, DecisaoParecida decisao, String usuario) {
+    private static void aplicarDecisao(LinhaImportacao linha, DecisaoParecida decisao, String usuario,
+                                       LocalDateTime agora) {
         linha.setDecisao(decisao);
         linha.setEtapa(EtapaLinha.PRONTA);
         linha.setConferidoPor(usuario);
+        linha.setConferidoEm(agora);
     }
 
     private static IllegalStateException linhaMudou(LinhaImportacao linha) {

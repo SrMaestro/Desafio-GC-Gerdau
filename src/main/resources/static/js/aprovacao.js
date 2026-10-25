@@ -251,7 +251,8 @@
             if (l.areaServico) partes.push('Área: ' + l.areaServico);
             if (l.condicao) partes.push('Condição: ' + l.condicao);
             if (l.cnae) partes.push('CNAE: ' + l.cnae);
-            if (l.conferidoPor) partes.push('Conferido por: ' + l.conferidoPor);
+            if (l.conferidoPor) partes.push('Conferido por: ' + l.conferidoPor
+                + (l.conferidoEm ? ' em ' + new Date(l.conferidoEm).toLocaleString('pt-BR') : ''));
             if (partes.length) li.append(el('span', { classe: 'detalhe', texto: partes.join(' · ') }));
         }
 

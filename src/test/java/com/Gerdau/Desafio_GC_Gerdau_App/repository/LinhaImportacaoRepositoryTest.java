@@ -68,16 +68,20 @@ class LinhaImportacaoRepositoryTest {
         LinhaImportacao enviada = linha(lote, 3, SituacaoLinha.PARECIDA, EtapaLinha.ENVIADA);
         LinhaImportacao nova = linha(lote, 4, SituacaoLinha.NOVA, EtapaLinha.PRONTA);
 
-        assertThat(linhaRepository.decidirSeEditavel(enviada.getId(), DecisaoParecida.MESMO_SERVICO, "ana")).isZero();
-        assertThat(linhaRepository.descartarSeEditavel(enviada.getId(), "ana")).isZero();
-        assertThat(linhaRepository.decidirSeEditavel(nova.getId(), DecisaoParecida.MESMO_SERVICO, "ana")).isZero();
-        assertThat(linhaRepository.decidirSeEditavel(parecida.getId(), DecisaoParecida.OUTRO_SERVICO, "ana"))
+        LocalDateTime agora = LocalDateTime.of(2026, 10, 25, 9, 30);
+        assertThat(linhaRepository.decidirSeEditavel(enviada.getId(), DecisaoParecida.MESMO_SERVICO, "ana", agora)).isZero();
+        assertThat(linhaRepository.descartarSeEditavel(enviada.getId(), "ana", agora)).isZero();
+        assertThat(linhaRepository.decidirSeEditavel(nova.getId(), DecisaoParecida.MESMO_SERVICO, "ana", agora)).isZero();
+        assertThat(linhaRepository.decidirSeEditavel(parecida.getId(), DecisaoParecida.OUTRO_SERVICO, "ana", agora))
                 .isEqualTo(1);
-        assertThat(linhaRepository.descartarSeEditavel(nova.getId(), "ana")).isEqualTo(1);
+        assertThat(linhaRepository.descartarSeEditavel(nova.getId(), "ana", agora)).isEqualTo(1);
 
         LinhaImportacao p = linhaRepository.findById(parecida.getId()).orElseThrow();
         assertThat(p.getEtapa()).isEqualTo(EtapaLinha.PRONTA);
         assertThat(p.getDecisao()).isEqualTo(DecisaoParecida.OUTRO_SERVICO);
+        assertThat(p.getConferidoEm()).isEqualTo(agora);
+        assertThat(linhaRepository.findById(nova.getId()).orElseThrow().getConferidoEm()).isEqualTo(agora);
+        assertThat(linhaRepository.findById(enviada.getId()).orElseThrow().getConferidoEm()).isNull();
         assertThat(p.getConferidoPor()).isEqualTo("ana");
         assertThat(linhaRepository.findById(enviada.getId()).orElseThrow().getEtapa()).isEqualTo(EtapaLinha.ENVIADA);
         assertThat(linhaRepository.findById(nova.getId()).orElseThrow().getEtapa()).isEqualTo(EtapaLinha.DESCARTADA);

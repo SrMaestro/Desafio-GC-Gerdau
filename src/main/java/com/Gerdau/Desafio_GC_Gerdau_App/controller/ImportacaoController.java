@@ -75,13 +75,13 @@ public class ImportacaoController {
                                 String complemento, String condicao, String cnae, String codigoNbs,
                                 String criadorCodigo, String codigoGerado, SituacaoLinha situacao, EtapaLinha etapa,
                                 Integer servicoParecidoId, Double score, String motivo, DecisaoParecida decisao,
-                                String conferidoPor, String decididoPor) {
+                                String conferidoPor, LocalDateTime conferidoEm, String decididoPor) {
         static LinhaResponse de(LinhaImportacao l) {
             return new LinhaResponse(l.getId(), l.getNumero(), l.getAreaServico(), l.getTextoBreve(),
                     l.getAbreviatura(), l.getComplemento(), l.getCondicao(), l.getCnae(), l.getCodigoNbs(),
                     l.getCriadorCodigo(), l.getCodigoGerado(), l.getSituacao(), l.getEtapa(),
                     l.getServicoParecidoId(), l.getScore(), l.getMotivo(), l.getDecisao(), l.getConferidoPor(),
-                    l.getDecididoPor());
+                    l.getConferidoEm(), l.getDecididoPor());
         }
     }
 
