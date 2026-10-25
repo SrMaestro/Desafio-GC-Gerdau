@@ -4,7 +4,9 @@ import com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.LinhaImportacao;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.SituacaoLinha;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.DecisaoParecida;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,6 +14,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 public interface LinhaImportacaoRepository extends JpaRepository<LinhaImportacao, Long> {
@@ -64,4 +67,36 @@ public interface LinhaImportacaoRepository extends JpaRepository<LinhaImportacao
             + "and l.etapa in (com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha.EM_CONFERENCIA, com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha.PRONTA)")
     int decidirSeEditavel(@Param("id") Long id, @Param("decisao") DecisaoParecida decisao,
                           @Param("usuario") String usuario);
+    // Aprovação
+
+    /**
+     * Carrega a linha com {@code SELECT ... FOR UPDATE}: dois aprovadores na mesma linha esperam um pelo outro,
+     * e quem chega depois já vê a etapa nova. Só faz sentido dentro de uma transação.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select l from LinhaImportacao l where l.id = :id")
+    Optional<LinhaImportacao> findByIdParaAprovar(@Param("id") Long id);
+
+    /** Ids das linhas ENVIADA do lote com uma das situações e, se informado, score a partir do mínimo. */
+    @Query("select l.id from LinhaImportacao l where l.lote.id = :loteId "
+            + "and l.etapa = com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha.ENVIADA "
+            + "and l.situacao in :situacoes and (:scoreMinimo is null or l.score >= :scoreMinimo) order by l.numero")
+    List<Long> idsEnviadasDoLote(@Param("loteId") Long loteId, @Param("situacoes") Collection<SituacaoLinha> situacoes,
+                                 @Param("scoreMinimo") Double scoreMinimo);
+
+    /** Marca a linha como CONFLITO com o motivo, se ela ainda estiver ENVIADA. */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update LinhaImportacao l set l.etapa = com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha.CONFLITO, "
+            + "l.motivo = :motivo, l.decididoPor = :usuario, l.decididoEm = :agora "
+            + "where l.id = :id and l.etapa = com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha.ENVIADA")
+    int marcarConflitoSeEnviada(@Param("id") Long id, @Param("motivo") String motivo,
+                                @Param("usuario") String usuario, @Param("agora") LocalDateTime agora);
+
+    /** Rejeita a linha com o motivo, se ela ainda estiver ENVIADA. */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update LinhaImportacao l set l.etapa = com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha.REJEITADA, "
+            + "l.motivo = :motivo, l.decididoPor = :usuario, l.decididoEm = :agora "
+            + "where l.id = :id and l.etapa = com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha.ENVIADA")
+    int rejeitarSeEnviada(@Param("id") Long id, @Param("motivo") String motivo,
+                          @Param("usuario") String usuario, @Param("agora") LocalDateTime agora);
 }

@@ -82,7 +82,8 @@ class PreparadorLinha {
         };
     }
 
-    private static String cortar(String valor, int max) {
+    /** Corta o texto no tamanho da coluna (nulo continua nulo). */
+    static String cortar(String valor, int max) {
         return valor == null || valor.length() <= max ? valor : valor.substring(0, max);
     }
 }

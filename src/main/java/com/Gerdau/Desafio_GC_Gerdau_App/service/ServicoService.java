@@ -103,8 +103,7 @@ public class ServicoService {
     }
 
     public Servico cadastrar(NovoServicoForm form, boolean confirmarMesmoAssim) {
-        String codigoNbs = form.getCodigoNbs() == null || form.getCodigoNbs().isBlank()
-                ? null : form.getCodigoNbs().trim();
+        String codigoNbs = codigoNbs(form);
         if (codigoNbs != null && !catNbsRepository.existsById(codigoNbs)) {
             throw new IllegalArgumentException("Código NBS desconhecido: " + codigoNbs);
         }
@@ -118,17 +117,7 @@ public class ServicoService {
             throw new CadastroRejeitadoException(analise);
         }
 
-        Servico servico = new Servico();
-        servico.setAreaServico(form.getAreaServico().trim());
-        servico.setTextoBreve(form.getTextoBreve().trim());
-        servico.setAbreviatura(form.getAbreviatura().toUpperCase(Locale.ROOT));
-        servico.setComplemento(form.getComplemento() == null ? "" : form.getComplemento().toUpperCase(Locale.ROOT));
-        servico.setId1Condicao(condicao.getDescricaoHorario());
-        servico.setId2Cnae(form.getCnae());
-        servico.setCodigoPadronizado(analise.codigoGerado());
-        servico.setCodigoNbs(codigoNbs);
-        servico.setCriadorCodigo(form.getCriadorCodigo() == null || form.getCriadorCodigo().isBlank()
-                ? null : form.getCriadorCodigo().trim());
+        Servico servico = novoServico(form, condicao, analise.codigoGerado());
         try {
             return repository.saveAndFlush(servico);
         } catch (DataIntegrityViolationException e) {
@@ -136,5 +125,27 @@ public class ServicoService {
             throw new CadastroRejeitadoException(new AnaliseSimilaridade(
                     analise.codigoGerado(), true, analise.similares(), true, analise.reconhecidoComo()));
         }
+    }
+    /**
+     * Monta (sem gravar) o serviço como o cadastro grava: textos sem espaços nas pontas, abreviatura e complemento
+     * em maiúsculas, condição pela descrição do catálogo. Também usado na aprovação da importação em massa.
+     */
+    static Servico novoServico(NovoServicoForm form, CatHorario condicao, String codigo) {
+        Servico servico = new Servico();
+        servico.setAreaServico(form.getAreaServico().trim());
+        servico.setTextoBreve(form.getTextoBreve().trim());
+        servico.setAbreviatura(form.getAbreviatura().toUpperCase(Locale.ROOT));
+        servico.setComplemento(form.getComplemento() == null ? "" : form.getComplemento().toUpperCase(Locale.ROOT));
+        servico.setId1Condicao(condicao.getDescricaoHorario());
+        servico.setId2Cnae(form.getCnae());
+        servico.setCodigoPadronizado(codigo);
+        servico.setCodigoNbs(codigoNbs(form));
+        servico.setCriadorCodigo(form.getCriadorCodigo() == null || form.getCriadorCodigo().isBlank()
+                ? null : form.getCriadorCodigo().trim());
+        return servico;
+    }
+
+    private static String codigoNbs(NovoServicoForm form) {
+        return form.getCodigoNbs() == null || form.getCodigoNbs().isBlank() ? null : form.getCodigoNbs().trim();
     }
 }

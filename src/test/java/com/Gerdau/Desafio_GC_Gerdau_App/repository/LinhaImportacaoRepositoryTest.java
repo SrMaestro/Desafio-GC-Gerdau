@@ -12,6 +12,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.EnumSet;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -79,5 +81,69 @@ class LinhaImportacaoRepositoryTest {
         assertThat(p.getConferidoPor()).isEqualTo("ana");
         assertThat(linhaRepository.findById(enviada.getId()).orElseThrow().getEtapa()).isEqualTo(EtapaLinha.ENVIADA);
         assertThat(linhaRepository.findById(nova.getId()).orElseThrow().getEtapa()).isEqualTo(EtapaLinha.DESCARTADA);
+    }
+    private LinhaImportacao linha(LoteImportacao lote, int n, SituacaoLinha s, EtapaLinha e, Double score) {
+        LinhaImportacao l = new LinhaImportacao();
+        l.setLote(lote);
+        l.setNumero(n);
+        l.setSituacao(s);
+        l.setEtapa(e);
+        l.setScore(score);
+        return linhaRepository.save(l);
+    }
+
+    @Test
+    void idsEnviadasDoLote_soEnviadasDoLote_filtraSituacaoEScore() {
+        LoteImportacao lote = lote();
+        LoteImportacao outro = lote();
+        LinhaImportacao nova = linha(lote, 2, SituacaoLinha.NOVA, EtapaLinha.ENVIADA, null);
+        LinhaImportacao alta = linha(lote, 3, SituacaoLinha.PARECIDA, EtapaLinha.ENVIADA, 0.9);
+        LinhaImportacao baixa = linha(lote, 4, SituacaoLinha.PARECIDA, EtapaLinha.ENVIADA, 0.5);
+        linha(lote, 5, SituacaoLinha.NOVA, EtapaLinha.PRONTA, null);
+        linha(lote, 6, SituacaoLinha.NOVA, EtapaLinha.APROVADA, null);
+        linha(lote, 7, SituacaoLinha.PARECIDA, EtapaLinha.CONFLITO, 0.95);
+        linha(outro, 2, SituacaoLinha.NOVA, EtapaLinha.ENVIADA, null);
+
+        assertThat(linhaRepository.idsEnviadasDoLote(lote.getId(), EnumSet.allOf(SituacaoLinha.class), null))
+                .containsExactly(nova.getId(), alta.getId(), baixa.getId());
+        assertThat(linhaRepository.idsEnviadasDoLote(lote.getId(), Set.of(SituacaoLinha.NOVA), null))
+                .containsExactly(nova.getId());
+        assertThat(linhaRepository.idsEnviadasDoLote(lote.getId(), Set.of(SituacaoLinha.PARECIDA), 0.85))
+                .containsExactly(alta.getId());
+    }
+
+    @Test
+    void findByIdParaAprovar_devolveALinha() {
+        LinhaImportacao l = linha(lote(), 2, SituacaoLinha.NOVA, EtapaLinha.ENVIADA);
+
+        assertThat(linhaRepository.findByIdParaAprovar(l.getId())).get()
+                .extracting(LinhaImportacao::getId).isEqualTo(l.getId());
+    }
+
+    @Test
+    void conflitoERejeicao_soMudamLinhaEnviada() {
+        LoteImportacao lote = lote();
+        LinhaImportacao a = linha(lote, 2, SituacaoLinha.NOVA, EtapaLinha.ENVIADA);
+        LinhaImportacao b = linha(lote, 3, SituacaoLinha.NOVA, EtapaLinha.ENVIADA);
+        LinhaImportacao aprovada = linha(lote, 4, SituacaoLinha.NOVA, EtapaLinha.APROVADA);
+        LocalDateTime agora = LocalDateTime.now();
+
+        assertThat(linhaRepository.marcarConflitoSeEnviada(a.getId(), "código ocupado", "gil", agora)).isEqualTo(1);
+        assertThat(linhaRepository.marcarConflitoSeEnviada(a.getId(), "de novo", "gil", agora)).isZero();
+        assertThat(linhaRepository.rejeitarSeEnviada(b.getId(), "genérico", "gil", agora)).isEqualTo(1);
+        assertThat(linhaRepository.rejeitarSeEnviada(b.getId(), "de novo", "gil", agora)).isZero();
+        assertThat(linhaRepository.rejeitarSeEnviada(aprovada.getId(), "x", "gil", agora)).isZero();
+        assertThat(linhaRepository.marcarConflitoSeEnviada(aprovada.getId(), "x", "gil", agora)).isZero();
+
+        LinhaImportacao ca = linhaRepository.findById(a.getId()).orElseThrow();
+        assertThat(ca.getEtapa()).isEqualTo(EtapaLinha.CONFLITO);
+        assertThat(ca.getMotivo()).isEqualTo("código ocupado");
+        assertThat(ca.getDecididoPor()).isEqualTo("gil");
+        assertThat(ca.getDecididoEm()).isNotNull();
+        LinhaImportacao rb = linhaRepository.findById(b.getId()).orElseThrow();
+        assertThat(rb.getEtapa()).isEqualTo(EtapaLinha.REJEITADA);
+        assertThat(rb.getMotivo()).isEqualTo("genérico");
+        assertThat(rb.getDecididoPor()).isEqualTo("gil");
+        assertThat(linhaRepository.findById(aprovada.getId()).orElseThrow().getEtapa()).isEqualTo(EtapaLinha.APROVADA);
     }
 }

@@ -142,8 +142,11 @@ public class ClassificadorLinha {
         return null;
     }
 
-    /** Aceita 7 dígitos, ou o que o Excel entrega de célula numérica ("4399103.0"). */
-    private static String normalizarCnae(String cnae) {
+    /** Aceita 7 dígitos, ou o que o Excel entrega de célula numérica ("4399103.0"); senão, nulo. */
+    static String normalizarCnae(String cnae) {
+        if (cnae == null) {
+            return null;
+        }
         String c = cnae.trim();
         if (CNAE.matcher(c).matches()) {
             return c;
@@ -153,7 +156,10 @@ public class ClassificadorLinha {
     }
 
     /** A condição vale pela descrição (sem diferenciar caixa e acento) ou pelo sufixo; só as ativas. */
-    private Optional<CatHorario> buscarCondicao(String informada) {
+    Optional<CatHorario> buscarCondicao(String informada) {
+        if (informada == null || informada.isBlank()) {
+            return Optional.empty();
+        }
         String sufixo = informada.trim().toUpperCase(Locale.ROOT);
         String descricao = DeParaService.normalizar(informada);
         List<CatHorario> ativas = catHorarioRepository.findByAtivoTrueOrderByIdAsc();
