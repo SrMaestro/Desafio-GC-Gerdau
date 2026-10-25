@@ -5,6 +5,8 @@ import com.Gerdau.Desafio_GC_Gerdau_App.model.LinhaImportacao;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.SituacaoLinha;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.DecisaoParecida;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
@@ -99,4 +101,23 @@ public interface LinhaImportacaoRepository extends JpaRepository<LinhaImportacao
             + "where l.id = :id and l.etapa = com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha.ENVIADA")
     int rejeitarSeEnviada(@Param("id") Long id, @Param("motivo") String motivo,
                           @Param("usuario") String usuario, @Param("agora") LocalDateTime agora);
+
+    // Listagem paginada para a API (a ordem vem do Pageable, por numero)
+
+    Page<LinhaImportacao> findByLoteId(Long loteId, Pageable pageable);
+
+    Page<LinhaImportacao> findByLoteIdAndSituacao(Long loteId, SituacaoLinha situacao, Pageable pageable);
+
+    Page<LinhaImportacao> findByLoteIdAndEtapa(Long loteId, EtapaLinha etapa, Pageable pageable);
+
+    Page<LinhaImportacao> findByLoteIdAndSituacaoAndEtapa(Long loteId, SituacaoLinha situacao, EtapaLinha etapa,
+                                                          Pageable pageable);
+
+    boolean existsByLoteIdAndEtapa(Long loteId, EtapaLinha etapa);
+
+    /** Lotes com ao menos uma linha ENVIADA: {id, arquivo, enviadoPor, criadoEm, quantidade de enviadas}, mais novos primeiro. */
+    @Query("select l.lote.id, l.lote.arquivoNome, l.lote.enviadoPor, l.lote.criadoEm, count(l) from LinhaImportacao l "
+            + "where l.etapa = com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha.ENVIADA "
+            + "group by l.lote.id, l.lote.arquivoNome, l.lote.enviadoPor, l.lote.criadoEm order by l.lote.criadoEm desc")
+    List<Object[]> lotesComLinhasEnviadas();
 }
