@@ -284,4 +284,63 @@ class ImportacaoServiceTest {
         assertThat(r.porSituacao()).containsEntry(SituacaoLinha.NOVA, 6L).containsEntry(SituacaoLinha.ERRO, 4L);
         assertThat(r.porEtapa()).containsEntry(EtapaLinha.PRONTA, 6L).containsEntry(EtapaLinha.EM_CONFERENCIA, 4L);
     }
+
+    @Test
+    void linhaComCodigoGeradoAcimaDe40_naoEstouraAColuna() {
+        String codigo = "C".repeat(41);
+        when(classificador.classificar(any(), any())).thenReturn(
+                new ResultadoClassificacao(SituacaoLinha.ERRO, codigo, null, null, "Código gerado passa de 40: " + codigo));
+
+        service.processar(7L, List.of(linha(2, null)));
+
+        LinhaImportacao l = linhasSalvas().get(0);
+        assertThat(l.getCodigoGerado()).isNull();
+        assertThat(l.getMotivo()).contains(codigo);
+    }
+
+    @Test
+    void linhaComCamposLongos_sao_truncadosNoTamanhoDaColuna() {
+        String longo = "x".repeat(300);
+        resultado(SituacaoLinha.ERRO, "OK");
+        when(classificador.classificar(any(), any())).thenReturn(
+                new ResultadoClassificacao(SituacaoLinha.ERRO, "OK", null, null, longo + longo));
+
+        service.processar(7L, List.of(new LinhaPlanilha(2, longo, longo, longo, longo, longo, longo, longo, longo)));
+
+        LinhaImportacao l = linhasSalvas().get(0);
+        assertThat(l.getAreaServico()).hasSize(50);
+        assertThat(l.getTextoBreve()).hasSize(255);
+        assertThat(l.getAbreviatura()).hasSize(10);
+        assertThat(l.getComplemento()).hasSize(15);
+        assertThat(l.getCondicao()).hasSize(50);
+        assertThat(l.getCnae()).hasSize(15);
+        assertThat(l.getCodigoNbs()).hasSize(20);
+        assertThat(l.getCriadorCodigo()).hasSize(100);
+        assertThat(l.getMotivo()).hasSize(500);
+    }
+
+    @Test
+    void nomeDeArquivoLongo_ficaDentroDaColuna() {
+        resultado(SituacaoLinha.NOVA, "A");
+        when(leitor.ler(any(), any())).thenReturn(List.of(linha(2, null)));
+
+        service.iniciar("a".repeat(300) + ".csv", new byte[]{1}, "ana");
+
+        ArgumentCaptor<LoteImportacao> c = ArgumentCaptor.forClass(LoteImportacao.class);
+        verify(loteRepository).save(c.capture());
+        assertThat(c.getValue().getArquivoNome()).hasSize(255).endsWith(".csv");
+    }
+
+    @Test
+    void linhaRuimNaoDerrubaALinhasBoasDoMesmoChunk() {
+        when(classificador.classificar(any(), any())).thenReturn(
+                new ResultadoClassificacao(SituacaoLinha.NOVA, "A", null, null, null),
+                new ResultadoClassificacao(SituacaoLinha.ERRO, "C".repeat(50), null, null, "longo"),
+                new ResultadoClassificacao(SituacaoLinha.NOVA, "B", null, null, null));
+
+        service.processar(7L, List.of(linha(2, null), linha(3, null), linha(4, null)));
+
+        assertThat(linhasSalvas()).hasSize(3);
+        assertThat(lote.getStatus()).isEqualTo(StatusLote.CONCLUIDO);
+    }
 }

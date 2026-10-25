@@ -41,6 +41,18 @@ public class ImportacaoService {
     private static final Logger log = LoggerFactory.getLogger(ImportacaoService.class);
     static final int TAMANHO_BLOCO = 200;
     private static final int MAX_MENSAGEM = 500;
+    // tamanhos das colunas (V10__importacao_em_massa.sql e anotações de LinhaImportacao/LoteImportacao)
+    static final int MAX_ARQUIVO_NOME = 255;
+    static final int MAX_AREA_SERVICO = 50;
+    static final int MAX_TEXTO_BREVE = 255;
+    static final int MAX_ABREVIATURA = 10;
+    static final int MAX_COMPLEMENTO = 15;
+    static final int MAX_CONDICAO = 50;
+    static final int MAX_CNAE = 15;
+    static final int MAX_CODIGO_NBS = 20;
+    static final int MAX_CRIADOR = 100;
+    static final int MAX_CODIGO_GERADO = 40;
+    static final int MAX_MOTIVO = 500;
 
     private final LeitorPlanilha leitorPlanilha;
     private final ClassificadorLinha classificador;
@@ -62,7 +74,7 @@ public class ImportacaoService {
     public Long iniciar(String nomeArquivo, byte[] conteudo, String usuario) {
         List<LinhaPlanilha> linhas = leitorPlanilha.ler(nomeArquivo, conteudo); // ArquivoInvalidoException antes do lote
         LoteImportacao lote = new LoteImportacao();
-        lote.setArquivoNome(nomeArquivo);
+        lote.setArquivoNome(nomeDoArquivoQueCabe(nomeArquivo));
         lote.setEnviadoPor(usuario);
         lote.setStatus(StatusLote.PROCESSANDO);
         lote.setTotalLinhas(linhas.size());
@@ -125,22 +137,38 @@ public class ImportacaoService {
         LinhaImportacao l = new LinhaImportacao();
         l.setLote(lote);
         l.setNumero(linha.numero());
-        l.setAreaServico(linha.areaServico());
-        l.setTextoBreve(linha.textoBreve());
-        l.setAbreviatura(linha.abreviatura());
-        l.setComplemento(linha.complemento());
-        l.setCondicao(linha.condicao());
-        l.setCnae(linha.cnae());
-        l.setCodigoNbs(linha.codigoNbs());
+        l.setAreaServico(cortar(linha.areaServico(), MAX_AREA_SERVICO));
+        l.setTextoBreve(cortar(linha.textoBreve(), MAX_TEXTO_BREVE));
+        l.setAbreviatura(cortar(linha.abreviatura(), MAX_ABREVIATURA));
+        l.setComplemento(cortar(linha.complemento(), MAX_COMPLEMENTO));
+        l.setCondicao(cortar(linha.condicao(), MAX_CONDICAO));
+        l.setCnae(cortar(linha.cnae(), MAX_CNAE));
+        l.setCodigoNbs(cortar(linha.codigoNbs(), MAX_CODIGO_NBS));
         boolean semCriador = linha.criadorCodigo() == null || linha.criadorCodigo().isBlank();
-        l.setCriadorCodigo(semCriador ? criadorPadrao : linha.criadorCodigo());
-        l.setCodigoGerado(r.codigoGerado());
+        l.setCriadorCodigo(cortar(semCriador ? criadorPadrao : linha.criadorCodigo(), MAX_CRIADOR));
+        // código acima do limite não é gravado truncado (enganaria); o motivo mantém o texto completo
+        String codigo = r.codigoGerado();
+        l.setCodigoGerado(codigo != null && codigo.length() <= MAX_CODIGO_GERADO ? codigo : null);
         l.setSituacao(situacao);
         l.setEtapa(etapaInicial(situacao));
         l.setServicoParecidoId(r.servicoParecidoId());
         l.setScore(r.score());
-        l.setMotivo(motivo);
+        l.setMotivo(cortar(motivo, MAX_MOTIVO));
         return l;
+    }
+
+    private static String cortar(String valor, int max) {
+        return valor == null || valor.length() <= max ? valor : valor.substring(0, max);
+    }
+
+    /** Se passar da coluna, corta o nome mas preserva a extensão. */
+    private static String nomeDoArquivoQueCabe(String nome) {
+        if (nome == null || nome.length() <= MAX_ARQUIVO_NOME) {
+            return nome;
+        }
+        int ponto = nome.lastIndexOf('.');
+        String extensao = ponto >= 0 && nome.length() - ponto <= 10 ? nome.substring(ponto) : "";
+        return nome.substring(0, MAX_ARQUIVO_NOME - extensao.length()) + extensao;
     }
 
     static EtapaLinha etapaInicial(SituacaoLinha situacao) {
