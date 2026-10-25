@@ -34,6 +34,7 @@ public interface ServicoRepository extends JpaRepository<Servico, Integer> {
                    id1_condicao AS id1Condicao, id2_cnae AS id2Cnae,
                    similarity(lower(texto_breve), lower(:texto)) AS score
             FROM servicos_mock
+            -- % corta pelo limiar do pg_trgm (0,3): :minimo tem que ficar acima dele (LimiarSimilaridadeTest)
             WHERE lower(texto_breve) % lower(:texto)
               AND similarity(lower(texto_breve), lower(:texto)) >= :minimo
             ORDER BY score DESC

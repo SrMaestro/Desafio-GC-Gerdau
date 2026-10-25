@@ -9,6 +9,7 @@ cadastro -> gera código -> compara (pg_trgm) -> bloqueia | pede confirmação |
 1. O código é gerado em maiúsculas: `abreviatura + complemento + "_" + sufixo da condição + CNAE`.
 2. Bloqueio: o código já existe, **ou** há serviço com similaridade de texto ≥ 0,8, mesma condição e mesmo CNAE.
 3. Confirmação: há serviços com similaridade ≥ 0,4 que não bloqueiam. O cadastro só segue com `confirmar=true`.
+   O 0,4 precisa ficar acima do limiar do `pg_trgm` (`show_limit()`, 0,3), pois a consulta usa o operador `%` para aproveitar o índice; ao baixar um, baixe o outro (há um teste que confere).
 4. O código gerado não pode passar de 40 caracteres.
 5. Se dois usuários criarem o mesmo código ao mesmo tempo, a restrição de unicidade do banco recusa o segundo, e ele recebe a resposta de bloqueio.
 6. Se informado, o código NBS precisa existir em `cat_nbs`.

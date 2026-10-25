@@ -73,7 +73,7 @@ O arquivo todo só é recusado se não for `.csv`/`.xlsx`, estiver vazio, passar
 
 ### Passo a passo
 
-1. No menu, clique em **Importar** e envie o arquivo. A barra de progresso mostra o andamento (5.000 linhas levam cerca de 2 minutos, mais se houver muitos serviços cadastrados); você pode sair e voltar depois em "Meus lotes". Se a aplicação for reiniciada no meio, o lote aparece como falho: envie o arquivo de novo.
+1. No menu, clique em **Importar** e envie o arquivo. A barra de progresso mostra o andamento (5.000 linhas levam cerca de 2 minutos, medido com cerca de 20 mil serviços cadastrados); você pode sair e voltar depois em "Meus lotes". Se a aplicação for reiniciada no meio, o lote aparece como falho: envie o arquivo de novo.
 2. A tela mostra o resultado em cinco situações, em blocos: **com erro** e **parecidas** primeiro (precisam de você), depois **novas**, **já existiam** e **repetidas** (recolhidos; abra para ver).
 
 | Situação | Significa | O que fazer |
@@ -124,9 +124,11 @@ O banco é criado e populado pelo Flyway na primeira execução. Erros comuns es
 
 | Parâmetro | Valor | Onde |
 |-----------|-------|------|
-| Limiar de sugestão de serviços parecidos | 0,4 | `ServicoService.LIMIAR_SUGESTAO` |
+| Limiar de sugestão de serviços parecidos | 0,4 (**deve ficar acima do limiar do `pg_trgm`, 0,3**; ver abaixo) | `ServicoService.LIMIAR_SUGESTAO` |
 | Limiar de bloqueio | 0,8 | `ServicoService.LIMIAR_BLOQUEIO` |
 | Limiar de sugestão de NBS | 0,2 | `BuscaNbsService.LIMIAR_SUGESTAO` |
 | Tamanho máximo do código | 40 | `ServicoService.TAMANHO_MAX_CODIGO` |
 | Máximo de linhas por planilha | 20.000 | `LeitorPlanilha.MAX_LINHAS` |
 | Tamanho máximo da planilha | 10 MB | `spring.servlet.multipart.max-file-size` (`application.properties`) |
+
+A busca de serviços parecidos usa o operador `%` do `pg_trgm` para aproveitar o índice, e ele corta pelo limiar do próprio `pg_trgm` (`show_limit()`, padrão 0,3). Por isso o limiar de sugestão precisa continuar acima dele: para baixá-lo a 0,3 ou menos, baixe junto o do `pg_trgm`, ou parecidos deixam de aparecer em silêncio. O teste `LimiarSimilaridadeTest` avisa se isso acontecer.
