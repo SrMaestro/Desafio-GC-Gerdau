@@ -101,4 +101,20 @@ class ServicoViewControllerTest {
         mvc.perform(get("/ui/servicos/novo").param("horario", "ZZ"))
                 .andExpect(status().isOk());
     }
+
+    @Test
+    @WithMockUser(username = "ana", roles = "COMPRADOR")
+    void cabecalho_compradorVeNomeESairMasNaoRevisao() throws Exception {
+        mvc.perform(get("/"))
+                .andExpect(content().string(containsString("ana")))
+                .andExpect(content().string(containsString("action=\"/logout\"")))
+                .andExpect(content().string(containsString("<meta name=\"_csrf\"")))
+                .andExpect(content().string(not(containsString("/ui/revisao"))));
+    }
+
+    @Test
+    void cabecalho_aprovadorVeLinkDeRevisao() throws Exception {
+        mvc.perform(get("/"))
+                .andExpect(content().string(containsString("/ui/revisao")));
+    }
 }

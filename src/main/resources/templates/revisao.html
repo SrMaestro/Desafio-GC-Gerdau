@@ -3,7 +3,7 @@
 <head th:replace="~{layout :: head('Revisão')}"></head>
 <body>
 <link rel="stylesheet" th:href="@{/css/revisao.css}">
-<header><a th:href="@{/}">Catálogo de Serviços</a><a class="nav" th:href="@{/ui/revisao}">Revisão</a></header>
+<header><a th:href="@{/}">Catálogo de Serviços</a><a class="nav" th:if="${ehAprovador}" th:href="@{/ui/revisao}">Revisão</a><th:block th:replace="~{layout :: usuario}"/></header>
 <main>
     <div class="topo">
         <div>
