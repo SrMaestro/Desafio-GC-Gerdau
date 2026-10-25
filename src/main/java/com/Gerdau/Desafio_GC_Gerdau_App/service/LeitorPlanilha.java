@@ -5,6 +5,10 @@ import com.Gerdau.Desafio_GC_Gerdau_App.exception.ArquivoInvalidoException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.StringReader;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,7 +53,7 @@ public class LeitorPlanilha {
 
     /** Cada item é uma linha da planilha, na ordem; o índice + 1 é o número da linha. */
     private List<List<String>> lerCsv(byte[] conteudo) {
-        String texto = new String(conteudo, StandardCharsets.UTF_8);
+        String texto = decodificar(conteudo);
         if (texto.startsWith("﻿")) {
             texto = texto.substring(1);
         }
@@ -68,6 +72,19 @@ public class LeitorPlanilha {
             throw new ArquivoInvalidoException("Não foi possível ler o CSV: " + e.getMessage());
         }
         return linhas;
+    }
+
+    /** UTF-8 estrito; se houver bytes inválidos, o arquivo todo é lido como Windows-1252 (CSV do Excel pt-BR). */
+    private static String decodificar(byte[] conteudo) {
+        try {
+            return StandardCharsets.UTF_8.newDecoder()
+                    .onMalformedInput(CodingErrorAction.REPORT)
+                    .onUnmappableCharacter(CodingErrorAction.REPORT)
+                    .decode(ByteBuffer.wrap(conteudo))
+                    .toString();
+        } catch (CharacterCodingException e) {
+            return new String(conteudo, Charset.forName("windows-1252"));
+        }
     }
 
     private List<List<String>> lerXlsx(byte[] conteudo) {

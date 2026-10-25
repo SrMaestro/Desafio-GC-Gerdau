@@ -75,6 +75,25 @@ class LeitorPlanilhaTest {
     }
 
     @Test
+    void csv_windows1252_ehLidoComFallback() {
+        String csv = CABECALHO + "\nCaldeiraria;Inspeção de válvula;INSP;;HN;4399103;;\n";
+
+        List<LinhaPlanilha> linhas = leitor.ler("lote.csv", csv.getBytes(java.nio.charset.Charset.forName("windows-1252")));
+
+        assertThat(linhas.get(0).textoBreve()).isEqualTo("Inspeção de válvula");
+    }
+
+    @Test
+    void csv_utf8ValidoContinuaIntacto() {
+        String csv = "\uFEFF" + CABECALHO + "\nCaldeiraria;Ã© Inspeção;INSP;;HN;4399103;;\n";
+
+        List<LinhaPlanilha> linhas = leitor.ler("lote.csv", bytes(csv));
+
+        assertThat(linhas.get(0).textoBreve()).isEqualTo("Ã© Inspeção");
+        assertThat(linhas.get(0).areaServico()).isEqualTo("Caldeiraria");
+    }
+
+    @Test
     void xlsx_primeiraPlanilha() throws Exception {
         byte[] arquivo = xlsx(
                 new Object[] {"area_servico", "texto_breve", "abreviatura", "condicao", "cnae"},
