@@ -278,7 +278,7 @@
                     agendar();
                 } else if (r.status === 'FALHOU') {
                     $('progresso').hidden = true;
-                    mostrar(falha, 'A importação falhou. Confira o arquivo (colunas e formato) e envie a planilha novamente. As linhas já lidas foram mantidas.');
+                    mostrar(falha, 'A importação falhou. Tente novamente ou envie a planilha de novo.');
                     blocosEl.hidden = true;
                 } else {
                     $('progresso').hidden = true;
@@ -393,7 +393,7 @@
                 li.append(el('span', { classe: 'detalhe', texto: l.motivo }));
             }
             if (b.situacao === 'PARECIDA' && l.decisao) {
-                li.append(el('span', { classe: 'detalhe', texto: l.decisao === 'MESMO_SERVICO' ? 'Decisão: é o mesmo serviço.' : 'Decisão: é outro serviço.' }));
+                li.append(el('span', { classe: 'detalhe', texto: l.decisao === 'MESMO_SERVICO' ? 'Decidido: é o mesmo serviço.' : 'Decidido: é outro serviço.' }));
             }
 
             const acoes = acoesDaLinha(b, l, li);
@@ -415,6 +415,13 @@
                 } catch (e) {
                     status.textContent = e.message;
                     botao.disabled = false;
+                    return;
+                }
+                // A ação já foi salva: falha ao atualizar a lista não é falha da ação (e repetir daria conflito)
+                try {
+                    await depoisDeAcao();
+                } catch (e) {
+                    status.textContent = 'A ação foi salva, mas não consegui atualizar a lista. Recarregue a página.';
                 }
             });
 
@@ -423,7 +430,8 @@
                 corrigir.addEventListener('click', () => alternarCorrecao(l, li, corrigir));
                 acoes.append(corrigir);
             }
-            if (b.situacao === 'PARECIDA' && l.etapa === 'EM_CONFERENCIA') {
+            // Decidida mas ainda não enviada (PRONTA): o comprador pode mudar a decisão
+            if (b.situacao === 'PARECIDA') {
                 const mesmo = el('button', { type: 'button', texto: 'É o mesmo serviço' });
                 const outro = el('button', { type: 'button', texto: 'É outro serviço' });
                 rodar(mesmo, () => decidir(l.id, 'MESMO_SERVICO'));
@@ -438,12 +446,10 @@
 
         async function decidir(id, decisao) {
             await postJson(urlLinhasBase + encodeURIComponent(String(id)) + '/decisao', { decisao });
-            await depoisDeAcao();
         }
 
         async function descartarLinha(id) {
             await postJson(urlLinhasBase + encodeURIComponent(String(id)) + '/descartar');
-            await depoisDeAcao();
         }
 
         // Recarrega contadores e os blocos que já foram abertos (na página em que estão)

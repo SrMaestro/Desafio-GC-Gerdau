@@ -117,4 +117,11 @@ class ImportacaoViewControllerTest {
         assertThat(js).doesNotContain("innerHTML").doesNotContain("insertAdjacentHTML")
                 .doesNotContain("outerHTML").doesNotContain("document.write");
     }
+
+    @Test
+    void importacaoJs_mensagensDeFalhaHonestas() throws Exception {
+        String js = Files.readString(Path.of("src/main/resources/static/js/importacao.js"));
+        assertThat(js).doesNotContain("já lidas foram mantidas")
+                .contains("A ação foi salva, mas não consegui atualizar a lista");
+    }
 }
