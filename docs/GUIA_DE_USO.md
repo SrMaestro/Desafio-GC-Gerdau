@@ -48,6 +48,16 @@ Ao escolher um NBS e um horário, a tela mostra a **Smart Key** (ex.: `1.01.01-H
 3. Em **com erro**, clique em "Corrigir", ajuste os campos e salve. Em **parecidas**, veja o serviço já cadastrado e a similaridade e escolha "É o mesmo serviço", "É outro serviço" ou "Descartar". Para muitas de uma vez, informe a similaridade mínima (ex.: 90%) e use os botões de decisão em bloco; o sistema pede confirmação.
 4. **Enviar ao aprovador** envia as linhas que já estão prontas; linhas com erro ou ainda sem decisão não impedem o envio e podem ser tratadas depois. A tela informa quantas foram enviadas e quantas ainda precisam de atenção.
 
+## 2c. Aprovar planilhas enviadas (aprovador)
+
+Só o aprovador vê **Aprovações** no menu (`/ui/aprovacao`).
+
+1. A lista mostra as planilhas com linhas esperando decisão: arquivo, quem enviou, quantas linhas aguardam e quantas estão em conflito. Clique no arquivo para abrir.
+2. Cada linha mostra o que você precisa para decidir: o código proposto (nova) ou o texto, o serviço parecido já cadastrado e a similaridade (parecida), mais a decisão do comprador, área, condição, CNAE e quem conferiu. Use **Aprovar** ou **Rejeitar** (a rejeição pede um motivo).
+3. Para decidir muitas de uma vez, escolha o filtro (todas, novas ou parecidas, com similaridade mínima) e use **Aprovar todas** ou **Rejeitar todas**. A tela diz quantas linhas serão afetadas, em todas as páginas, e pede confirmação. Sem filtro, rejeitar em bloco rejeita todas as linhas aguardando do lote; o motivo é obrigatório.
+4. Depois da aprovação em bloco a tela mostra quantas foram aprovadas, quantas foram para conflito e quantas **não puderam ser processadas agora**; essas continuam aguardando e podem ser aprovadas de novo.
+5. O bloco **em conflito** (recolhido) lista as linhas que não puderam virar código, com o motivo. Elas ficam fora das ações em bloco e não têm botões.
+
 ## 3. Revisar sugestões (aprovador)
 
 Só o aprovador vê **Revisão**. Em **Revisão** (`/ui/revisao`) ficam os mapeamentos pendentes, do mais confirmado para o menos.

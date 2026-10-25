@@ -32,7 +32,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(a -> a
                         .requestMatchers("/login", "/css/**", "/js/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/de-para/confirmacoes").hasAnyRole("COMPRADOR", "APROVADOR")
-                        .requestMatchers("/ui/revisao/**", "/api/de-para/**").hasRole("APROVADOR")
+                        .requestMatchers("/ui/revisao/**", "/ui/aprovacao/**", "/api/de-para/**").hasRole("APROVADOR")
                         .requestMatchers("/api/importacoes/aprovacao/**", "/ui/importacoes/aprovacao/**").hasRole("APROVADOR")
                         .requestMatchers("/api/importacoes/**", "/ui/importacoes/**").hasAnyRole("COMPRADOR", "APROVADOR")
                         .anyRequest().authenticated())

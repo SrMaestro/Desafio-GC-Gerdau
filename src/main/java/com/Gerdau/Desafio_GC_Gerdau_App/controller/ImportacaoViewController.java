@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
- * Telas da importação em massa para quem cria os códigos. São só a casca: os dados da planilha vêm
+ * Telas da importação em massa (comprador e aprovador). São só a casca: os dados da planilha vêm
  * da API ({@code /api/importacoes}) e são desenhados pelo {@code importacao.js}, nunca pelo servidor.
  */
 @Controller
@@ -36,5 +36,19 @@ public class ImportacaoViewController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lote não encontrado"));
         model.addAttribute("loteId", lote.getId());
         return "importacao-lote";
+    }
+
+    /** Telas do aprovador (a rota é protegida no {@code SecurityConfig}); os dados também vêm da API. */
+    @GetMapping("/ui/aprovacao")
+    public String aprovacaoLotes() {
+        return "aprovacao-lotes";
+    }
+
+    @GetMapping("/ui/aprovacao/{id}")
+    public String aprovacaoLote(@PathVariable Long id, Model model) {
+        LoteImportacao lote = loteRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lote não encontrado"));
+        model.addAttribute("loteId", lote.getId());
+        return "aprovacao-lote";
     }
 }

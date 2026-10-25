@@ -14,10 +14,12 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -113,9 +115,72 @@ class ImportacaoViewControllerTest {
 
     @Test
     void importacaoJs_naoUsaInnerHtmlComDadosDaPlanilha() throws Exception {
-        String js = Files.readString(Path.of("src/main/resources/static/js/importacao.js"));
-        assertThat(js).doesNotContain("innerHTML").doesNotContain("insertAdjacentHTML")
-                .doesNotContain("outerHTML").doesNotContain("document.write");
+        for (String arquivo : List.of("importacao.js", "aprovacao.js", "comum.js")) {
+            String js = Files.readString(Path.of("src/main/resources/static/js/" + arquivo));
+            assertThat(js).as(arquivo).doesNotContain("innerHTML").doesNotContain("insertAdjacentHTML")
+                    .doesNotContain("outerHTML").doesNotContain("document.write");
+        }
+    }
+
+    @Test
+    @WithMockUser(username = "ana", roles = "APROVADOR")
+    void aprovador_veListaDeLotesEnviados() throws Exception {
+        mvc.perform(get("/ui/aprovacao"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-url-api=\"/api/importacoes\"")))
+                .andExpect(content().string(containsString("id=\"aprovacao-lotes\"")))
+                .andExpect(content().string(containsString("/js/comum.js")))
+                .andExpect(content().string(containsString("/js/aprovacao.js")));
+    }
+
+    @Test
+    @WithMockUser(username = "bia", roles = "COMPRADOR")
+    void comprador_naoAcessaAprovacao_403() throws Exception {
+        mvc.perform(get("/ui/aprovacao")).andExpect(status().isForbidden());
+        mvc.perform(get("/ui/aprovacao/7")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void aprovacao_semLogin_redirecionaParaLogin() throws Exception {
+        mvc.perform(get("/ui/aprovacao"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login"));
+    }
+
+    @Test
+    @WithMockUser(username = "ana", roles = "APROVADOR")
+    void linkAprovacoes_soParaAprovador() throws Exception {
+        mvc.perform(get("/ui/aprovacao")).andExpect(content().string(containsString(">Aprovações<")));
+        mvc.perform(get("/ui/importacoes")).andExpect(content().string(containsString("href=\"/ui/aprovacao\"")));
+    }
+
+    @Test
+    @WithMockUser(username = "bia", roles = "COMPRADOR")
+    void linkAprovacoes_compradorNaoVe() throws Exception {
+        mvc.perform(get("/ui/importacoes")).andExpect(content().string(not(containsString("Aprovações"))));
+    }
+
+    @Test
+    @WithMockUser(username = "ana", roles = "APROVADOR")
+    void ecraMostraLinhasEmConflitoComOMotivo() throws Exception {
+        when(loteRepository.findById(7L)).thenReturn(Optional.of(lote(7, "bia")));
+
+        mvc.perform(get("/ui/aprovacao/7"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-lote-id=\"7\"")))
+                .andExpect(content().string(containsString("id=\"bloco-conflito\"")))
+                .andExpect(content().string(containsString("motivo")))
+                .andExpect(content().string(containsString("id=\"filtro-tipo\"")))
+                .andExpect(content().string(containsString("id=\"btn-aprovar-bloco\"")))
+                .andExpect(content().string(containsString("id=\"btn-rejeitar-bloco\"")));
+    }
+
+    @Test
+    @WithMockUser(username = "ana", roles = "APROVADOR")
+    void loteDaAprovacao_inexistente_404() throws Exception {
+        when(loteRepository.findById(9L)).thenReturn(Optional.empty());
+
+        mvc.perform(get("/ui/aprovacao/9")).andExpect(status().isNotFound());
     }
 
     @Test
