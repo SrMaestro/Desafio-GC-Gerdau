@@ -4,7 +4,9 @@ Para quem usa o sistema no dia a dia. Não é preciso conhecer o projeto.
 
 ## 0. Entrar
 
-Abra o sistema e entre com seu usuário e senha. Há dois perfis: **comprador** (cadastra, busca e importa planilhas) e **aprovador** (faz o mesmo e também aprova planilhas e revisa o De-Para). Use **Sair**, no canto do cabeçalho, ao terminar.
+Abra o sistema e entre com seu usuário e senha. Há dois perfis: **comprador** (cadastra, busca e importa planilhas) e **aprovador** (faz o mesmo e também aprova planilhas e revisa o De-Para). 
+
+A navegação fica no **menu lateral** (no celular, uma barra no topo): **Serviços**, **Buscar NBS** e **Importar** para todos, e **Revisão** e **Aprovações** só para o aprovador. A página em que você está aparece destacada. Seu nome e o botão **Sair** ficam no rodapé do menu; use **Sair** ao terminar.
 
 Usuários de exemplo, criados na instalação: `comprador` / `comprador123` e `aprovador` / `aprovador123`. **Troque essas senhas antes de usar de verdade.** Ainda não há tela para isso: a equipe técnica gera um novo hash BCrypt e atualiza a coluna `senha_hash` da tabela `usuarios`; para desativar alguém, `ativo = FALSE`.
 

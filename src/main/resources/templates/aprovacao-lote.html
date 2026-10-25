@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{layout :: head('Aprovar lote')}"></head>
-<body>
+<body class="app">
 <link rel="stylesheet" th:href="@{/css/importacao.css}">
 <script th:src="@{/js/comum.js}" defer></script>
 <script th:src="@{/js/aprovacao.js}" defer></script>
-<header><a th:href="@{/}">Catálogo de Serviços</a><a class="nav" th:if="${ehAprovador}" th:href="@{/ui/revisao}">Revisão</a><a class="nav" th:href="@{/ui/importacoes}">Importar</a><a class="nav" th:if="${ehAprovador}" th:href="@{/ui/aprovacao}">Aprovações</a><th:block th:replace="~{layout :: usuario}"/></header>
+<th:block th:replace="~{layout :: menu('aprovacoes')}"/>
 <main id="aprovacao-lote" th:attr="data-lote-id=${loteId}, data-url-api=@{/api/importacoes}, data-url-servicos=@{/servicos}, data-url-tela=@{/ui/aprovacao}">
     <p><a th:href="@{/ui/aprovacao}">&larr; Aprovações</a></p>
     <div class="topo">

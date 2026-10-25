@@ -117,4 +117,29 @@ class ServicoViewControllerTest {
         mvc.perform(get("/"))
                 .andExpect(content().string(containsString("/ui/revisao")));
     }
+
+    @Test
+    @WithMockUser(username = "ana", roles = "COMPRADOR")
+    void menu_compradorVeServicosBuscaEImportarMasNaoRevisaoNemAprovacoes() throws Exception {
+        mvc.perform(get("/"))
+                .andExpect(content().string(containsString("href=\"/ui/busca\"")))
+                .andExpect(content().string(containsString("href=\"/ui/importacoes\"")))
+                .andExpect(content().string(containsString("aria-current=\"page\"")))
+                .andExpect(content().string(not(containsString("/ui/revisao"))))
+                .andExpect(content().string(not(containsString("/ui/aprovacao"))))
+                .andExpect(content().string(not(containsString("Aprovações"))));
+    }
+
+    @Test
+    void menu_aprovadorVeRevisaoEAprovacoes() throws Exception {
+        mvc.perform(get("/"))
+                .andExpect(content().string(containsString("href=\"/ui/revisao\"")))
+                .andExpect(content().string(containsString("href=\"/ui/aprovacao\"")));
+    }
+
+    @Test
+    void menu_marcaOItemDaTelaAtual() throws Exception {
+        mvc.perform(get("/ui/busca"))
+                .andExpect(content().string(containsString("href=\"/ui/busca\" aria-current=\"page\"")));
+    }
 }

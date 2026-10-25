@@ -11,9 +11,19 @@
     <script th:src="@{/js/busca.js}" defer></script>
 </head>
 <body>
-<span class="usuario" th:fragment="usuario" th:if="${usuarioLogado}">
-    <span th:text="${usuarioLogado}"></span>
-    <form method="post" th:action="@{/logout}"><button type="submit">Sair</button></form>
-</span>
+<aside class="menu" th:fragment="menu(ativo)">
+    <a class="marca" th:href="@{/}">Catálogo de Serviços</a>
+    <nav aria-label="Principal">
+        <a th:href="@{/}" th:aria-current="${ativo == 'servicos'} ? 'page'">Serviços</a>
+        <a th:href="@{/ui/busca}" th:aria-current="${ativo == 'busca'} ? 'page'">Buscar NBS</a>
+        <a th:href="@{/ui/importacoes}" th:aria-current="${ativo == 'importar'} ? 'page'">Importar</a>
+        <a th:if="${ehAprovador}" th:href="@{/ui/revisao}" th:aria-current="${ativo == 'revisao'} ? 'page'">Revisão</a>
+        <a th:if="${ehAprovador}" th:href="@{/ui/aprovacao}" th:aria-current="${ativo == 'aprovacoes'} ? 'page'">Aprovações</a>
+    </nav>
+    <div class="usuario" th:if="${usuarioLogado}">
+        <span class="nome" th:text="${usuarioLogado}" th:title="${usuarioLogado}"></span>
+        <form method="post" th:action="@{/logout}"><button type="submit">Sair</button></form>
+    </div>
+</aside>
 </body>
 </html>
