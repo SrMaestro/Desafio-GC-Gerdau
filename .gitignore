@@ -36,4 +36,8 @@ build/
 data-db/
 
 ### Segredos ###
-.env.superpowers/
+.env
+
+### Superpowers (rascunhos locais) ###
+.superpowers/
+
