@@ -39,11 +39,15 @@ class ServicoServiceTest {
     @Mock
     CatHorarioRepository catHorarioRepository;
 
+    @Mock
+    SinonimoServicoService sinonimoServicoService;
+
     ServicoService service;
 
     @BeforeEach
     void setUp() {
-        service = new ServicoService(repository, catNbsRepository, catHorarioRepository);
+        service = new ServicoService(repository, catNbsRepository, catHorarioRepository,
+                sinonimoServicoService);
     }
 
     private void condicaoAtiva(String sufixo, String descricao) {
@@ -73,6 +77,40 @@ class ServicoServiceTest {
             public String getId2Cnae() { return cnae; }
             public Double getScore() { return score; }
         };
+    }
+
+    @Test
+    void analisar_sinonimoAprovado_bloqueiaEInformaOCodigoExistente() {
+        condicaoAtiva("HN", "Hora normal");
+        Servico existente = new Servico();
+        existente.setId(1);
+        existente.setTextoBreve("Concretagem de fundação");
+        existente.setCodigoPadronizado("CONC_CONCRE_HN4399103");
+        when(sinonimoServicoService.reconhecer("Concretagem de fundação", "Hora normal", "4399103"))
+                .thenReturn(Optional.of(existente));
+
+        AnaliseSimilaridade analise = service.analisar(form());
+
+        assertTrue(analise.bloqueado());
+        assertEquals("CONC_CONCRE_HN4399103", analise.reconhecidoComo());
+        assertEquals("CONC_CONCRE_HN4399103", analise.similares().get(0).codigoPadronizado());
+        assertEquals(1.0, analise.similares().get(0).score());
+    }
+
+    @Test
+    void cadastrar_sinonimoAprovado_lancaCadastroRejeitado() {
+        condicaoAtiva("HN", "Hora normal");
+        Servico existente = new Servico();
+        existente.setId(1);
+        existente.setCodigoPadronizado("CONC_CONCRE_HN4399103");
+        when(sinonimoServicoService.reconhecer(anyString(), anyString(), anyString()))
+                .thenReturn(Optional.of(existente));
+
+        CadastroRejeitadoException e = assertThrows(CadastroRejeitadoException.class,
+                () -> service.cadastrar(form(), true));
+
+        assertEquals("CONC_CONCRE_HN4399103", e.getAnalise().reconhecidoComo());
+        verify(repository, never()).saveAndFlush(any());
     }
 
     @Test

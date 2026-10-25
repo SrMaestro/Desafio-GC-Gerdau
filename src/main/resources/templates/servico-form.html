@@ -14,8 +14,9 @@
 
     <div th:if="${analise != null and analise.bloqueado}" class="aviso bloqueio" role="alert">
         <strong>Cadastro bloqueado.</strong>
-        <span th:if="${analise.codigoExistente}">O código <code th:text="${analise.codigoGerado}"></code> já existe.</span>
-        <span th:unless="${analise.codigoExistente}">Já existe um serviço praticamente idêntico. Use o código dele.</span>
+        <span th:if="${analise.reconhecidoComo != null}">Este texto já é o serviço <code th:text="${analise.reconhecidoComo}"></code>. Use esse código.</span>
+        <span th:if="${analise.reconhecidoComo == null and analise.codigoExistente}">O código <code th:text="${analise.codigoGerado}"></code> já existe.</span>
+        <span th:if="${analise.reconhecidoComo == null and !analise.codigoExistente}">Já existe um serviço praticamente idêntico. Use o código dele.</span>
     </div>
     <div th:if="${analise != null and analise.requerConfirmacao}" class="aviso atencao" role="alert">
         <strong>Existem serviços parecidos.</strong> Confira a lista ao lado e marque "Cadastrar mesmo assim" só se for outro serviço.

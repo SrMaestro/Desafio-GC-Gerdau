@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 @Service
 public class ServicoService {
@@ -30,9 +31,12 @@ public class ServicoService {
     private final ServicoRepository repository;
     private final CatNbsRepository catNbsRepository;
     private final CatHorarioRepository catHorarioRepository;
+    private final SinonimoServicoService sinonimoServicoService;
 
     public ServicoService(ServicoRepository repository, CatNbsRepository catNbsRepository,
-                          CatHorarioRepository catHorarioRepository) {
+                          CatHorarioRepository catHorarioRepository,
+                          SinonimoServicoService sinonimoServicoService) {
+        this.sinonimoServicoService = sinonimoServicoService;
         this.repository = repository;
         this.catNbsRepository = catNbsRepository;
         this.catHorarioRepository = catHorarioRepository;
@@ -72,6 +76,16 @@ public class ServicoService {
         String codigo = montarCodigo(form, condicao);
         boolean codigoExistente = repository.findByCodigoPadronizado(codigo).isPresent();
 
+        // Sinônimo aprovado: o texto já é um serviço conhecido, bloqueia antes da similaridade
+        Optional<Servico> sinonimo = sinonimoServicoService.reconhecer(
+                form.getTextoBreve(), condicao.getDescricaoHorario(), form.getCnae());
+        if (sinonimo.isPresent()) {
+            Servico s = sinonimo.get();
+            return new AnaliseSimilaridade(codigo, codigoExistente,
+                    List.of(new SimilarDto(s.getId(), s.getTextoBreve(), s.getCodigoPadronizado(), 1.0)),
+                    true, s.getCodigoPadronizado());
+        }
+
         List<ServicoSimilar> encontrados = repository.buscarSimilares(
                 form.getTextoBreve().trim(), LIMIAR_SUGESTAO, MAX_SUGESTOES);
 
@@ -84,7 +98,7 @@ public class ServicoService {
                 .map(s -> new SimilarDto(s.getId(), s.getTextoBreve(), s.getCodigoPadronizado(), s.getScore()))
                 .toList();
 
-        return new AnaliseSimilaridade(codigo, codigoExistente, similares, codigoExistente || duplicadoPorTexto);
+        return new AnaliseSimilaridade(codigo, codigoExistente, similares, codigoExistente || duplicadoPorTexto, null);
     }
 
     public Servico cadastrar(NovoServicoForm form, boolean confirmarMesmoAssim) {
@@ -119,7 +133,7 @@ public class ServicoService {
         } catch (DataIntegrityViolationException e) {
             // corrida: outro usuário criou o mesmo código entre a análise e o insert
             throw new CadastroRejeitadoException(new AnaliseSimilaridade(
-                    analise.codigoGerado(), true, analise.similares(), true));
+                    analise.codigoGerado(), true, analise.similares(), true, analise.reconhecidoComo()));
         }
     }
 }
