@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Aprovações')}"></head>
+<body>
+<link rel="stylesheet" th:href="@{/css/importacao.css}">
+<script th:src="@{/js/comum.js}" defer></script>
+<script th:src="@{/js/aprovacao.js}" defer></script>
+<header><a th:href="@{/}">Catálogo de Serviços</a><a class="nav" th:if="${ehAprovador}" th:href="@{/ui/revisao}">Revisão</a><a class="nav" th:href="@{/ui/importacoes}">Importar</a><a class="nav" th:if="${ehAprovador}" th:href="@{/ui/aprovacao}">Aprovações</a><th:block th:replace="~{layout :: usuario}"/></header>
+<main id="aprovacao-lotes" th:attr="data-url-api=@{/api/importacoes}, data-url-tela=@{/ui/aprovacao}">
+    <p><a th:href="@{/}">&larr; Voltar</a></p>
+    <div class="topo">
+        <div>
+            <h1>Aprovações</h1>
+            <p>Planilhas enviadas pelos compradores com linhas esperando a sua decisão.</p>
+        </div>
+    </div>
+    <p id="lotes-erro" class="aviso erro" role="alert" hidden></p>
+    <p id="lotes-status" class="contador" aria-live="polite">Carregando...</p>
+    <ul id="lotes-lista" class="lotes"></ul>
+</main>
+</body>
+</html>

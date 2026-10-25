@@ -24,7 +24,7 @@ docker compose up -d             # sobe PostgreSQL (+ pgAdmin em :5050); dados e
 ./mvnw test -Dtest=ServicoServiceTest#nomeDoMetodo      # um método
 ```
 
-- `DesafioGcGerdauAppApplicationTests` (`@SpringBootTest`) precisa do Postgres do compose no ar com o `.env` válido. Os demais testes de service usam Mockito e os de controller usam MVC test, sem banco.
+- Os testes `@SpringBootTest` precisam do Postgres do compose no ar com o `.env` válido: `DesafioGcGerdauAppApplicationTests`, `LinhaImportacaoRepositoryTest`, `ServicoRepositorySimilaridadeTest`, `SinonimoServicoRepositoryTest` (repositórios, `@Transactional`, desfeitos ao fim), `AprovacaoImportacaoTransacaoTest` e `LimiarSimilaridadeTest` (só leitura). Subir o contexto aplica no banco de dev as migrations pendentes. Os demais testes de service usam Mockito e os de controller usam MVC test, sem banco.
 - Não há linter configurado.
 
 ## Arquitetura
@@ -38,6 +38,8 @@ Quatro serviços formam o fluxo de negócio (ver `docs/REGRAS_DE_NEGOCIO.md` par
 - **SmartKeyService**: `<NBS>-<sufixo do horário>`, validado contra `cat_nbs` e `cat_horarios`.
 - **DeParaService**: ciclo `PENDENTE → APROVADO / REJEITADO / REVOGADO`; toda mudança grava em `dicionario_de_para_historico`. Só um `APROVADO` por nome; confirmação nunca altera um aprovado.
 
+- **Importação em massa** (planilha `.csv`/`.xlsx`, até 20.000 linhas/10 MB; regras em `docs/REGRAS_DE_NEGOCIO.md`): `LeitorPlanilha` lê o arquivo, `ImportacaoService` cria o lote e classifica as linhas em segundo plano num `Executor` próprio de 1 thread (`AsyncConfig`; sem `@Async` nem transação externa, cada bloco de 200 linhas grava e confirma sozinho), usando `ClassificadorLinha` (situação) e `PreparadorLinha` (campos, etapa, repetida entre lotes). `ConferenciaService` é o comprador (corrigir, decidir parecidas, enviar); as mudanças de etapa são `UPDATE` guardados pela etapa esperada, para que corridas não sobrescrevam. `AprovacaoImportacaoService` não é `@Transactional`: cada linha roda numa transação `REQUIRES_NEW` em `AprovadorLinha` (bean separado, por causa do proxy), conflito de negócio vira `CONFLITO` com motivo e erro técnico deixa a linha `ENVIADA`. Tudo passa pelo aprovador; "mesmo serviço" grava um `servico_sinonimo` que `SinonimoServicoService.reconhecer` usa antes da similaridade no cadastro e na importação. Com `open-in-view=false`, quem lê entidade preguiçosa fora do serviço precisa de `@EntityGraph`/fetch.
+
 A similaridade de texto é feita no banco com `pg_trgm` por **queries nativas** nos repositories (extensão e índices criados na migration V3). Mudanças nessa lógica normalmente envolvem repository + migration, não só Java.
 
 ## Login e perfis
@@ -46,7 +48,7 @@ Spring Security com sessão e tela `/login`. Usuários na tabela `usuarios` (V9,
 
 ## Banco e migrations
 
-- `ddl-auto=validate`: o Hibernate não cria schema. Qualquer mudança em entidade exige uma migration `V{n}__descricao.sql` em `src/main/resources/db/migration` (hoje V1–V9). **Nunca edite uma migration já aplicada** (falha de checksum do Flyway); crie uma nova.
+- `ddl-auto=validate`: o Hibernate não cria schema. Qualquer mudança em entidade exige uma migration `V{n}__descricao.sql` em `src/main/resources/db/migration` (hoje V1–V11). **Nunca edite uma migration já aplicada** (falha de checksum do Flyway); crie uma nova.
 - As condições (hora normal, hora extra, posto mensal...) vivem só em `cat_horarios`. Condição nova = `INSERT` numa migration; condição aposentada = `ativo = FALSE` (nunca apagar). `servicos_mock.id1_condicao` guarda o texto da condição na hora do cadastro, sem FK, então serviços antigos não mudam quando o catálogo muda.
 - A conexão vem do `.env` (importado por `spring.config.import`) via `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`. A app roda fora do Docker, então o host é `localhost`.
 - Se o Flyway reclamar de schema sem histórico, ou o Postgres de `data-db` for de outra versão/senha: `docker compose down`, apagar `data-db` e subir de novo (apaga os dados).

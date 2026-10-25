@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Importar serviços')}"></head>
+<body>
+<link rel="stylesheet" th:href="@{/css/importacao.css}">
+<script th:src="@{/js/comum.js}" defer></script>
+<script th:src="@{/js/importacao.js}" defer></script>
+<header><a th:href="@{/}">Catálogo de Serviços</a><a class="nav" th:if="${ehAprovador}" th:href="@{/ui/revisao}">Revisão</a><a class="nav" th:href="@{/ui/importacoes}">Importar</a><a class="nav" th:if="${ehAprovador}" th:href="@{/ui/aprovacao}">Aprovações</a><th:block th:replace="~{layout :: usuario}"/></header>
+<main id="importacoes" th:attr="data-url-lotes=@{/api/importacoes}, data-url-tela=@{/ui/importacoes}">
+    <p><a th:href="@{/}">&larr; Voltar</a></p>
+    <div class="topo">
+        <div>
+            <h1>Importar serviços</h1>
+            <p>Envie uma planilha com vários serviços. O sistema confere cada linha, aponta o que já existe ou é parecido e só então você envia ao aprovador.</p>
+        </div>
+    </div>
+
+    <form id="form-envio" class="card envio">
+        <label for="arquivo">Planilha (.xlsx ou .csv, até 10 MB)</label>
+        <input type="file" id="arquivo" name="arquivo" accept=".xlsx,.csv" required>
+        <button type="submit" class="botao" id="btn-enviar">Enviar planilha</button>
+        <p id="envio-msg" class="aviso erro" role="alert" hidden></p>
+    </form>
+
+    <h2>Meus lotes</h2>
+    <p id="lotes-status" class="contador" aria-live="polite">Carregando...</p>
+    <ul id="lotes-lista" class="lotes"></ul>
+</main>
+</body>
+</html>

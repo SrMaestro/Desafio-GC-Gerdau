@@ -13,8 +13,11 @@ import com.Gerdau.Desafio_GC_Gerdau_App.repository.ServicoRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
+import java.util.Optional;
 
 @Service
 public class ServicoService {
@@ -30,9 +33,12 @@ public class ServicoService {
     private final ServicoRepository repository;
     private final CatNbsRepository catNbsRepository;
     private final CatHorarioRepository catHorarioRepository;
+    private final SinonimoServicoService sinonimoServicoService;
 
     public ServicoService(ServicoRepository repository, CatNbsRepository catNbsRepository,
-                          CatHorarioRepository catHorarioRepository) {
+                          CatHorarioRepository catHorarioRepository,
+                          SinonimoServicoService sinonimoServicoService) {
+        this.sinonimoServicoService = sinonimoServicoService;
         this.repository = repository;
         this.catNbsRepository = catNbsRepository;
         this.catHorarioRepository = catHorarioRepository;
@@ -42,7 +48,8 @@ public class ServicoService {
         return montarCodigo(form, condicaoAtiva(form.getCondicao()));
     }
 
-    private String montarCodigo(NovoServicoForm form, CatHorario condicao) {
+    /** Regra única de montagem do código, também usada pela importação em massa. */
+    static String montarCodigo(NovoServicoForm form, CatHorario condicao) {
         String complemento = form.getComplemento() == null ? "" : form.getComplemento();
         String codigo = form.getAbreviatura() + complemento + "_" + condicao.getSufixoCodigo() + form.getCnae();
         return codigo.toUpperCase(Locale.ROOT);
@@ -72,24 +79,48 @@ public class ServicoService {
         String codigo = montarCodigo(form, condicao);
         boolean codigoExistente = repository.findByCodigoPadronizado(codigo).isPresent();
 
-        List<ServicoSimilar> encontrados = repository.buscarSimilares(
-                form.getTextoBreve().trim(), LIMIAR_SUGESTAO, MAX_SUGESTOES);
+        // Sinônimo aprovado: o texto já é um serviço conhecido, bloqueia antes da similaridade
+        Optional<Servico> sinonimo = sinonimoServicoService.reconhecer(
+                form.getTextoBreve(), condicao.getDescricaoHorario(), form.getCnae());
+        if (sinonimo.isPresent()) {
+            Servico s = sinonimo.get();
+            return new AnaliseSimilaridade(codigo, codigoExistente,
+                    List.of(new SimilarDto(s.getId(), s.getTextoBreve(), s.getCodigoPadronizado(), 1.0)),
+                    true, s.getCodigoPadronizado());
+        }
 
-        boolean duplicadoPorTexto = encontrados.stream().anyMatch(s ->
-                s.getScore() >= LIMIAR_BLOQUEIO
-                        && s.getId1Condicao().equals(condicao.getDescricaoHorario())
-                        && s.getId2Cnae().equals(form.getCnae()));
+        List<ServicoSimilar> encontrados = buscarParecidos(repository, form.getTextoBreve());
+
+        boolean duplicadoPorTexto = duplicadoPorTexto(encontrados, condicao.getDescricaoHorario(), form.getCnae())
+                .isPresent();
 
         List<SimilarDto> similares = encontrados.stream()
                 .map(s -> new SimilarDto(s.getId(), s.getTextoBreve(), s.getCodigoPadronizado(), s.getScore()))
                 .toList();
 
-        return new AnaliseSimilaridade(codigo, codigoExistente, similares, codigoExistente || duplicadoPorTexto);
+        return new AnaliseSimilaridade(codigo, codigoExistente, similares, codigoExistente || duplicadoPorTexto, null);
+    }
+
+    /** Os serviços parecidos com o texto, como o cadastro individual consulta (também usado na importação). */
+    static List<ServicoSimilar> buscarParecidos(ServicoRepository repository, String texto) {
+        return repository.buscarSimilares(texto.trim(), LIMIAR_SUGESTAO, MAX_SUGESTOES);
+    }
+
+    /**
+     * Regra de bloqueio do cadastro individual: entre os parecidos, o de maior score que conta como duplicado
+     * (score a partir de {@link #LIMIAR_BLOQUEIO}, mesma condição pela descrição e mesmo CNAE).
+     */
+    static Optional<ServicoSimilar> duplicadoPorTexto(List<ServicoSimilar> encontrados, String descricaoCondicao,
+                                                      String cnae) {
+        return encontrados.stream()
+                .filter(s -> s.getScore() != null && s.getScore() >= LIMIAR_BLOQUEIO
+                        && Objects.equals(s.getId1Condicao(), descricaoCondicao)
+                        && Objects.equals(s.getId2Cnae(), cnae))
+                .max(Comparator.comparingDouble(ServicoSimilar::getScore));
     }
 
     public Servico cadastrar(NovoServicoForm form, boolean confirmarMesmoAssim) {
-        String codigoNbs = form.getCodigoNbs() == null || form.getCodigoNbs().isBlank()
-                ? null : form.getCodigoNbs().trim();
+        String codigoNbs = codigoNbs(form);
         if (codigoNbs != null && !catNbsRepository.existsById(codigoNbs)) {
             throw new IllegalArgumentException("Código NBS desconhecido: " + codigoNbs);
         }
@@ -103,6 +134,20 @@ public class ServicoService {
             throw new CadastroRejeitadoException(analise);
         }
 
+        Servico servico = novoServico(form, condicao, analise.codigoGerado());
+        try {
+            return repository.saveAndFlush(servico);
+        } catch (DataIntegrityViolationException e) {
+            // corrida: outro usuário criou o mesmo código entre a análise e o insert
+            throw new CadastroRejeitadoException(new AnaliseSimilaridade(
+                    analise.codigoGerado(), true, analise.similares(), true, analise.reconhecidoComo()));
+        }
+    }
+    /**
+     * Monta (sem gravar) o serviço como o cadastro grava: textos sem espaços nas pontas, abreviatura e complemento
+     * em maiúsculas, condição pela descrição do catálogo. Também usado na aprovação da importação em massa.
+     */
+    static Servico novoServico(NovoServicoForm form, CatHorario condicao, String codigo) {
         Servico servico = new Servico();
         servico.setAreaServico(form.getAreaServico().trim());
         servico.setTextoBreve(form.getTextoBreve().trim());
@@ -110,16 +155,14 @@ public class ServicoService {
         servico.setComplemento(form.getComplemento() == null ? "" : form.getComplemento().toUpperCase(Locale.ROOT));
         servico.setId1Condicao(condicao.getDescricaoHorario());
         servico.setId2Cnae(form.getCnae());
-        servico.setCodigoPadronizado(analise.codigoGerado());
-        servico.setCodigoNbs(codigoNbs);
+        servico.setCodigoPadronizado(codigo);
+        servico.setCodigoNbs(codigoNbs(form));
         servico.setCriadorCodigo(form.getCriadorCodigo() == null || form.getCriadorCodigo().isBlank()
                 ? null : form.getCriadorCodigo().trim());
-        try {
-            return repository.saveAndFlush(servico);
-        } catch (DataIntegrityViolationException e) {
-            // corrida: outro usuário criou o mesmo código entre a análise e o insert
-            throw new CadastroRejeitadoException(new AnaliseSimilaridade(
-                    analise.codigoGerado(), true, analise.similares(), true));
-        }
+        return servico;
+    }
+
+    private static String codigoNbs(NovoServicoForm form) {
+        return form.getCodigoNbs() == null || form.getCodigoNbs().isBlank() ? null : form.getCodigoNbs().trim();
     }
 }

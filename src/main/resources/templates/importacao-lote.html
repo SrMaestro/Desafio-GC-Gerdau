@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Importação')}"></head>
+<body>
+<link rel="stylesheet" th:href="@{/css/importacao.css}">
+<script th:src="@{/js/comum.js}" defer></script>
+<script th:src="@{/js/importacao.js}" defer></script>
+<header><a th:href="@{/}">Catálogo de Serviços</a><a class="nav" th:if="${ehAprovador}" th:href="@{/ui/revisao}">Revisão</a><a class="nav" th:href="@{/ui/importacoes}">Importar</a><a class="nav" th:if="${ehAprovador}" th:href="@{/ui/aprovacao}">Aprovações</a><th:block th:replace="~{layout :: usuario}"/></header>
+<main id="lote" th:attr="data-lote-id=${loteId}, data-url-api=@{/api/importacoes}, data-url-servicos=@{/servicos}, data-url-horarios=@{/api/horarios}">
+    <p><a th:href="@{/ui/importacoes}">&larr; Meus lotes</a></p>
+    <div class="topo">
+        <div>
+            <h1>Importação <span id="lote-arquivo"></span></h1>
+            <p id="lote-resumo" aria-live="polite">Carregando...</p>
+        </div>
+    </div>
+
+    <section id="progresso" class="card" hidden aria-live="polite">
+        <p id="progresso-texto">Processando a planilha...</p>
+        <progress id="progresso-barra" max="100" value="0" aria-label="Andamento da importação"></progress>
+    </section>
+    <p id="lote-falha" class="aviso erro" role="alert" hidden></p>
+    <p id="lote-msg" class="aviso" role="status" hidden></p>
+
+    <div id="blocos" hidden>
+        <div class="card envio-aprovador">
+            <button type="button" class="botao" id="btn-enviar-aprovador">Enviar ao aprovador</button>
+            <span id="enviar-info" class="contador"></span>
+        </div>
+
+        <section class="card decisoes" aria-labelledby="titulo-decisoes">
+            <h2 id="titulo-decisoes">Decisões do aprovador</h2>
+            <p class="contador" aria-live="polite">Aprovadas: <strong id="contagem-aprovada">0</strong>
+                · Rejeitadas: <strong id="contagem-rejeitada">0</strong>
+                · Em conflito: <strong id="contagem-conflito">0</strong>
+                · Aguardando o aprovador: <strong id="contagem-enviada">0</strong></p>
+            <details class="bloco bloco-rejeitada" id="bloco-rejeitada" data-etapa="REJEITADA">
+                <summary>Rejeitadas pelo aprovador <span class="suave">com o motivo</span></summary>
+                <p class="ajuda">Estas linhas não podem mais ser alteradas aqui: corrija na planilha e envie num novo lote.</p>
+                <ul class="linhas" data-lista></ul>
+                <nav class="paginas" aria-label="Páginas das linhas rejeitadas" data-paginas></nav>
+            </details>
+            <details class="bloco bloco-conflito" id="bloco-conflito" data-etapa="CONFLITO">
+                <summary>Em conflito na aprovação <span class="suave">com o motivo</span></summary>
+                <p class="ajuda">Não puderam virar código (por exemplo, já existe um parecido ou o código foi criado por outra operação). Corrija na planilha e envie num novo lote.</p>
+                <ul class="linhas" data-lista></ul>
+                <nav class="paginas" aria-label="Páginas das linhas em conflito" data-paginas></nav>
+            </details>
+        </section>
+
+        <section class="bloco bloco-erro" id="bloco-erro" data-situacao="ERRO" aria-labelledby="titulo-erro">
+            <h2 id="titulo-erro"><span id="contagem-erro">0</span> com erro</h2>
+            <p class="ajuda">Corrija cada linha ou descarte. As linhas com erro não impedem o envio das que estão prontas.</p>
+            <label class="filtro"><input type="checkbox" data-mostrar-todas> Mostrar também as já resolvidas</label>
+            <p class="contador" data-pendentes aria-live="polite"></p>
+            <ul class="linhas" data-lista></ul>
+            <nav class="paginas" aria-label="Páginas das linhas com erro" data-paginas></nav>
+        </section>
+
+        <section class="bloco bloco-parecida" id="bloco-parecida" data-situacao="PARECIDA" aria-labelledby="titulo-parecida">
+            <h2 id="titulo-parecida"><span id="contagem-parecida">0</span> parecidas</h2>
+            <p class="ajuda">Estas linhas lembram serviços já cadastrados. Diga se é o mesmo serviço ou outro.</p>
+            <div class="em-bloco">
+                <label for="score-minimo">Decidir de uma vez as com similaridade de pelo menos
+                    <input type="number" id="score-minimo" min="0" max="100" step="1" value="90"> %</label>
+                <button type="button" id="bloco-mesmo">São o mesmo serviço</button>
+                <button type="button" id="bloco-outro">São outro serviço</button>
+            </div>
+            <label class="filtro"><input type="checkbox" data-mostrar-todas> Mostrar também as já decididas</label>
+            <p class="contador" data-pendentes aria-live="polite"></p>
+            <ul class="linhas" data-lista></ul>
+            <nav class="paginas" aria-label="Páginas das linhas parecidas" data-paginas></nav>
+        </section>
+
+        <details class="bloco bloco-nova" id="bloco-nova" data-situacao="NOVA">
+            <summary><span id="contagem-nova">0</span> novas <span class="suave">código proposto, só revisar</span></summary>
+            <ul class="linhas" data-lista></ul>
+            <nav class="paginas" aria-label="Páginas das linhas novas" data-paginas></nav>
+        </details>
+
+        <details class="bloco bloco-existente" id="bloco-existente" data-situacao="EXISTENTE">
+            <summary><span id="contagem-existente">0</span> já existiam <span class="suave">ignoradas</span></summary>
+            <ul class="linhas" data-lista></ul>
+            <nav class="paginas" aria-label="Páginas das linhas que já existiam" data-paginas></nav>
+        </details>
+
+        <details class="bloco bloco-repetida" id="bloco-repetida" data-situacao="REPETIDA">
+            <summary><span id="contagem-repetida">0</span> repetidas na planilha <span class="suave">ignoradas</span></summary>
+            <ul class="linhas" data-lista></ul>
+            <nav class="paginas" aria-label="Páginas das linhas repetidas" data-paginas></nav>
+        </details>
+    </div>
+</main>
+</body>
+</html>

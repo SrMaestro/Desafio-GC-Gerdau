@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Aprovar lote')}"></head>
+<body>
+<link rel="stylesheet" th:href="@{/css/importacao.css}">
+<script th:src="@{/js/comum.js}" defer></script>
+<script th:src="@{/js/aprovacao.js}" defer></script>
+<header><a th:href="@{/}">Catálogo de Serviços</a><a class="nav" th:if="${ehAprovador}" th:href="@{/ui/revisao}">Revisão</a><a class="nav" th:href="@{/ui/importacoes}">Importar</a><a class="nav" th:if="${ehAprovador}" th:href="@{/ui/aprovacao}">Aprovações</a><th:block th:replace="~{layout :: usuario}"/></header>
+<main id="aprovacao-lote" th:attr="data-lote-id=${loteId}, data-url-api=@{/api/importacoes}, data-url-servicos=@{/servicos}, data-url-tela=@{/ui/aprovacao}">
+    <p><a th:href="@{/ui/aprovacao}">&larr; Aprovações</a></p>
+    <div class="topo">
+        <div>
+            <h1>Lote <span id="lote-arquivo"></span></h1>
+            <p id="lote-resumo" aria-live="polite">Carregando...</p>
+        </div>
+    </div>
+    <p id="lote-erro" class="aviso erro" role="alert" hidden></p>
+    <p id="lote-msg" class="aviso" role="status" hidden></p>
+
+    <section class="card filtros" aria-labelledby="titulo-filtro">
+        <h2 id="titulo-filtro">Linhas aguardando decisão</h2>
+        <label for="filtro-tipo">Mostrar
+            <select id="filtro-tipo">
+                <option value="">Todas</option>
+                <option value="NOVA">Novas (código proposto)</option>
+                <option value="PARECIDA">Parecidas com um serviço existente</option>
+            </select>
+        </label>
+        <label for="filtro-score" id="filtro-score-campo" hidden>com similaridade de pelo menos
+            <input type="number" id="filtro-score" min="0" max="100" step="1" placeholder="sem mínimo"> %</label>
+    </section>
+
+    <section class="card em-bloco-aprovador" aria-labelledby="titulo-bloco">
+        <h2 id="titulo-bloco">Decidir de uma vez</h2>
+        <p id="bloco-info" class="contador" aria-live="polite">Carregando...</p>
+        <div class="em-bloco">
+            <button type="button" class="botao" id="btn-aprovar-bloco">Aprovar todas</button>
+            <label for="motivo-bloco" class="rotulo-motivo">Motivo da rejeição
+                <input type="text" id="motivo-bloco" maxlength="500" autocomplete="off"></label>
+            <button type="button" id="btn-rejeitar-bloco">Rejeitar todas</button>
+        </div>
+        <p class="ajuda">A ação vale para todas as linhas do filtro acima, em todas as páginas, e não só para as que aparecem na tela.</p>
+    </section>
+
+    <ul id="linhas" class="linhas"></ul>
+    <nav id="paginas" class="paginas" aria-label="Páginas das linhas" hidden></nav>
+
+    <details class="bloco bloco-conflito" id="bloco-conflito">
+        <summary><span id="contagem-conflito">0</span> em conflito <span class="suave">já existiam ou foram criadas por outra pessoa; nada a fazer aqui</span></summary>
+        <p id="conflito-status" class="contador" aria-live="polite"></p>
+        <ul id="conflitos" class="linhas"></ul>
+        <nav id="paginas-conflito" class="paginas" aria-label="Páginas das linhas em conflito" hidden></nav>
+    </details>
+</main>
+</body>
+</html>
