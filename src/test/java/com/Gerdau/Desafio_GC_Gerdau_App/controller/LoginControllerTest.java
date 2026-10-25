@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -31,6 +32,12 @@ class LoginControllerTest {
     void login_comErroMostraMensagemGenerica() throws Exception {
         mvc.perform(get("/login").param("error", ""))
                 .andExpect(content().string(containsString("Usuário ou senha inválidos.")));
+    }
+
+    @Test
+    void login_naoTemMenuLateral() throws Exception {
+        mvc.perform(get("/login"))
+                .andExpect(content().string(not(containsString("class=\"menu\""))));
     }
 
     @Test

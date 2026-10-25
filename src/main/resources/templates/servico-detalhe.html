@@ -5,7 +5,7 @@
 <th:block th:replace="~{layout :: menu('servicos')}"/>
 <main>
     <p><a th:href="@{/}">&larr; Voltar</a></p>
-    <p th:if="${mensagem}" th:text="${mensagem}" style="color:green"></p>
+    <p th:if="${mensagem}" th:text="${mensagem}" class="aviso ok" role="status"></p>
     <div class="card">
         <h2 th:text="${servico.textoBreve}"></h2>
         <dl>

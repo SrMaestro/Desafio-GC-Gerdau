@@ -21,6 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -147,6 +148,13 @@ class ServicoViewControllerTest {
         mvc.perform(get("/"))
                 .andExpect(content().string(containsString("href=\"/ui/revisao\"")))
                 .andExpect(content().string(containsString("href=\"/ui/aprovacao\"")));
+    }
+
+    @Test
+    void menu_apareceUmaUnicaVez() throws Exception {
+        String html = mvc.perform(get("/")).andReturn().getResponse().getContentAsString();
+
+        assertThat(html.split("class=\"menu\"", -1)).hasSize(2);
     }
 
     @Test
