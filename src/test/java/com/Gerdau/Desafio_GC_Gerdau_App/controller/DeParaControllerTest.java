@@ -28,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(DeParaController.class)
 @Import(SecurityConfig.class)
-@WithMockUser(roles = "APROVADOR")
+@WithMockUser(username = "ana", roles = "APROVADOR")
 class DeParaControllerTest {
 
     @Autowired
@@ -103,15 +103,28 @@ class DeParaControllerTest {
         when(service.aprovar(1L, "ana")).thenReturn(mapeamento(1, StatusDePara.APROVADO));
 
         mvc.perform(post("/api/de-para/1/aprovar").with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"revisor\":\"ana\"}"))
+                        .content("{}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("APROVADO"));
     }
 
     @Test
-    void aprovar_exigeRevisor() throws Exception {
+    void aprovar_usaUsuarioLogadoComoRevisor() throws Exception {
+        when(service.aprovar(1L, "ana")).thenReturn(mapeamento(1, StatusDePara.APROVADO));
+
         mvc.perform(post("/api/de-para/1/aprovar").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk());
+        verify(service).aprovar(1L, "ana");
+    }
+
+    @Test
+    void aprovar_ignoraRevisorDoCorpo() throws Exception {
+        when(service.aprovar(1L, "ana")).thenReturn(mapeamento(1, StatusDePara.APROVADO));
+
+        mvc.perform(post("/api/de-para/1/aprovar").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"revisor\":\"outro\"}"))
+                .andExpect(status().isOk());
+        verify(service).aprovar(1L, "ana");
     }
 
     @Test
@@ -119,7 +132,7 @@ class DeParaControllerTest {
         when(service.aprovar(99L, "ana")).thenThrow(new DeParaNaoEncontradoException(99L));
 
         mvc.perform(post("/api/de-para/99/aprovar").with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"revisor\":\"ana\"}"))
+                        .content("{}"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.erro").value("Mapeamento não encontrado: 99"));
     }
@@ -129,7 +142,7 @@ class DeParaControllerTest {
         when(service.aprovar(1L, "ana")).thenThrow(new IllegalStateException("Já existe mapeamento aprovado"));
 
         mvc.perform(post("/api/de-para/1/aprovar").with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"revisor\":\"ana\"}"))
+                        .content("{}"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.erro").value("Já existe mapeamento aprovado"));
     }
@@ -139,7 +152,7 @@ class DeParaControllerTest {
         when(service.rejeitar(1L, "ana", "NBS errado")).thenReturn(mapeamento(1, StatusDePara.REJEITADO));
 
         mvc.perform(post("/api/de-para/1/rejeitar").with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"revisor\":\"ana\",\"motivo\":\"NBS errado\"}"))
+                        .content("{\"motivo\":\"NBS errado\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("REJEITADO"));
         verify(service).rejeitar(1L, "ana", "NBS errado");
@@ -150,7 +163,7 @@ class DeParaControllerTest {
         when(service.revogar(1L, "ana", "NBS mudou")).thenReturn(mapeamento(1, StatusDePara.REVOGADO));
 
         mvc.perform(post("/api/de-para/1/revogar").with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"revisor\":\"ana\",\"motivo\":\"NBS mudou\"}"))
+                        .content("{\"motivo\":\"NBS mudou\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("REVOGADO"));
     }
