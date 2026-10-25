@@ -191,4 +191,20 @@ class ClassificadorLinhaTest {
         assertThat(r.situacao()).isEqualTo(SituacaoLinha.ERRO);
         assertThat(r.motivo()).contains("area_servico");
     }
+
+    @Test
+    void falhaDeBanco_propagaEmVezDeVirarErro() {
+        when(servicoRepository.findByCodigoPadronizado(anyString()))
+                .thenThrow(new org.springframework.dao.DataAccessResourceFailureException("db fora"));
+        org.junit.jupiter.api.Assertions.assertThrows(org.springframework.dao.DataAccessException.class,
+                () -> classificador.classificar(linhaPadrao(), Set.of()));
+    }
+
+    @Test
+    void excecaoInesperadaDeDado_viraErroComMensagemFixa() {
+        when(sinonimoServicoService.reconhecer(any(), any(), any())).thenThrow(new IllegalStateException());
+        ResultadoClassificacao r = classificador.classificar(linhaPadrao(), Set.of());
+        assertThat(r.situacao()).isEqualTo(SituacaoLinha.ERRO);
+        assertThat(r.motivo()).isEqualTo("Não foi possível interpretar a linha").doesNotContain("null");
+    }
 }

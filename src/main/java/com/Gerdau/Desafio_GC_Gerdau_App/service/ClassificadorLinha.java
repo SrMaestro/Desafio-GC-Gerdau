@@ -10,6 +10,9 @@ import com.Gerdau.Desafio_GC_Gerdau_App.model.SituacaoLinha;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.CatHorarioRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.CatNbsRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.ServicoRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
@@ -23,6 +26,7 @@ import java.util.regex.Pattern;
 @Service
 public class ClassificadorLinha {
 
+    private static final Logger log = LoggerFactory.getLogger(ClassificadorLinha.class);
     private static final int MAX_SIMILARES = 5;
     private static final Pattern ABREVIATURA = Pattern.compile("[A-Za-z0-9]*");
     private static final Pattern COMPLEMENTO = Pattern.compile("(_[A-Za-z0-9]*)?");
@@ -46,8 +50,12 @@ public class ClassificadorLinha {
     public ResultadoClassificacao classificar(LinhaPlanilha linha, Set<String> codigosJaVistos) {
         try {
             return classificarLinha(linha, codigosJaVistos);
+        } catch (DataAccessException e) {
+            // falha de infraestrutura não é erro da linha: quem importa deve encerrar o lote como FALHOU
+            throw e;
         } catch (RuntimeException e) {
-            return erro(null, "Não foi possível analisar a linha: " + e.getMessage());
+            log.warn("Falha inesperada ao classificar a linha {}", linha == null ? null : linha.numero(), e);
+            return erro(null, "Não foi possível interpretar a linha");
         }
     }
 
