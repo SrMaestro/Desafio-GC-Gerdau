@@ -12,6 +12,7 @@ cadastro -> gera código -> compara (pg_trgm) -> bloqueia | pede confirmação |
 4. O código gerado não pode passar de 40 caracteres.
 5. Se dois usuários criarem o mesmo código ao mesmo tempo, a restrição de unicidade do banco recusa o segundo, e ele recebe a resposta de bloqueio.
 6. Se informado, o código NBS precisa existir em `cat_nbs`.
+7. Antes da similaridade, o sistema procura um **sinônimo aprovado** (ver "Importação em massa"): se o texto, a condição e o CNAE já foram ligados a um serviço, o cadastro é bloqueado e mostra o código desse serviço.
 
 ## Busca de NBS (fall-back)
 
@@ -35,3 +36,57 @@ cadastro -> gera código -> compara (pg_trgm) -> bloqueia | pede confirmação |
 - Confirmar um nome que já tem aprovado é ignorado: a confirmação nunca altera um aprovado.
 - Toda mudança de status grava em `dicionario_de_para_historico` (quem, quando, motivo).
 - A origem do mapeamento é `LOTE` (carga em lote), `USUARIO` ou `REVISOR`.
+
+## Importação em massa
+
+Para planilhas (`.csv`/`.xlsx`) com muitas linhas. Cada linha passa pelas mesmas regras do cadastro, e **nenhuma linha entra na base sem a aprovação de um aprovador**, nem os códigos novos. Uma linha nunca some: termina sempre em uma situação e uma etapa visíveis.
+
+### Limites
+
+Até 20.000 linhas de dados e 10 MB por arquivo; acima disso o arquivo é recusado com mensagem. O processamento é em segundo plano, uma importação por vez (as outras esperam numa fila de até 20); o progresso é gravado no lote (`PROCESSANDO`, `CONCLUIDO`, `FALHOU`). Lote que estava processando quando a aplicação caiu vira `FALHOU` na subida seguinte, mantendo as linhas já gravadas. Uma queda do banco no meio também encerra o lote como `FALHOU`.
+
+### Situação de cada linha (na ordem em que é decidida)
+
+| Situação | Critério |
+|----------|----------|
+| `ERRO` | Campo obrigatório vazio ou acima do tamanho, abreviatura ou complemento fora do padrão, CNAE sem 7 dígitos (aceita `4399103.0`, como o Excel entrega), condição inexistente ou inativa, NBS inexistente, código gerado acima de 40 caracteres |
+| `REPETIDA` | O código gerado já apareceu antes no mesmo arquivo |
+| `EXISTENTE` | O texto é um sinônimo aprovado (mesma condição e CNAE), ou o código gerado já está cadastrado |
+| `PARECIDA` | Há serviço com similaridade de texto ≥ 0,4 (o mais parecido é guardado com a similaridade). **Inclui** o que o cadastro individual bloquearia (≥ 0,8, mesma condição e mesmo CNAE): na importação nada é bloqueado de saída, tudo que se parece vai para decisão humana |
+| `NOVA` | Nenhum serviço com similaridade ≥ 0,4 |
+
+Uma linha `NOVA` ou `PARECIDA` cujo código já foi **enviado** para aprovação em outro lote vira `REPETIDA`. Linhas ainda em conferência de outro lote não contam. Os limiares são os do cadastro (`ServicoService`).
+
+### Etapa de cada linha
+
+| Etapa | Significado |
+|-------|-------------|
+| `EM_CONFERENCIA` | Precisa do comprador: erro a corrigir ou parecida sem decisão |
+| `PRONTA` | Nova, ou parecida já decidida; ainda não enviada |
+| `ENVIADA` | Com o aprovador |
+| `APROVADA` / `REJEITADA` | Decidida pelo aprovador (rejeição exige motivo; não volta sozinha) |
+| `CONFLITO` | Na aprovação, não pôde ser gravada; o motivo fica na linha. Estado final |
+| `IGNORADA` | `EXISTENTE` e `REPETIDA`, que não vão adiante |
+| `DESCARTADA` | O comprador descartou |
+
+### Conferência do comprador
+
+- Corrigir uma linha a reclassifica do zero, inclusive a repetição dentro do lote. Só se mexe em linhas em conferência ou prontas.
+- Em linha `PARECIDA` o comprador decide: `MESMO_SERVICO` (liga o texto ao serviço parecido) ou `OUTRO_SERVICO` (tratar como novo). Pode decidir em bloco por similaridade mínima, e mudar a decisão enquanto a linha não foi enviada.
+- Enviar ao aprovador leva as linhas `PRONTA`; erros e parecidas sem decisão ficam para um envio posterior.
+
+### Aprovação
+
+- Só linhas `ENVIADA` são decididas, uma a uma ou em bloco (por situação e similaridade mínima). Cada linha é uma transação própria: um conflito ou erro numa linha não desfaz as outras.
+- `NOVA`, ou `PARECIDA` com `OUTRO_SERVICO`: cria o serviço com o código gerado. Antes, o sistema confere de novo que o código ainda é livre e que continua igual ao do catálogo atual; se não, a linha vai para `CONFLITO` com o motivo. A restrição de unicidade do banco continua sendo a garantia final.
+- `PARECIDA` com `MESMO_SERVICO`: não cria serviço; grava o **sinônimo** (texto normalizado + condição + CNAE → serviço). Se o texto já estava ligado a outro serviço, é `CONFLITO`; se ao mesmo serviço, é sucesso.
+- Erro técnico (banco instável, por exemplo) não vira conflito: a linha continua `ENVIADA`, é contada como falha no resumo da aprovação e pode ser aprovada de novo.
+- Quem aprova é sempre o usuário logado. O aprovador pode aprovar linhas que ele mesmo enviou.
+
+### Sinônimos
+
+Tabela `servico_sinonimo`: texto normalizado (minúsculo, sem acento, espaços colapsados), condição e CNAE ligados a um serviço, com quem aprovou, quando e de qual linha. O mesmo texto com outra condição ou outro CNAE é outro serviço. Um sinônimo é reconhecido na importação (linha `EXISTENTE`) e no cadastro individual (bloqueio, mesmo com `confirmar=true`). Nesta versão não há tela para revogar sinônimos.
+
+### Quem vê o quê
+
+O comprador vê só os próprios lotes (de outro usuário, a resposta é 404). O aprovador vê, de lotes alheios, apenas as linhas `ENVIADA` e `CONFLITO`; nos próprios, tudo. As telas de aprovação e a API `/api/importacoes/aprovacao/**` são só do `APROVADOR` (o comprador recebe 403).
