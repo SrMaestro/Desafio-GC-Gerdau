@@ -2,7 +2,6 @@ package com.Gerdau.Desafio_GC_Gerdau_App.service;
 
 import com.Gerdau.Desafio_GC_Gerdau_App.config.AsyncConfig;
 import com.Gerdau.Desafio_GC_Gerdau_App.dto.LinhaPlanilha;
-import com.Gerdau.Desafio_GC_Gerdau_App.dto.ResultadoClassificacao;
 import com.Gerdau.Desafio_GC_Gerdau_App.dto.ResumoLote;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.LinhaImportacao;
@@ -41,30 +40,20 @@ public class ImportacaoService {
     private static final Logger log = LoggerFactory.getLogger(ImportacaoService.class);
     static final int TAMANHO_BLOCO = 200;
     private static final int MAX_MENSAGEM = 500;
-    // tamanhos das colunas (V10__importacao_em_massa.sql e anotações de LinhaImportacao/LoteImportacao)
+    // tamanho da coluna do nome do arquivo (V10__importacao_em_massa.sql); as das linhas ficam em PreparadorLinha
     static final int MAX_ARQUIVO_NOME = 255;
-    static final int MAX_AREA_SERVICO = 50;
-    static final int MAX_TEXTO_BREVE = 255;
-    static final int MAX_ABREVIATURA = 10;
-    static final int MAX_COMPLEMENTO = 15;
-    static final int MAX_CONDICAO = 50;
-    static final int MAX_CNAE = 15;
-    static final int MAX_CODIGO_NBS = 20;
-    static final int MAX_CRIADOR = 100;
-    static final int MAX_CODIGO_GERADO = 40;
-    static final int MAX_MOTIVO = 500;
 
     private final LeitorPlanilha leitorPlanilha;
-    private final ClassificadorLinha classificador;
+    private final PreparadorLinha preparador;
     private final LoteImportacaoRepository loteRepository;
     private final LinhaImportacaoRepository linhaRepository;
     private final Executor executor;
 
-    public ImportacaoService(LeitorPlanilha leitorPlanilha, ClassificadorLinha classificador,
+    public ImportacaoService(LeitorPlanilha leitorPlanilha, PreparadorLinha preparador,
                              LoteImportacaoRepository loteRepository, LinhaImportacaoRepository linhaRepository,
                              @Qualifier(AsyncConfig.IMPORTACAO_EXECUTOR) Executor executor) {
         this.leitorPlanilha = leitorPlanilha;
-        this.classificador = classificador;
+        this.preparador = preparador;
         this.loteRepository = loteRepository;
         this.linhaRepository = linhaRepository;
         this.executor = executor;
@@ -123,42 +112,10 @@ public class ImportacaoService {
 
     private LinhaImportacao classificarELinha(LoteImportacao lote, LinhaPlanilha linha, String criadorPadrao,
                                               Set<String> codigosVistos) {
-        ResultadoClassificacao r = classificador.classificar(linha, codigosVistos);
-        SituacaoLinha situacao = r.situacao();
-        String motivo = r.motivo();
-        if ((situacao == SituacaoLinha.NOVA || situacao == SituacaoLinha.PARECIDA) && r.codigoGerado() != null
-                && linhaRepository.existsByCodigoGeradoAndEtapaIn(r.codigoGerado(), Set.of(EtapaLinha.ENVIADA))) {
-            situacao = SituacaoLinha.REPETIDA;
-            motivo = "Este código já foi enviado em outro lote de importação";
-        }
-        if (r.codigoGerado() != null) {
-            codigosVistos.add(r.codigoGerado());
-        }
         LinhaImportacao l = new LinhaImportacao();
         l.setLote(lote);
-        l.setNumero(linha.numero());
-        l.setAreaServico(cortar(linha.areaServico(), MAX_AREA_SERVICO));
-        l.setTextoBreve(cortar(linha.textoBreve(), MAX_TEXTO_BREVE));
-        l.setAbreviatura(cortar(linha.abreviatura(), MAX_ABREVIATURA));
-        l.setComplemento(cortar(linha.complemento(), MAX_COMPLEMENTO));
-        l.setCondicao(cortar(linha.condicao(), MAX_CONDICAO));
-        l.setCnae(cortar(linha.cnae(), MAX_CNAE));
-        l.setCodigoNbs(cortar(linha.codigoNbs(), MAX_CODIGO_NBS));
-        boolean semCriador = linha.criadorCodigo() == null || linha.criadorCodigo().isBlank();
-        l.setCriadorCodigo(cortar(semCriador ? criadorPadrao : linha.criadorCodigo(), MAX_CRIADOR));
-        // código acima do limite não é gravado truncado (enganaria); o motivo mantém o texto completo
-        String codigo = r.codigoGerado();
-        l.setCodigoGerado(codigo != null && codigo.length() <= MAX_CODIGO_GERADO ? codigo : null);
-        l.setSituacao(situacao);
-        l.setEtapa(etapaInicial(situacao));
-        l.setServicoParecidoId(r.servicoParecidoId());
-        l.setScore(r.score());
-        l.setMotivo(cortar(motivo, MAX_MOTIVO));
+        preparador.preencher(l, linha, criadorPadrao, codigosVistos);
         return l;
-    }
-
-    private static String cortar(String valor, int max) {
-        return valor == null || valor.length() <= max ? valor : valor.substring(0, max);
     }
 
     /** Se passar da coluna, corta o nome mas preserva a extensão. */
@@ -169,14 +126,6 @@ public class ImportacaoService {
         int ponto = nome.lastIndexOf('.');
         String extensao = ponto >= 0 && nome.length() - ponto <= 10 ? nome.substring(ponto) : "";
         return nome.substring(0, MAX_ARQUIVO_NOME - extensao.length()) + extensao;
-    }
-
-    static EtapaLinha etapaInicial(SituacaoLinha situacao) {
-        return switch (situacao) {
-            case ERRO, PARECIDA -> EtapaLinha.EM_CONFERENCIA;
-            case NOVA -> EtapaLinha.PRONTA;
-            case EXISTENTE, REPETIDA -> EtapaLinha.IGNORADA;
-        };
     }
 
     /** Grava o bloco (confirma sozinho) e atualiza o progresso; devolve quantas linhas gravou. */

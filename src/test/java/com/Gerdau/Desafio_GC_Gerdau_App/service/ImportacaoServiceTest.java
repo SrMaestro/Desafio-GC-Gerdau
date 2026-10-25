@@ -55,7 +55,7 @@ class ImportacaoServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ImportacaoService(leitor, classificador, loteRepository, linhaRepository, executorFalso);
+        service = new ImportacaoService(leitor, new PreparadorLinha(classificador, linhaRepository), loteRepository, linhaRepository, executorFalso);
         lote = new LoteImportacao();
         lote.setId(7L);
         lote.setArquivoNome("a.csv");
@@ -240,7 +240,7 @@ class ImportacaoServiceTest {
 
     @Test
     void iniciar_executorRecusa_marcaLoteFalhou() {
-        service = new ImportacaoService(leitor, classificador, loteRepository, linhaRepository, r -> {
+        service = new ImportacaoService(leitor, new PreparadorLinha(classificador, linhaRepository), loteRepository, linhaRepository, r -> {
             throw new java.util.concurrent.RejectedExecutionException("cheio");
         });
         when(leitor.ler(any(), any())).thenReturn(List.of(linha(2, null)));
