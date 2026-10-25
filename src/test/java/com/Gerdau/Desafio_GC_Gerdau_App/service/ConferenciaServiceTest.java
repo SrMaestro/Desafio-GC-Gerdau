@@ -19,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.security.access.AccessDeniedException;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -32,6 +33,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -145,20 +147,29 @@ class ConferenciaServiceTest {
     @Test
     void decidir_somenteEmParecida() {
         linha(1, SituacaoLinha.NOVA, EtapaLinha.PRONTA);
-        LinhaImportacao p = linha(2, SituacaoLinha.PARECIDA, EtapaLinha.EM_CONFERENCIA);
+        linha(2, SituacaoLinha.PARECIDA, EtapaLinha.EM_CONFERENCIA);
         linha(3, SituacaoLinha.PARECIDA, EtapaLinha.ENVIADA);
+        when(linhaRepository.decidirSeEditavel(2L, DecisaoParecida.MESMO_SERVICO, "ana")).thenReturn(1);
 
         assertThatThrownBy(() -> service.decidir(1L, DecisaoParecida.OUTRO_SERVICO, "ana"))
                 .isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> service.decidir(3L, DecisaoParecida.OUTRO_SERVICO, "ana"))
                 .isInstanceOf(IllegalStateException.class);
+        verify(linhaRepository, never()).decidirSeEditavel(eq(1L), any(), any());
+        verify(linhaRepository, never()).decidirSeEditavel(eq(3L), any(), any());
 
         service.decidir(2L, DecisaoParecida.MESMO_SERVICO, "ana");
 
-        assertThat(p.getDecisao()).isEqualTo(DecisaoParecida.MESMO_SERVICO);
-        assertThat(p.getEtapa()).isEqualTo(EtapaLinha.PRONTA);
-        assertThat(p.getConferidoPor()).isEqualTo("ana");
-        verify(linhaRepository).save(p);
+        verify(linhaRepository).decidirSeEditavel(2L, DecisaoParecida.MESMO_SERVICO, "ana");
+    }
+
+    @Test
+    void decidir_linhaJaEnviadaPorOutroProcesso_recusa() {
+        linha(2, SituacaoLinha.PARECIDA, EtapaLinha.EM_CONFERENCIA); // lida antes do envio concorrente
+        when(linhaRepository.decidirSeEditavel(2L, DecisaoParecida.MESMO_SERVICO, "ana")).thenReturn(0);
+
+        assertThatThrownBy(() -> service.decidir(2L, DecisaoParecida.MESMO_SERVICO, "ana"))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -177,49 +188,44 @@ class ConferenciaServiceTest {
     }
 
     @Test
-    void enviar_soPronta() {
-        LinhaImportacao nova = linha(1, SituacaoLinha.NOVA, EtapaLinha.PRONTA);
-        LinhaImportacao decidida = linha(2, SituacaoLinha.PARECIDA, EtapaLinha.PRONTA);
-        // o repositório só devolve PRONTA: ERRO e PARECIDA sem decisão (EM_CONFERENCIA) nunca entram
-        when(linhaRepository.findByLoteIdAndEtapa(7L, EtapaLinha.PRONTA)).thenReturn(List.of(nova, decidida));
-        LinhaImportacao erro = linha(3, SituacaoLinha.ERRO, EtapaLinha.EM_CONFERENCIA);
-        LinhaImportacao semDecisao = linha(4, SituacaoLinha.PARECIDA, EtapaLinha.EM_CONFERENCIA);
+    void enviar_usaUpdateGuardadoEDevolveContagemDoBanco() {
+        when(linhaRepository.marcarProntasComoEnviadas(eq(7L), any(LocalDateTime.class))).thenReturn(42);
 
         int n = service.enviarAoAprovador(7L, "ana");
 
-        assertThat(n).isEqualTo(2);
-        assertThat(nova.getEtapa()).isEqualTo(EtapaLinha.ENVIADA);
-        assertThat(nova.getEnviadoEm()).isNotNull();
-        assertThat(decidida.getEtapa()).isEqualTo(EtapaLinha.ENVIADA);
-        assertThat(erro.getEtapa()).isEqualTo(EtapaLinha.EM_CONFERENCIA);
-        assertThat(erro.getEnviadoEm()).isNull();
-        assertThat(semDecisao.getEtapa()).isEqualTo(EtapaLinha.EM_CONFERENCIA);
+        assertThat(n).isEqualTo(42);
+        verify(linhaRepository, times(1)).marcarProntasComoEnviadas(eq(7L), any(LocalDateTime.class));
+        verify(linhaRepository, never()).saveAll(any());
+        verify(linhaRepository, never()).save(any());
+        verify(linhaRepository, never()).findByLoteIdAndEtapa(anyLong(), any());
     }
 
     @Test
-    void enviar_duasVezes_naoReenvia() {
-        LinhaImportacao nova = linha(1, SituacaoLinha.NOVA, EtapaLinha.PRONTA);
-        when(linhaRepository.findByLoteIdAndEtapa(7L, EtapaLinha.PRONTA)).thenReturn(List.of(nova))
-                .thenReturn(List.of());
+    void enviar_duasChamadas_segundaDevolveZero() {
+        when(linhaRepository.marcarProntasComoEnviadas(eq(7L), any(LocalDateTime.class))).thenReturn(3, 0);
 
-        assertThat(service.enviarAoAprovador(7L, "ana")).isEqualTo(1);
-        var primeiroEnvio = nova.getEnviadoEm();
+        assertThat(service.enviarAoAprovador(7L, "ana")).isEqualTo(3);
         assertThat(service.enviarAoAprovador(7L, "ana")).isZero();
-        assertThat(nova.getEnviadoEm()).isEqualTo(primeiroEnvio);
     }
 
     @Test
     void descartar_naoVaiNoEnvio() {
-        LinhaImportacao l = linha(1, SituacaoLinha.NOVA, EtapaLinha.PRONTA);
-        when(linhaRepository.findByLoteIdAndEtapa(7L, EtapaLinha.PRONTA)).thenAnswer(i ->
-                l.getEtapa() == EtapaLinha.PRONTA ? List.of(l) : List.of());
+        linha(1, SituacaoLinha.NOVA, EtapaLinha.PRONTA);
+        when(linhaRepository.descartarSeEditavel(1L, "ana")).thenReturn(1);
 
         service.descartar(1L, "ana");
-        int n = service.enviarAoAprovador(7L, "ana");
 
-        assertThat(l.getEtapa()).isEqualTo(EtapaLinha.DESCARTADA);
-        assertThat(l.getConferidoPor()).isEqualTo("ana");
-        assertThat(n).isZero();
+        verify(linhaRepository).descartarSeEditavel(1L, "ana");
+        // o envio só mexe nas PRONTA via update guardado; descartada já saiu dessa etapa no banco
+        verify(linhaRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void descartar_linhaJaEnviadaPorOutroProcesso_recusa() {
+        linha(1, SituacaoLinha.NOVA, EtapaLinha.PRONTA); // lida antes do envio concorrente
+        when(linhaRepository.descartarSeEditavel(1L, "ana")).thenReturn(0);
+
+        assertThatThrownBy(() -> service.descartar(1L, "ana")).isInstanceOf(IllegalStateException.class);
     }
 
     @Test

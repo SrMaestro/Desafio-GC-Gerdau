@@ -66,8 +66,9 @@ public class ConferenciaService {
         if (linha.getSituacao() != SituacaoLinha.PARECIDA) {
             throw new IllegalStateException("Só linhas parecidas precisam de decisão");
         }
-        aplicarDecisao(linha, decisao, usuario);
-        linhaRepository.save(linha);
+        if (linhaRepository.decidirSeEditavel(linhaId, decisao, usuario) == 0) {
+            throw linhaMudou(linha);
+        }
     }
 
     /** Aplica a decisão às parecidas ainda sem decisão com score a partir do mínimo; devolve quantas. */
@@ -86,29 +87,30 @@ public class ConferenciaService {
     @Transactional
     public void descartar(Long linhaId, String usuario) {
         LinhaImportacao linha = linhaEditavel(linhaId, usuario);
-        linha.setEtapa(EtapaLinha.DESCARTADA);
-        linha.setConferidoPor(usuario);
-        linhaRepository.save(linha);
+        if (linhaRepository.descartarSeEditavel(linhaId, usuario) == 0) {
+            throw linhaMudou(linha);
+        }
     }
 
-    /** Passa as linhas PRONTA do lote para ENVIADA; as demais ficam como estão. Devolve quantas foram enviadas. */
+    /**
+     * Passa as linhas PRONTA do lote para ENVIADA num único update guardado (atômico mesmo com chamadas
+     * concorrentes); as demais ficam como estão. Devolve quantas foram enviadas agora.
+     */
     @Transactional
     public int enviarAoAprovador(Long loteId, String usuario) {
         carregarLoteDoUsuario(loteId, usuario);
-        List<LinhaImportacao> prontas = linhaRepository.findByLoteIdAndEtapa(loteId, EtapaLinha.PRONTA);
-        LocalDateTime agora = LocalDateTime.now();
-        for (LinhaImportacao l : prontas) {
-            l.setEtapa(EtapaLinha.ENVIADA);
-            l.setEnviadoEm(agora);
-        }
-        linhaRepository.saveAll(prontas);
-        return prontas.size();
+        return linhaRepository.marcarProntasComoEnviadas(loteId, LocalDateTime.now());
     }
 
     private static void aplicarDecisao(LinhaImportacao linha, DecisaoParecida decisao, String usuario) {
         linha.setDecisao(decisao);
         linha.setEtapa(EtapaLinha.PRONTA);
         linha.setConferidoPor(usuario);
+    }
+
+    private static IllegalStateException linhaMudou(LinhaImportacao linha) {
+        return new IllegalStateException("A linha " + linha.getNumero()
+                + " foi alterada ou enviada por outra operação e não pode mais ser modificada");
     }
 
     private LinhaImportacao linhaEditavel(Long linhaId, String usuario) {
