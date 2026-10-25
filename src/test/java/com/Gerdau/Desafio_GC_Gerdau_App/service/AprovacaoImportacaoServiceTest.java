@@ -492,6 +492,95 @@ class AprovacaoImportacaoServiceTest {
         verify(servicoRepository, times(2)).saveAndFlush(any());
     }
 
+    // ---- aprovar: duplicado por texto (regra de bloqueio do cadastro individual) ----
+
+    private static com.Gerdau.Desafio_GC_Gerdau_App.dto.ServicoSimilar similar(Servico s, double score) {
+        return new com.Gerdau.Desafio_GC_Gerdau_App.dto.ServicoSimilar() {
+            public Integer getId() { return s.getId(); }
+            public String getTextoBreve() { return s.getTextoBreve(); }
+            public String getCodigoPadronizado() { return s.getCodigoPadronizado(); }
+            public String getId1Condicao() { return s.getId1Condicao(); }
+            public String getId2Cnae() { return s.getId2Cnae(); }
+            public Double getScore() { return score; }
+        };
+    }
+
+    @Test
+    void emBloco_duasNovasComMesmoTextoECodigosDiferentes_segundaViraConflito() {
+        LinhaImportacao a = linha(1, SituacaoLinha.NOVA, null);
+        a.setCodigoGerado("A_HN4321000");
+        a.setAbreviatura("A");
+        a.setComplemento(null);
+        LinhaImportacao b = linha(2, SituacaoLinha.NOVA, null);
+        b.setCodigoGerado("B_HN4321000");
+        b.setAbreviatura("B");
+        b.setComplemento(null);
+        b.setTextoBreve("Pintura de tubulações");
+        // a base devolve como parecido o que já foi gravado (a primeira aprovação confirma antes da segunda)
+        List<Servico> gravados = new java.util.ArrayList<>();
+        when(servicoRepository.saveAndFlush(any(Servico.class))).thenAnswer(inv -> {
+            Servico s = inv.getArgument(0);
+            s.setId(90 + gravados.size());
+            gravados.add(s);
+            return s;
+        });
+        when(servicoRepository.buscarSimilares(anyString(), org.mockito.ArgumentMatchers.anyDouble(),
+                org.mockito.ArgumentMatchers.anyInt()))
+                .thenAnswer(inv -> gravados.stream().map(s -> similar(s, 0.92)).toList());
+        when(linhaRepository.idsEnviadasDoLote(anyLong(), any(), any())).thenReturn(List.of(1L, 2L));
+
+        ResumoAprovacao r = service.aprovarEmBloco(7L, new FiltroAprovacao(null, null), "gil");
+
+        assertThat(r).isEqualTo(new ResumoAprovacao(1, 1, 0));
+        assertThat(a.getEtapa()).isEqualTo(EtapaLinha.APROVADA);
+        assertThat(gravados).hasSize(1);
+        assertThat(motivoConflito(2)).isEqualTo(
+                "Parecido com A_HN4321000 (similaridade 92%) já na base; verifique se é duplicado");
+        verify(servicoRepository, times(1)).saveAndFlush(any());
+    }
+
+    @Test
+    void aprovarNova_parecidoAcimaDoBloqueioMasDeOutraCondicaoOuCnae_criaServico() {
+        linha(1, SituacaoLinha.NOVA, null);
+        Servico outraCondicao = new Servico();
+        outraCondicao.setId(70);
+        outraCondicao.setCodigoPadronizado("PINT_TUB_HE4321000");
+        outraCondicao.setId1Condicao("Hora extra");
+        outraCondicao.setId2Cnae("4321000");
+        Servico outroCnae = new Servico();
+        outroCnae.setId(71);
+        outroCnae.setCodigoPadronizado("PINT_TUB_HN1111111");
+        outroCnae.setId1Condicao("Hora normal");
+        outroCnae.setId2Cnae("1111111");
+        Servico abaixo = new Servico();
+        abaixo.setId(72);
+        abaixo.setCodigoPadronizado("PINTX_HN4321000");
+        abaixo.setId1Condicao("Hora normal");
+        abaixo.setId2Cnae("4321000");
+        when(servicoRepository.buscarSimilares(anyString(), org.mockito.ArgumentMatchers.anyDouble(),
+                org.mockito.ArgumentMatchers.anyInt()))
+                .thenReturn(List.of(similar(outraCondicao, 0.95), similar(outroCnae, 0.95), similar(abaixo, 0.79)));
+
+        assertThat(service.aprovar(1L, "gil")).isEqualTo(EtapaLinha.APROVADA);
+
+        verify(servicoRepository).saveAndFlush(any(Servico.class));
+    }
+
+    @Test
+    void aprovarOutroServico_comParecidoIgualNaBase_naoEBloqueado() {
+        // o comprador viu o parecido e decidiu que é outro serviço: a regra de bloqueio não vale aqui
+        LinhaImportacao l = linha(1, SituacaoLinha.PARECIDA, DecisaoParecida.OUTRO_SERVICO);
+        existente.setId1Condicao("Hora normal");
+        existente.setId2Cnae("4321000");
+        when(servicoRepository.buscarSimilares(anyString(), org.mockito.ArgumentMatchers.anyDouble(),
+                org.mockito.ArgumentMatchers.anyInt())).thenReturn(List.of(similar(existente, 0.97)));
+
+        assertThat(service.aprovar(1L, "gil")).isEqualTo(EtapaLinha.APROVADA);
+
+        verify(servicoRepository).saveAndFlush(any(Servico.class));
+        assertThat(l.getServicoCriadoId()).isEqualTo(99);
+    }
+
     // ---- erro técnico x conflito de negócio ----
 
     @Test

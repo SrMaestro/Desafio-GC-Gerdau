@@ -13,8 +13,10 @@ import com.Gerdau.Desafio_GC_Gerdau_App.repository.ServicoRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -87,19 +89,34 @@ public class ServicoService {
                     true, s.getCodigoPadronizado());
         }
 
-        List<ServicoSimilar> encontrados = repository.buscarSimilares(
-                form.getTextoBreve().trim(), LIMIAR_SUGESTAO, MAX_SUGESTOES);
+        List<ServicoSimilar> encontrados = buscarParecidos(repository, form.getTextoBreve());
 
-        boolean duplicadoPorTexto = encontrados.stream().anyMatch(s ->
-                s.getScore() >= LIMIAR_BLOQUEIO
-                        && s.getId1Condicao().equals(condicao.getDescricaoHorario())
-                        && s.getId2Cnae().equals(form.getCnae()));
+        boolean duplicadoPorTexto = duplicadoPorTexto(encontrados, condicao.getDescricaoHorario(), form.getCnae())
+                .isPresent();
 
         List<SimilarDto> similares = encontrados.stream()
                 .map(s -> new SimilarDto(s.getId(), s.getTextoBreve(), s.getCodigoPadronizado(), s.getScore()))
                 .toList();
 
         return new AnaliseSimilaridade(codigo, codigoExistente, similares, codigoExistente || duplicadoPorTexto, null);
+    }
+
+    /** Os serviços parecidos com o texto, como o cadastro individual consulta (também usado na importação). */
+    static List<ServicoSimilar> buscarParecidos(ServicoRepository repository, String texto) {
+        return repository.buscarSimilares(texto.trim(), LIMIAR_SUGESTAO, MAX_SUGESTOES);
+    }
+
+    /**
+     * Regra de bloqueio do cadastro individual: entre os parecidos, o de maior score que conta como duplicado
+     * (score a partir de {@link #LIMIAR_BLOQUEIO}, mesma condição pela descrição e mesmo CNAE).
+     */
+    static Optional<ServicoSimilar> duplicadoPorTexto(List<ServicoSimilar> encontrados, String descricaoCondicao,
+                                                      String cnae) {
+        return encontrados.stream()
+                .filter(s -> s.getScore() != null && s.getScore() >= LIMIAR_BLOQUEIO
+                        && Objects.equals(s.getId1Condicao(), descricaoCondicao)
+                        && Objects.equals(s.getId2Cnae(), cnae))
+                .max(Comparator.comparingDouble(ServicoSimilar::getScore));
     }
 
     public Servico cadastrar(NovoServicoForm form, boolean confirmarMesmoAssim) {

@@ -1,6 +1,7 @@
 package com.Gerdau.Desafio_GC_Gerdau_App.service;
 
 import com.Gerdau.Desafio_GC_Gerdau_App.dto.NovoServicoForm;
+import com.Gerdau.Desafio_GC_Gerdau_App.dto.ServicoSimilar;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.CatHorario;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.DecisaoParecida;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha;
@@ -79,10 +80,11 @@ class AprovadorLinha {
         }
         Integer servicoCriadoId = null;
         if (linha.getSituacao() == SituacaoLinha.NOVA) {
-            servicoCriadoId = criarServico(linha).getId();
+            servicoCriadoId = criarServico(linha, true).getId();
         } else if (linha.getSituacao() == SituacaoLinha.PARECIDA) {
             if (linha.getDecisao() == DecisaoParecida.OUTRO_SERVICO) {
-                servicoCriadoId = criarServico(linha).getId();
+                // o comprador viu o parecido e decidiu que é outro serviço: sem a regra de bloqueio por texto
+                servicoCriadoId = criarServico(linha, false).getId();
             } else if (linha.getDecisao() == DecisaoParecida.MESMO_SERVICO) {
                 registrarSinonimo(linha, aprovador);
             } else {
@@ -113,8 +115,12 @@ class AprovadorLinha {
                 PreparadorLinha.cortar(motivo, PreparadorLinha.MAX_MOTIVO), aprovador, LocalDateTime.now());
     }
 
-    /** Cria o serviço da linha como o cadastro individual, depois de conferir de novo que o código é livre. */
-    private Servico criarServico(LinhaImportacao linha) {
+    /**
+     * Cria o serviço da linha como o cadastro individual, depois de conferir de novo que o código é livre. Com
+     * {@code bloquearPorTexto} (linha NOVA) aplica também a regra de bloqueio do cadastro individual contra a base
+     * atual, que pega duplicados de texto com códigos diferentes, inclusive os aprovados antes no mesmo lote.
+     */
+    private Servico criarServico(LinhaImportacao linha, boolean bloquearPorTexto) {
         String codigo = linha.getCodigoGerado();
         if (codigo == null) {
             throw new ConflitoAprovacao("A linha não tem código gerado");
@@ -128,6 +134,16 @@ class AprovadorLinha {
         }
         if (servicoRepository.findByCodigoPadronizado(codigo).isPresent()) {
             throw new ConflitoAprovacao("O código " + codigo + " já foi cadastrado por outra operação");
+        }
+        if (bloquearPorTexto && linha.getTextoBreve() != null) {
+            Optional<ServicoSimilar> duplicado = ServicoService.duplicadoPorTexto(
+                    ServicoService.buscarParecidos(servicoRepository, linha.getTextoBreve()),
+                    condicao.getDescricaoHorario(), form.getCnae());
+            if (duplicado.isPresent()) {
+                throw new ConflitoAprovacao("Parecido com " + duplicado.get().getCodigoPadronizado()
+                        + " (similaridade " + Math.round(duplicado.get().getScore() * 100)
+                        + "%) já na base; verifique se é duplicado");
+            }
         }
         try {
             return servicoRepository.saveAndFlush(ServicoService.novoServico(form, condicao, codigo));
