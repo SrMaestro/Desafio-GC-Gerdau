@@ -197,4 +197,156 @@ class LeitorPlanilhaTest {
 
         assertThat(linhas).extracting(LinhaPlanilha::numero).containsExactly(2, 4);
     }
+
+    // ---- .xlsx lido em streaming ----
+
+    private static final String[] CABECALHO_XLSX = {"area_servico", "texto_breve", "abreviatura", "complemento",
+            "condicao", "cnae"};
+
+    @Test
+    void xlsx_formula_devolveOValorCalculadoNaoOTextoDaFormula() throws Exception {
+        byte[] arquivo;
+        try (XSSFWorkbook wb = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet planilha = wb.createSheet("Dados");
+            Row cab = planilha.createRow(0);
+            for (int j = 0; j < CABECALHO_XLSX.length; j++) {
+                cab.createCell(j).setCellValue(CABECALHO_XLSX[j]);
+            }
+            Row r = planilha.createRow(1);
+            r.createCell(0).setCellValue("Manutenção");
+            r.createCell(1).setCellFormula("TRIM(\"  Solda de tubo  \")");
+            r.createCell(2).setCellFormula("UPPER(\"sold\")");
+            r.createCell(4).setCellValue("HN");
+            r.createCell(5).setCellFormula("4399100+3");
+            wb.getCreationHelper().createFormulaEvaluator().evaluateAll(); // grava o valor em cache, como o Excel
+            wb.write(out);
+            arquivo = out.toByteArray();
+        }
+
+        LinhaPlanilha linha = leitor.ler("lote.xlsx", arquivo).get(0);
+
+        assertThat(linha.textoBreve()).isEqualTo("Solda de tubo");
+        assertThat(linha.abreviatura()).isEqualTo("SOLD");
+        assertThat(linha.cnae()).isEqualTo("4399103");
+    }
+
+    @Test
+    void xlsx_celulasELinhasFaltandoNoMeio_mantemColunasENumeros() throws Exception {
+        byte[] arquivo;
+        try (XSSFWorkbook wb = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet planilha = wb.createSheet("Dados");
+            Row cab = planilha.createRow(1); // linha 1 da planilha em branco (sem elemento <row>)
+            for (int j = 0; j < CABECALHO_XLSX.length; j++) {
+                cab.createCell(j).setCellValue(CABECALHO_XLSX[j]);
+            }
+            Row r = planilha.createRow(2);
+            r.createCell(0).setCellValue("Manutenção");
+            // texto_breve, abreviatura e complemento sem célula: o streaming pula, a coluna não pode deslocar
+            r.createCell(4).setCellValue("HN");
+            r.createCell(5).setCellValue(4399103);
+            Row r2 = planilha.createRow(5); // linhas 4 e 5 da planilha ausentes
+            r2.createCell(1).setCellValue("Pintura");
+            r2.createCell(5).setCellValue("4321000");
+            wb.write(out);
+            arquivo = out.toByteArray();
+        }
+
+        List<LinhaPlanilha> linhas = leitor.ler("lote.xlsx", arquivo);
+
+        assertThat(linhas).containsExactly(
+                new LinhaPlanilha(3, "Manutenção", null, null, null, "HN", "4399103", null, null),
+                new LinhaPlanilha(6, null, "Pintura", null, null, null, "4321000", null, null));
+    }
+
+    @Test
+    void xlsx_acimaDoLimite_recusa() throws Exception {
+        byte[] arquivo;
+        try (org.apache.poi.xssf.streaming.SXSSFWorkbook wb = new org.apache.poi.xssf.streaming.SXSSFWorkbook(100);
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet planilha = wb.createSheet("Dados");
+            Row cab = planilha.createRow(0);
+            for (int j = 0; j < CABECALHO_XLSX.length; j++) {
+                cab.createCell(j).setCellValue(CABECALHO_XLSX[j]);
+            }
+            for (int i = 1; i <= LeitorPlanilha.MAX_LINHAS + 1; i++) {
+                Row r = planilha.createRow(i);
+                r.createCell(0).setCellValue("A");
+                r.createCell(1).setCellValue("Servico " + i);
+                r.createCell(5).setCellValue(4399103);
+            }
+            wb.write(out);
+            arquivo = out.toByteArray();
+        }
+
+        assertThatThrownBy(() -> leitor.ler("lote.xlsx", arquivo))
+                .isInstanceOf(ArquivoInvalidoException.class)
+                .hasMessageContaining(String.valueOf(LeitorPlanilha.MAX_LINHAS));
+    }
+
+    @Test
+    void xlsx_noLimiteExato_eAceito() throws Exception {
+        byte[] arquivo;
+        try (org.apache.poi.xssf.streaming.SXSSFWorkbook wb = new org.apache.poi.xssf.streaming.SXSSFWorkbook(100);
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet planilha = wb.createSheet("Dados");
+            Row cab = planilha.createRow(0);
+            for (int j = 0; j < CABECALHO_XLSX.length; j++) {
+                cab.createCell(j).setCellValue(CABECALHO_XLSX[j]);
+            }
+            for (int i = 1; i <= LeitorPlanilha.MAX_LINHAS; i++) {
+                planilha.createRow(i).createCell(1).setCellValue("Servico " + i);
+            }
+            wb.write(out);
+            arquivo = out.toByteArray();
+        }
+
+        assertThat(leitor.ler("lote.xlsx", arquivo)).hasSize(LeitorPlanilha.MAX_LINHAS);
+    }
+
+    @Test
+    void xlsx_bombaDeCompactacao_recusaComMensagemClara() throws Exception {
+        byte[] valido = xlsx(
+                new Object[] {"area_servico", "texto_breve", "abreviatura", "condicao", "cnae"},
+                new Object[] {"Manutenção", "Solda de tubo", "SOLD", "HN", "4399103"});
+        // mesma pasta, mas a planilha ganha 30 MB de espaços (XML válido) que compactam para quase nada
+        ByteArrayOutputStream bomba = new ByteArrayOutputStream();
+        try (java.util.zip.ZipInputStream in = new java.util.zip.ZipInputStream(new java.io.ByteArrayInputStream(valido));
+             java.util.zip.ZipOutputStream out = new java.util.zip.ZipOutputStream(bomba)) {
+            java.util.zip.ZipEntry e;
+            while ((e = in.getNextEntry()) != null) {
+                out.putNextEntry(new java.util.zip.ZipEntry(e.getName()));
+                out.write(in.readAllBytes());
+                if (e.getName().equals("xl/worksheets/sheet1.xml")) {
+                    byte[] espacos = new byte[1024 * 1024];
+                    java.util.Arrays.fill(espacos, (byte) ' ');
+                    for (int i = 0; i < 30; i++) {
+                        out.write(espacos);
+                    }
+                }
+                out.closeEntry();
+            }
+        }
+
+        assertThatThrownBy(() -> leitor.ler("lote.xlsx", bomba.toByteArray()))
+                .isInstanceOf(ArquivoInvalidoException.class)
+                .hasMessageContaining("descompactado")
+                .hasMessageNotContaining("Zip bomb");
+    }
+
+    @Test
+    void xlsx_streamingParaNaPrimeiraLinhaAcimaDoLimite() {
+        // cabeçalho + MAX_LINHAS de dados passam; a próxima linha não vazia interrompe a leitura ali mesmo
+        LeitorPlanilha.ColetorDeLinhas coletor = new LeitorPlanilha.ColetorDeLinhas();
+        for (int i = 0; i <= LeitorPlanilha.MAX_LINHAS; i++) {
+            coletor.startRow(i);
+            coletor.cell("A" + (i + 1), "x", null);
+            coletor.endRow(i);
+        }
+        coletor.startRow(LeitorPlanilha.MAX_LINHAS + 1);
+        coletor.cell(null, "x", null);
+
+        assertThatThrownBy(() -> coletor.endRow(LeitorPlanilha.MAX_LINHAS + 1))
+                .isInstanceOf(LeitorPlanilha.AcimaDoLimite.class);
+        assertThat(coletor.linhas).hasSize(LeitorPlanilha.MAX_LINHAS + 2);
+    }
 }

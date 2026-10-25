@@ -107,6 +107,15 @@ public class ImportacaoService {
         } catch (Exception e) {
             log.error("Falha ao processar o lote de importação {}", loteId, e);
             marcarFalha(lote, loteId, mensagemDe(e));
+        } catch (Error e) {
+            // falta de memória, estouro de pilha...: o lote não pode ficar PROCESSANDO para sempre
+            log.error("Erro grave ao processar o lote de importação {}", loteId, e);
+            try {
+                marcarFalha(lote, loteId, "Erro grave durante a importação. As linhas já gravadas foram mantidas.");
+            } catch (Throwable t) {
+                e.addSuppressed(t);
+            }
+            throw e;
         }
     }
 

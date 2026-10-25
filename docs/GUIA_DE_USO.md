@@ -47,7 +47,7 @@ Use quando você tem uma planilha com muitos serviços (até **20.000 linhas** e
 
 ### A planilha
 
-Arquivo `.csv` (UTF-8, separado por `;` ou `,`; um CSV salvo pelo Excel em português também é aceito) ou `.xlsx` (só a primeira aba). A primeira linha é o cabeçalho, com estes nomes (maiúsculas e acentos não importam; a ordem das colunas é livre):
+Arquivo `.csv` (UTF-8, separado por `;` ou `,`; um CSV salvo pelo Excel em português também é aceito) ou `.xlsx` (só a primeira aba; células com fórmula valem pelo resultado que o Excel mostra). A primeira linha é o cabeçalho, com estes nomes (maiúsculas e acentos não importam; a ordem das colunas é livre):
 
 | Coluna | Regra |
 |--------|-------|
@@ -69,7 +69,7 @@ Civil;Pintura de tanque de armazenamento;PINT;_TANQUE;HES;4330404
 Eletromecânica;Manutenção de motor elétrico;MANUT;_MOTORE;Condição que não existe;3313000
 ```
 
-O arquivo todo só é recusado se não for `.csv`/`.xlsx`, estiver vazio, passar do limite ou faltar uma coluna obrigatória (a mensagem diz qual). Problemas em linhas isoladas não recusam o arquivo: a linha aparece como "com erro".
+O arquivo todo só é recusado se não for `.csv`/`.xlsx`, estiver vazio, passar do limite, faltar uma coluna obrigatória (a mensagem diz qual) ou for um `.xlsx` que descompactado fica grande demais ou suspeito (salve de novo pelo Excel ou envie em CSV). Problemas em linhas isoladas não recusam o arquivo: a linha aparece como "com erro".
 
 ### Passo a passo
 

@@ -192,6 +192,29 @@ class ImportacaoServiceTest {
     }
 
     @Test
+    void processar_errorNaClassificacao_marcaFalhouERepropaga() {
+        lote.setStatus(StatusLote.PROCESSANDO);
+        when(classificador.classificar(any(), any())).thenThrow(new StackOverflowError("simulado"));
+
+        assertThatThrownBy(() -> service.processar(7L, List.of(linha(2, null))))
+                .isInstanceOf(StackOverflowError.class);
+
+        assertThat(lote.getStatus()).isEqualTo(StatusLote.FALHOU);
+        assertThat(lote.getMensagemErro()).isNotBlank();
+        verify(loteRepository, org.mockito.Mockito.atLeastOnce()).save(lote);
+    }
+
+    @Test
+    void processar_runtimeExceptionNaClassificacao_marcaFalhou() {
+        lote.setStatus(StatusLote.PROCESSANDO);
+        when(classificador.classificar(any(), any())).thenThrow(new IllegalStateException("simulado"));
+
+        service.processar(7L, List.of(linha(2, null)));
+
+        assertThat(lote.getStatus()).isEqualTo(StatusLote.FALHOU);
+    }
+
+    @Test
     void iniciar_arquivoInvalido_naoCriaLote() {
         when(leitor.ler(any(), any())).thenThrow(new ArquivoInvalidoException("ruim"));
 
