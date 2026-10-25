@@ -9,7 +9,7 @@ cadastro -> gera código -> compara (pg_trgm) -> bloqueia | pede confirmação |
 1. O código é gerado em maiúsculas: `abreviatura + complemento + "_" + sufixo da condição + CNAE`.
 2. Bloqueio: o código já existe, **ou** há serviço com similaridade de texto ≥ 0,8, mesma condição e mesmo CNAE.
 3. Confirmação: há serviços com similaridade ≥ 0,4 que não bloqueiam. O cadastro só segue com `confirmar=true`.
-   O 0,4 precisa ficar acima do limiar do `pg_trgm` (`show_limit()`, 0,3), pois a consulta usa o operador `%` para aproveitar o índice; ao baixar um, baixe o outro (há um teste que confere).
+   O 0,4 precisa ficar acima do limiar de similaridade do `pg_trgm` (padrão 0,3, visto em `SELECT show_limit()`), pois a consulta usa o operador `%` para aproveitar o índice e ele já corta nesse limiar. Com `LIMIAR_SUGESTAO` em 0,3 ou menos, a busca perde em silêncio os parecidos abaixo de 0,3; o teste `LimiarSimilaridadeTest` falha para avisar.
 4. O código gerado não pode passar de 40 caracteres.
 5. Se dois usuários criarem o mesmo código ao mesmo tempo, a restrição de unicidade do banco recusa o segundo, e ele recebe a resposta de bloqueio.
 6. Se informado, o código NBS precisa existir em `cat_nbs`.
@@ -72,7 +72,9 @@ Uma linha `NOVA` ou `PARECIDA` cujo código já foi **enviado** para aprovação
 
 ### Conferência do comprador
 
-- Corrigir uma linha a reclassifica do zero, inclusive a repetição dentro do lote. Só se mexe em linhas em conferência ou prontas.
+- Corrigir uma linha a reclassifica do zero, inclusive a repetição dentro do lote. Campos em branco valem como não informados (iguais a ausentes). Só se mexe em linhas em conferência ou prontas.
+- Toda decisão do comprador (corrigir, decidir, decidir em bloco, descartar) grava quem (`conferido_por`) e quando (`conferido_em`).
+- Linhas `REJEITADA` e `CONFLITO` aparecem na tela do comprador com o motivo; não podem ser alteradas no lote: o caminho é corrigir na planilha e enviar num novo lote.
 - Em linha `PARECIDA` o comprador decide: `MESMO_SERVICO` (liga o texto ao serviço parecido) ou `OUTRO_SERVICO` (tratar como novo). Pode decidir em bloco por similaridade mínima, e mudar a decisão enquanto a linha não foi enviada.
 - Enviar ao aprovador leva as linhas `PRONTA`; erros e parecidas sem decisão ficam para um envio posterior.
 
@@ -80,7 +82,8 @@ Uma linha `NOVA` ou `PARECIDA` cujo código já foi **enviado** para aprovação
 
 - Só linhas `ENVIADA` são decididas, uma a uma ou em bloco (por situação e similaridade mínima). Cada linha é uma transação própria: um conflito ou erro numa linha não desfaz as outras.
 - `NOVA`, ou `PARECIDA` com `OUTRO_SERVICO`: cria o serviço com o código gerado. Antes, o sistema confere de novo que o código ainda é livre e que continua igual ao do catálogo atual; se não, a linha vai para `CONFLITO` com o motivo. A restrição de unicidade do banco continua sendo a garantia final.
-- `PARECIDA` com `MESMO_SERVICO`: não cria serviço; grava o **sinônimo** (texto normalizado + condição + CNAE → serviço). Se o texto já estava ligado a outro serviço, é `CONFLITO`; se ao mesmo serviço, é sucesso.
+- Só para `NOVA`: antes de criar, aplica também a regra de bloqueio do cadastro individual contra a base atual (similaridade ≥ 0,8, mesma condição e mesmo CNAE). Se bloquear, `CONFLITO` com "Parecido com X (similaridade N%) já na base; verifique se é duplicado". Isso pega duas linhas do mesmo lote com o mesmo texto e códigos diferentes (a primeira aprovada bloqueia a segunda). `PARECIDA` com `OUTRO_SERVICO` não passa por essa regra: o comprador já viu o parecido e decidiu.
+- `PARECIDA` com `MESMO_SERVICO`: não cria serviço; grava o **sinônimo** (texto normalizado + condição + CNAE → serviço). O serviço parecido precisa ter a mesma condição (pela descrição do catálogo) e o mesmo CNAE da linha; senão, `CONFLITO` com "O serviço parecido (X) é de outra condição/CNAE; use 'é outro serviço' ou corrija a linha". Se o texto já estava ligado a outro serviço, é `CONFLITO`; se ao mesmo serviço, é sucesso.
 - Erro técnico (banco instável, por exemplo) não vira conflito: a linha continua `ENVIADA`, é contada como falha no resumo da aprovação e pode ser aprovada de novo.
 - Quem aprova é sempre o usuário logado. O aprovador pode aprovar linhas que ele mesmo enviou.
 

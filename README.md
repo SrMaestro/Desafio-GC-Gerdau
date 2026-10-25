@@ -36,7 +36,7 @@ src/main/java/com/Gerdau/Desafio_GC_Gerdau_App/
 ├── dto/          requests e responses
 └── exception/    CadastroRejeitadoException, DeParaNaoEncontradoException
 src/main/resources/
-├── db/migration/ migrations Flyway (V1 a V10)
+├── db/migration/ migrations Flyway (V1 a V11)
 ├── templates/    telas (busca, servicos, formulário, revisão, importação, aprovação)
 └── static/       css e js
 ```
@@ -109,6 +109,7 @@ O schema do banco é versionado em `src/main/resources/db/migration`. Ao iniciar
 | `V8__cat_horarios_unica_fonte.sql` | `cat_horarios.ativo` e remoção do `CHECK` de condição em `servicos_mock` |
 | `V9__usuarios.sql` | Tabela `usuarios` (login) e dois usuários de exemplo |
 | `V10__importacao_em_massa.sql` | `lotes_importacao`, `linhas_importacao` (situação e etapa de cada linha) e `servico_sinonimo` |
+| `V11__conferido_em.sql` | `linhas_importacao.conferido_em`: data da última decisão do comprador na linha |
 
 Para alterar o banco, crie um novo arquivo seguindo a convenção `V{n}__descricao.sql` (ex.: `V3__add_coluna_x.sql`). **Nunca edite uma migration já aplicada**: o Flyway valida o checksum e a aplicação deixa de subir.
 
@@ -160,7 +161,7 @@ Todas as rotas exigem login. As de `/api/de-para` (exceto `confirmacoes`) e as d
 
 ### Importação em massa
 
-O usuário que age vem sempre do login, nunca do corpo. Lote de outro usuário responde `404` (o aprovador vê apenas as linhas enviadas e em conflito). Erros do corpo/estado: `400` (dado inválido), `409` (linha já decidida, ou fora da etapa esperada), `403` (perfil). Arquivo inválido ou acima dos limites é recusado com mensagem.
+O usuário que age vem sempre do login, nunca do corpo. Lote de outro usuário: as consultas (`GET`) respondem `404` (o aprovador vê apenas as linhas enviadas e em conflito), e as ações do comprador sobre ele ou suas linhas (`PUT`/`POST` de correção, decisão, descarte e envio) respondem `403`; linha ou lote inexistente, `404`. Erros do corpo/estado: `400` (dado inválido), `409` (linha já decidida, ou fora da etapa esperada), `403` (perfil). Arquivo inválido ou acima dos limites é recusado com mensagem.
 
 | Método | Rota | Descrição |
 |--------|------|-----------|

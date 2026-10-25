@@ -24,7 +24,7 @@ docker compose up -d             # sobe PostgreSQL (+ pgAdmin em :5050); dados e
 ./mvnw test -Dtest=ServicoServiceTest#nomeDoMetodo      # um método
 ```
 
-- `DesafioGcGerdauAppApplicationTests` (`@SpringBootTest`) precisa do Postgres do compose no ar com o `.env` válido. Os demais testes de service usam Mockito e os de controller usam MVC test, sem banco.
+- Os testes `@SpringBootTest` precisam do Postgres do compose no ar com o `.env` válido: `DesafioGcGerdauAppApplicationTests`, `LinhaImportacaoRepositoryTest`, `ServicoRepositorySimilaridadeTest`, `SinonimoServicoRepositoryTest` (repositórios, `@Transactional`, desfeitos ao fim), `AprovacaoImportacaoTransacaoTest` e `LimiarSimilaridadeTest` (só leitura). Subir o contexto aplica no banco de dev as migrations pendentes. Os demais testes de service usam Mockito e os de controller usam MVC test, sem banco.
 - Não há linter configurado.
 
 ## Arquitetura
@@ -48,7 +48,7 @@ Spring Security com sessão e tela `/login`. Usuários na tabela `usuarios` (V9,
 
 ## Banco e migrations
 
-- `ddl-auto=validate`: o Hibernate não cria schema. Qualquer mudança em entidade exige uma migration `V{n}__descricao.sql` em `src/main/resources/db/migration` (hoje V1–V10). **Nunca edite uma migration já aplicada** (falha de checksum do Flyway); crie uma nova.
+- `ddl-auto=validate`: o Hibernate não cria schema. Qualquer mudança em entidade exige uma migration `V{n}__descricao.sql` em `src/main/resources/db/migration` (hoje V1–V11). **Nunca edite uma migration já aplicada** (falha de checksum do Flyway); crie uma nova.
 - As condições (hora normal, hora extra, posto mensal...) vivem só em `cat_horarios`. Condição nova = `INSERT` numa migration; condição aposentada = `ativo = FALSE` (nunca apagar). `servicos_mock.id1_condicao` guarda o texto da condição na hora do cadastro, sem FK, então serviços antigos não mudam quando o catálogo muda.
 - A conexão vem do `.env` (importado por `spring.config.import`) via `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`. A app roda fora do Docker, então o host é `localhost`.
 - Se o Flyway reclamar de schema sem histórico, ou o Postgres de `data-db` for de outra versão/senha: `docker compose down`, apagar `data-db` e subir de novo (apaga os dados).
