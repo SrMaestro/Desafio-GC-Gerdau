@@ -42,6 +42,13 @@ button { cursor: pointer; }
 dt { font-weight: 600; margin-top: .8rem; color: var(--texto-suave); }
 dd { margin: 0; }
 
+/* Cards de resumo */
+.resumo { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+.resumo-card { display: flex; flex-direction: column; gap: .25rem; padding: 1rem 1.1rem; background: var(--superficie); border: 1px solid var(--linha); border-radius: 10px; }
+.resumo-rotulo { color: var(--texto-suave); font-size: .9rem; }
+.resumo-valor { font-size: 1.75rem; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.resumo-card.destaque .resumo-valor { color: var(--brasa); }
+
 /* Listagem */
 .topo { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
 .topo h1 { margin: 0; font-size: 1.6rem; line-height: 1.2; }

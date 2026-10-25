@@ -6,8 +6,10 @@ import com.Gerdau.Desafio_GC_Gerdau_App.repository.CatNbsRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.ServicoRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.dto.NovoServicoForm;
 import com.Gerdau.Desafio_GC_Gerdau_App.exception.CadastroRejeitadoException;
+import com.Gerdau.Desafio_GC_Gerdau_App.service.ResumoService;
 import com.Gerdau.Desafio_GC_Gerdau_App.service.ServicoService;
 import jakarta.validation.Valid;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -28,17 +30,20 @@ public class ServicoViewController {
     private final ServicoService service;
     private final CatNbsRepository catNbsRepository;
     private final CatHorarioRepository catHorarioRepository;
+    private final ResumoService resumoService;
 
     public ServicoViewController(ServicoRepository repository, ServicoService service,
-                                 CatNbsRepository catNbsRepository, CatHorarioRepository catHorarioRepository) {
+                                 CatNbsRepository catNbsRepository, CatHorarioRepository catHorarioRepository,
+                                 ResumoService resumoService) {
         this.repository = repository;
         this.service = service;
         this.catNbsRepository = catNbsRepository;
         this.catHorarioRepository = catHorarioRepository;
+        this.resumoService = resumoService;
     }
 
     @GetMapping("/")
-    public String listar(@RequestParam(required = false) String area, Model model) {
+    public String listar(@RequestParam(required = false) String area, Authentication authentication, Model model) {
         List<Servico> todos = repository.findAll();
         List<String> areas = todos.stream().map(Servico::getAreaServico).distinct().sorted().toList();
         List<Servico> servicos = (area == null || area.isBlank()) ? todos : repository.findByAreaServico(area);
@@ -46,7 +51,13 @@ public class ServicoViewController {
         model.addAttribute("servicos", servicos);
         model.addAttribute("areas", areas);
         model.addAttribute("areaSelecionada", area);
+        model.addAttribute("resumo", resumoService.resumo(ehAprovador(authentication)));
         return "servicos";
+    }
+
+    private boolean ehAprovador(Authentication authentication) {
+        return authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_APROVADOR".equals(a.getAuthority()));
     }
 
     @GetMapping("/ui/busca")

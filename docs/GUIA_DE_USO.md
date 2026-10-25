@@ -10,6 +10,10 @@ A navegação fica no **menu lateral** (no celular, uma barra no topo): **Servi�
 
 Usuários de exemplo, criados na instalação: `comprador` / `comprador123` e `aprovador` / `aprovador123`. **Troque essas senhas antes de usar de verdade.** Ainda não há tela para isso: a equipe técnica gera um novo hash BCrypt e atualiza a coluna `senha_hash` da tabela `usuarios`; para desativar alguém, `ativo = FALSE`.
 
+## Resumo na tela de Serviços
+
+No topo da lista de **Serviços** há três cards: **Serviços cadastrados** (total do catálogo), **Mapeamentos pendentes** (sugestões do De-Para ainda sem decisão) e, só para o aprovador, **Linhas aguardando aprovação** (linhas de planilhas já enviadas, esperando decisão). Se um número não puder ser lido na hora, o card mostra "—" e o resto da tela funciona normalmente.
+
 ## 1. Cadastrar um novo serviço (comprador)
 
 Abra **Novo serviço** (`/ui/servicos/novo`) e preencha:

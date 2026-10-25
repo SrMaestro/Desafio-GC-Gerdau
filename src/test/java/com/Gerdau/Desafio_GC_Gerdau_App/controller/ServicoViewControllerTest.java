@@ -3,12 +3,15 @@ package com.Gerdau.Desafio_GC_Gerdau_App.controller;
 import com.Gerdau.Desafio_GC_Gerdau_App.config.SecurityConfig;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.test.context.support.WithMockUser;
+import com.Gerdau.Desafio_GC_Gerdau_App.dto.Resumo;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.CatNbs;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.CatHorario;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.CatHorarioRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.CatNbsRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.ServicoRepository;
+import com.Gerdau.Desafio_GC_Gerdau_App.service.ResumoService;
 import com.Gerdau.Desafio_GC_Gerdau_App.service.ServicoService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -20,6 +23,7 @@ import java.util.Optional;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -44,6 +48,14 @@ class ServicoViewControllerTest {
 
     @MockitoBean
     CatHorarioRepository catHorarioRepository;
+
+    @MockitoBean
+    ResumoService resumoService;
+
+    @BeforeEach
+    void resumoPadrao() {
+        when(resumoService.resumo(anyBoolean())).thenReturn(new Resumo(0L, 0L, 0L));
+    }
 
     private CatHorario horasExtra() {
         CatHorario h = new CatHorario();
@@ -141,5 +153,46 @@ class ServicoViewControllerTest {
     void menu_marcaOItemDaTelaAtual() throws Exception {
         mvc.perform(get("/ui/busca"))
                 .andExpect(content().string(containsString("href=\"/ui/busca\" aria-current=\"page\"")));
+    }
+
+    @Test
+    void cards_aprovadorVeOsTresComNumeros() throws Exception {
+        when(resumoService.resumo(true)).thenReturn(new Resumo(1122L, 37L, 5L));
+
+        mvc.perform(get("/"))
+                .andExpect(content().string(containsString("Serviços cadastrados")))
+                .andExpect(content().string(containsString("Mapeamentos pendentes")))
+                .andExpect(content().string(containsString("Linhas aguardando aprovação")))
+                .andExpect(content().string(containsString("resumo-valor\">1122<")))
+                .andExpect(content().string(containsString("resumo-valor\">37<")))
+                .andExpect(content().string(containsString("resumo-valor\">5<")));
+    }
+
+    @Test
+    @WithMockUser(username = "ana", roles = "COMPRADOR")
+    void cards_compradorNaoVeOCardDeAprovacao() throws Exception {
+        when(resumoService.resumo(false)).thenReturn(new Resumo(1122L, 37L, null));
+
+        mvc.perform(get("/"))
+                .andExpect(content().string(containsString("Serviços cadastrados")))
+                .andExpect(content().string(not(containsString("Linhas aguardando aprovação"))));
+    }
+
+    @Test
+    void cards_contagemIndisponivelMostraTracoEAPaginaAbre() throws Exception {
+        when(resumoService.resumo(true)).thenReturn(new Resumo(null, 37L, 5L));
+
+        mvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("resumo-valor\">—<")));
+    }
+
+    @Test
+    void cards_zeroApareceComoZero() throws Exception {
+        when(resumoService.resumo(true)).thenReturn(new Resumo(0L, 0L, 0L));
+
+        mvc.perform(get("/"))
+                .andExpect(content().string(containsString("resumo-valor\">0<")))
+                .andExpect(content().string(not(containsString("resumo-valor\">—<"))));
     }
 }
