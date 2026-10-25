@@ -257,4 +257,38 @@ class ConferenciaServiceTest {
         assertThatThrownBy(() -> service.descartar(404L, "ana")).isInstanceOf(NoSuchElementException.class);
         assertThatThrownBy(() -> service.enviarAoAprovador(404L, "ana")).isInstanceOf(NoSuchElementException.class);
     }
+
+    @Test
+    void corrigir_pelaTelaComNbsEComplementoVazios_ficaNovaEPronta() {
+        // classificador de verdade: a tela manda "" (não null) nos campos opcionais vazios
+        var servicoRepository = org.mockito.Mockito.mock(com.Gerdau.Desafio_GC_Gerdau_App.repository.ServicoRepository.class);
+        var catHorarioRepository = org.mockito.Mockito.mock(com.Gerdau.Desafio_GC_Gerdau_App.repository.CatHorarioRepository.class);
+        var catNbsRepository = org.mockito.Mockito.mock(com.Gerdau.Desafio_GC_Gerdau_App.repository.CatNbsRepository.class);
+        var sinonimos = org.mockito.Mockito.mock(SinonimoServicoService.class);
+        var hn = new com.Gerdau.Desafio_GC_Gerdau_App.model.CatHorario();
+        hn.setDescricaoHorario("Hora normal");
+        hn.setSufixoCodigo("HN");
+        when(catHorarioRepository.findByAtivoTrueOrderByIdAsc()).thenReturn(List.of(hn));
+        when(servicoRepository.findByCodigoPadronizado(any())).thenReturn(Optional.empty());
+        when(servicoRepository.buscarSimilares(any(), org.mockito.ArgumentMatchers.anyDouble(),
+                org.mockito.ArgumentMatchers.anyInt())).thenReturn(List.of());
+        when(sinonimos.reconhecer(any(), any(), any())).thenReturn(Optional.empty());
+        ClassificadorLinha real = new ClassificadorLinha(servicoRepository, catHorarioRepository, catNbsRepository,
+                sinonimos);
+        ConferenciaService comClassificadorReal = new ConferenciaService(new PreparadorLinha(real, linhaRepository),
+                loteRepository, linhaRepository);
+        linha(1, SituacaoLinha.ERRO, EtapaLinha.EM_CONFERENCIA);
+        LinhaPlanilha daTela = new LinhaPlanilha(0, "Manutenção", "Pintura de tubulação", "PINT", "", "HN",
+                "4321000", "", "");
+
+        LinhaImportacao r = comClassificadorReal.corrigir(1L, daTela, "ana");
+
+        assertThat(r.getMotivo()).isNull();
+        assertThat(r.getSituacao()).isEqualTo(SituacaoLinha.NOVA);
+        assertThat(r.getEtapa()).isEqualTo(EtapaLinha.PRONTA);
+        assertThat(r.getCodigoGerado()).isEqualTo("PINT_HN4321000");
+        assertThat(r.getCodigoNbs()).isNull();
+        assertThat(r.getComplemento()).isNull();
+        assertThat(r.getCriadorCodigo()).isEqualTo("ana"); // vazio cai no criador padrão (dono do lote)
+    }
 }

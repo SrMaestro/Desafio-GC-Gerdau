@@ -42,7 +42,8 @@ class PreparadorLinha {
      * Preenche dados, classificação e etapa inicial de {@code l} (não mexe em lote, id nem decisões) e acrescenta
      * o código gerado a {@code codigosVistos}.
      */
-    void preencher(LinhaImportacao l, LinhaPlanilha linha, String criadorPadrao, Set<String> codigosVistos) {
+    void preencher(LinhaImportacao l, LinhaPlanilha original, String criadorPadrao, Set<String> codigosVistos) {
+        LinhaPlanilha linha = original.limpa(); // "" da tela/API vale como campo vazio, igual à planilha
         ResultadoClassificacao r = classificador.classificar(linha, codigosVistos);
         SituacaoLinha situacao = r.situacao();
         String motivo = r.motivo();

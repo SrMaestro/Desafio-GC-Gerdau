@@ -46,10 +46,13 @@ public class ClassificadorLinha {
         this.sinonimoServicoService = sinonimoServicoService;
     }
 
-    /** Não altera {@code codigosJaVistos}: quem chama registra o código gerado depois. */
+    /**
+     * Não altera {@code codigosJaVistos}: quem chama registra o código gerado depois. Campos em branco valem como
+     * ausentes e todos são aparados ({@link LinhaPlanilha#limpa()}).
+     */
     public ResultadoClassificacao classificar(LinhaPlanilha linha, Set<String> codigosJaVistos) {
         try {
-            return classificarLinha(linha, codigosJaVistos);
+            return classificarLinha(linha.limpa(), codigosJaVistos);
         } catch (DataAccessException e) {
             // falha de infraestrutura não é erro da linha: quem importa deve encerrar o lote como FALHOU
             throw e;

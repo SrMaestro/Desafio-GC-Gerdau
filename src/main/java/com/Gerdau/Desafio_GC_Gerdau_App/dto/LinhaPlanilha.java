@@ -14,4 +14,22 @@ public record LinhaPlanilha(
         String cnae,
         String codigoNbs,
         String criadorCodigo) {
+
+    /**
+     * A mesma linha com todos os campos sem espaços nas pontas e os vazios como {@code null}. A tela e a API mandam
+     * {@code ""} nos campos que o comprador deixou em branco; importação, correção e classificação usam esta forma
+     * para que {@code ""} e {@code null} deem sempre o mesmo resultado.
+     */
+    public LinhaPlanilha limpa() {
+        return new LinhaPlanilha(numero, limpar(areaServico), limpar(textoBreve), limpar(abreviatura),
+                limpar(complemento), limpar(condicao), limpar(cnae), limpar(codigoNbs), limpar(criadorCodigo));
+    }
+
+    private static String limpar(String valor) {
+        if (valor == null) {
+            return null;
+        }
+        String texto = valor.trim();
+        return texto.isEmpty() ? null : texto;
+    }
 }

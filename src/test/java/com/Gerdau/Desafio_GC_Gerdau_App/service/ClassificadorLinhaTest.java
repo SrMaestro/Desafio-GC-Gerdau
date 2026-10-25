@@ -207,4 +207,25 @@ class ClassificadorLinhaTest {
         assertThat(r.situacao()).isEqualTo(SituacaoLinha.ERRO);
         assertThat(r.motivo()).isEqualTo("Não foi possível interpretar a linha").doesNotContain("null");
     }
+
+    @Test
+    void camposEmBrancoOuComEspacos_valemComoNulosEAparados() {
+        // a tela manda "" nos campos que o comprador deixou vazios; deve dar o mesmo que null
+        LinhaPlanilha comVazios = new LinhaPlanilha(2, " Obras ", " Montagem de andaime ", " ANDAIME ", "",
+                " HN ", " 4399103 ", "", "  ");
+        ResultadoClassificacao r = classificador.classificar(comVazios, Set.of());
+        assertThat(r).isEqualTo(classificador.classificar(linhaPadrao(), Set.of()));
+        assertThat(r.situacao()).isEqualTo(SituacaoLinha.NOVA);
+        assertThat(r.codigoGerado()).isEqualTo("ANDAIME_HN4399103");
+        org.mockito.Mockito.verify(catNbsRepository, org.mockito.Mockito.never()).existsById(any());
+        org.mockito.Mockito.verify(servicoRepository, org.mockito.Mockito.atLeastOnce())
+                .buscarSimilares(org.mockito.ArgumentMatchers.eq("Montagem de andaime"), anyDouble(), anyInt());
+    }
+
+    @Test
+    void complementoSoComEspacos_valeComoSemComplemento() {
+        ResultadoClassificacao r = classificador.classificar(linha("ANDAIME", "   ", "HN", "4399103"), Set.of());
+        assertThat(r.situacao()).isEqualTo(SituacaoLinha.NOVA);
+        assertThat(r.codigoGerado()).isEqualTo("ANDAIME_HN4399103");
+    }
 }
