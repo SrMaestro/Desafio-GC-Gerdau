@@ -22,8 +22,14 @@ import java.util.Set;
  * não há conferência de dono aqui (o acesso por perfil fica nos endpoints).
  *
  * <p>De propósito <b>não</b> é {@code @Transactional}: cada linha roda numa transação própria em
- * {@link AprovadorLinha}. Linha que não pode ser aprovada vai para {@code CONFLITO} com o motivo, gravado noutra
- * transação depois que a da aprovação foi desfeita (no Postgres, uma violação de unicidade aborta a transação).
+ * {@link AprovadorLinha}. Linha que não pode ser aprovada por regra de negócio (código já ocupado, sinônimo ligado a
+ * outro serviço, condição que não existe mais...) vai para {@code CONFLITO} com o motivo, gravado noutra transação
+ * depois que a da aprovação foi desfeita (no Postgres, uma violação de unicidade aborta a transação).
+ *
+ * <p>Erro técnico (banco instável, bloqueio que expirou, defeito no código) <b>não</b> vira conflito, porque
+ * {@code CONFLITO} é final: a transação da linha é desfeita e ela continua {@code ENVIADA}, pronta para ser aprovada
+ * de novo. Em bloco a falha é contada em {@link ResumoAprovacao#falhas()} e as outras linhas seguem; na aprovação
+ * de uma linha só, o erro é propagado.
  */
 @Service
 public class AprovacaoImportacaoService {
@@ -44,6 +50,7 @@ public class AprovacaoImportacaoService {
 
     /**
      * Aprova uma linha enviada. Devolve {@code APROVADA} ou {@code CONFLITO} (o motivo fica na linha).
+     * Erro técnico é propagado e a linha continua {@code ENVIADA}.
      *
      * @throws IllegalStateException se a linha não está aguardando aprovação
      * @throws NoSuchElementException se a linha não existe
@@ -67,15 +74,23 @@ public class AprovacaoImportacaoService {
         }
     }
 
-    /** Aprova as linhas enviadas do lote que atendem ao filtro, cada uma na sua transação. */
+    /**
+     * Aprova as linhas enviadas do lote que atendem ao filtro, cada uma na sua transação. Linha com erro técnico
+     * fica {@code ENVIADA}, conta como falha e não interrompe as demais.
+     */
     public ResumoAprovacao aprovarEmBloco(Long loteId, FiltroAprovacao filtro, String aprovador) {
         int aprovadas = 0;
         int conflitos = 0;
+        int falhas = 0;
         for (Long id : idsEnviadas(loteId, filtro)) {
             Desfecho d;
             try {
                 d = processar(id, aprovador);
             } catch (NoSuchElementException e) {
+                continue;
+            } catch (RuntimeException e) {
+                log.warn("Erro técnico ao aprovar a linha de importação {}; ela continua enviada", id, e);
+                falhas++;
                 continue;
             }
             if (d == Desfecho.APROVADA) {
@@ -84,15 +99,22 @@ public class AprovacaoImportacaoService {
                 conflitos++;
             }
         }
-        return new ResumoAprovacao(aprovadas, conflitos);
+        return new ResumoAprovacao(aprovadas, conflitos, falhas);
     }
 
-    /** Rejeita as linhas enviadas do lote que atendem ao filtro; devolve quantas foram rejeitadas. */
+    /**
+     * Rejeita as linhas enviadas do lote que atendem ao filtro; devolve quantas foram rejeitadas. Linha com erro
+     * técnico fica {@code ENVIADA}, não é contada e não interrompe as demais.
+     */
     public int rejeitarEmBloco(Long loteId, FiltroAprovacao filtro, String aprovador, String motivo) {
         String m = motivoObrigatorio(motivo);
         int rejeitadas = 0;
         for (Long id : idsEnviadas(loteId, filtro)) {
-            rejeitadas += aprovadorLinha.rejeitar(id, aprovador, m);
+            try {
+                rejeitadas += aprovadorLinha.rejeitar(id, aprovador, m);
+            } catch (RuntimeException e) {
+                log.warn("Erro técnico ao rejeitar a linha de importação {}; ela continua enviada", id, e);
+            }
         }
         return rejeitadas;
     }
@@ -104,6 +126,7 @@ public class AprovacaoImportacaoService {
         return linhaRepository.idsEnviadasDoLote(loteId, situacoes, scoreMinimo);
     }
 
+    /** Só conflitos de negócio viram CONFLITO; qualquer outra exceção sobe com a linha ainda ENVIADA. */
     private Desfecho processar(Long linhaId, String aprovador) {
         for (int tentativa = 1; ; tentativa++) {
             boolean ultima = tentativa >= MAX_TENTATIVAS;
@@ -114,17 +137,12 @@ public class AprovacaoImportacaoService {
                     continue;
                 }
                 return conflito(linhaId, aprovador, e.getMessage());
-            } catch (NoSuchElementException e) {
-                throw e;
             } catch (DataIntegrityViolationException e) {
                 // violação que só apareceu na confirmação da transação: nada foi gravado
                 if (!ultima) {
                     continue;
                 }
                 return conflito(linhaId, aprovador, "O banco recusou a gravação desta linha");
-            } catch (RuntimeException e) {
-                log.warn("Falha inesperada ao aprovar a linha de importação {}", linhaId, e);
-                return conflito(linhaId, aprovador, "Falha inesperada ao aprovar a linha; nada foi gravado");
             }
         }
     }

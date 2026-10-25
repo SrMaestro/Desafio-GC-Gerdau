@@ -22,6 +22,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import java.util.EnumSet;
@@ -435,7 +436,7 @@ class AprovacaoImportacaoServiceTest {
 
         ResumoAprovacao r = service.aprovarEmBloco(7L, new FiltroAprovacao(Set.of(SituacaoLinha.NOVA), null), "gil");
 
-        assertThat(r).isEqualTo(new ResumoAprovacao(1, 0));
+        assertThat(r).isEqualTo(new ResumoAprovacao(1, 0, 0));
         verify(servicoRepository, times(1)).saveAndFlush(any());
         verify(linhaRepository).idsEnviadasDoLote(7L, Set.of(SituacaoLinha.NOVA), null);
     }
@@ -444,9 +445,9 @@ class AprovacaoImportacaoServiceTest {
     void emBloco_filtroVazio_consultaTodasAsSituacoesMasSoEnviadas() {
         when(linhaRepository.idsEnviadasDoLote(anyLong(), any(), any())).thenReturn(List.of());
 
-        assertThat(service.aprovarEmBloco(7L, null, "gil")).isEqualTo(new ResumoAprovacao(0, 0));
+        assertThat(service.aprovarEmBloco(7L, null, "gil")).isEqualTo(new ResumoAprovacao(0, 0, 0));
         assertThat(service.aprovarEmBloco(7L, new FiltroAprovacao(Set.of(), null), "gil"))
-                .isEqualTo(new ResumoAprovacao(0, 0));
+                .isEqualTo(new ResumoAprovacao(0, 0, 0));
 
         // a consulta sempre exige etapa ENVIADA; filtro vazio só alarga as situações
         verify(linhaRepository, times(2)).idsEnviadasDoLote(7L, EnumSet.allOf(SituacaoLinha.class), null);
@@ -459,7 +460,7 @@ class AprovacaoImportacaoServiceTest {
         FiltroAprovacao filtro = new FiltroAprovacao(Set.of(SituacaoLinha.PARECIDA), 0.85);
         when(linhaRepository.idsEnviadasDoLote(7L, Set.of(SituacaoLinha.PARECIDA), 0.85)).thenReturn(List.of(3L));
 
-        assertThat(service.aprovarEmBloco(7L, filtro, "gil")).isEqualTo(new ResumoAprovacao(1, 0));
+        assertThat(service.aprovarEmBloco(7L, filtro, "gil")).isEqualTo(new ResumoAprovacao(1, 0, 0));
 
         verify(linhaRepository).idsEnviadasDoLote(7L, Set.of(SituacaoLinha.PARECIDA), 0.85);
         verify(sinonimoServicoService).registrar(any(), any(), any(), eq(existente), eq("gil"), eq(3L));
@@ -484,25 +485,82 @@ class AprovacaoImportacaoServiceTest {
 
         ResumoAprovacao r = service.aprovarEmBloco(7L, new FiltroAprovacao(null, null), "gil");
 
-        assertThat(r).isEqualTo(new ResumoAprovacao(2, 1));
+        assertThat(r).isEqualTo(new ResumoAprovacao(2, 1, 0));
         assertThat(a.getEtapa()).isEqualTo(EtapaLinha.APROVADA);
         assertThat(c.getEtapa()).isEqualTo(EtapaLinha.APROVADA);
         assertThat(motivoConflito(2)).contains("B_HN4321000");
         verify(servicoRepository, times(2)).saveAndFlush(any());
     }
 
+    // ---- erro técnico x conflito de negócio ----
+
     @Test
-    void emBloco_erroInesperadoNumaLinha_viraConflitoEContinua() {
-        linha(1, SituacaoLinha.NOVA, null);
-        LinhaImportacao b = linha(2, SituacaoLinha.PARECIDA, DecisaoParecida.MESMO_SERVICO);
-        when(sinonimoServicoService.reconhecer(any(), any(), any())).thenThrow(new RuntimeException("bug"));
-        when(linhaRepository.idsEnviadasDoLote(anyLong(), any(), any())).thenReturn(List.of(2L, 1L));
+    void erroTecnico_deixaALinhaEnviadaENaoViraConflito() {
+        LinhaImportacao l = linha(1, SituacaoLinha.NOVA, null);
+        when(servicoRepository.findByCodigoPadronizado(anyString()))
+                .thenThrow(new CannotAcquireLockException("lock timeout"));
+        when(linhaRepository.idsEnviadasDoLote(anyLong(), any(), any())).thenReturn(List.of(1L));
 
         ResumoAprovacao r = service.aprovarEmBloco(7L, null, "gil");
 
-        assertThat(r).isEqualTo(new ResumoAprovacao(1, 1));
-        assertThat(motivoConflito(2)).isNotBlank();
+        assertThat(r).isEqualTo(new ResumoAprovacao(0, 0, 1));
+        verify(linhaRepository, never()).marcarConflitoSeEnviada(anyLong(), any(), any(), any());
+        verify(servicoRepository, never()).saveAndFlush(any());
+        assertThat(l.getEtapa()).isEqualTo(EtapaLinha.ENVIADA);
+    }
+
+    @Test
+    void erroInesperadoNoMeioDoLote_naoParaAsOutrasLinhas() {
+        LinhaImportacao a = linha(1, SituacaoLinha.NOVA, null);
+        LinhaImportacao b = linha(2, SituacaoLinha.PARECIDA, DecisaoParecida.MESMO_SERVICO);
+        LinhaImportacao c = linha(3, SituacaoLinha.NOVA, null);
+        c.setAbreviatura("C");
+        c.setComplemento(null);
+        c.setCodigoGerado("C_HN4321000");
+        when(sinonimoServicoService.reconhecer(any(), any(), any())).thenThrow(new NullPointerException("bug"));
+        when(linhaRepository.idsEnviadasDoLote(anyLong(), any(), any())).thenReturn(List.of(1L, 2L, 3L));
+
+        ResumoAprovacao r = service.aprovarEmBloco(7L, null, "gil");
+
+        assertThat(r).isEqualTo(new ResumoAprovacao(2, 0, 1));
+        assertThat(a.getEtapa()).isEqualTo(EtapaLinha.APROVADA);
         assertThat(b.getEtapa()).isEqualTo(EtapaLinha.ENVIADA);
+        assertThat(c.getEtapa()).isEqualTo(EtapaLinha.APROVADA);
+        verify(linhaRepository, never()).marcarConflitoSeEnviada(anyLong(), any(), any(), any());
+        verify(servicoRepository, times(2)).saveAndFlush(any());
+    }
+
+    @Test
+    void aprovarUma_erroTecnico_ePropagado() {
+        linha(1, SituacaoLinha.NOVA, null);
+        when(servicoRepository.findByCodigoPadronizado(anyString()))
+                .thenThrow(new CannotAcquireLockException("lock timeout"));
+
+        assertThatThrownBy(() -> service.aprovar(1L, "gil")).isInstanceOf(CannotAcquireLockException.class);
+
+        verify(linhaRepository, never()).marcarConflitoSeEnviada(anyLong(), any(), any(), any());
+    }
+
+    @Test
+    void conflitoDeNegocio_continuaViraConflito() {
+        linha(1, SituacaoLinha.NOVA, null);
+        when(servicoRepository.findByCodigoPadronizado("PINT_TUB_HN4321000")).thenReturn(Optional.of(existente));
+        when(linhaRepository.idsEnviadasDoLote(anyLong(), any(), any())).thenReturn(List.of(1L));
+
+        assertThat(service.aprovarEmBloco(7L, null, "gil")).isEqualTo(new ResumoAprovacao(0, 1, 0));
+
+        assertThat(motivoConflito(1)).contains("já foi cadastrado");
+    }
+
+    @Test
+    void rejeitarEmBloco_erroTecnicoNumaLinha_naoParaAsOutras() {
+        when(linhaRepository.idsEnviadasDoLote(anyLong(), any(), any())).thenReturn(List.of(1L, 2L, 3L));
+        when(linhaRepository.rejeitarSeEnviada(eq(1L), any(), any(), any())).thenReturn(1);
+        when(linhaRepository.rejeitarSeEnviada(eq(2L), any(), any(), any()))
+                .thenThrow(new CannotAcquireLockException("lock timeout"));
+        when(linhaRepository.rejeitarSeEnviada(eq(3L), any(), any(), any())).thenReturn(1);
+
+        assertThat(service.rejeitarEmBloco(7L, null, "gil", "fora")).isEqualTo(2);
     }
 
     @Test
