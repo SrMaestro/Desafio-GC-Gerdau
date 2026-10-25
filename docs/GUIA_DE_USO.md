@@ -2,6 +2,12 @@
 
 Para quem usa o sistema no dia a dia. Não é preciso conhecer o projeto.
 
+## 0. Entrar
+
+Abra o sistema e entre com seu usuário e senha. Há dois perfis: **comprador** (cadastra e busca) e **aprovador** (faz o mesmo e também revisa o De-Para). Use **Sair**, no canto do cabeçalho, ao terminar.
+
+Usuários de exemplo, criados na instalação: `comprador` / `comprador123` e `aprovador` / `aprovador123`. **Troque essas senhas antes de usar de verdade.** Ainda não há tela para isso: a equipe técnica gera um novo hash BCrypt e atualiza a coluna `senha_hash` da tabela `usuarios`; para desativar alguém, `ativo = FALSE`.
+
 ## 1. Cadastrar um novo serviço (comprador)
 
 Abra **Novo serviço** (`/ui/servicos/novo`) e preencha:
@@ -35,15 +41,15 @@ Em **Busca** (`/ui/busca`), digite o serviço, mesmo com erro de digitação (ex
 
 Ao escolher um NBS e um horário, a tela mostra a **Smart Key** (ex.: `1.01.01-HN`) para usar no pedido de compra. A escolha também é enviada para revisão, e assim o sistema aprende.
 
-## 3. Revisar sugestões (revisor)
+## 3. Revisar sugestões (aprovador)
 
-Em **Revisão** (`/ui/revisao`) ficam os mapeamentos pendentes, do mais confirmado para o menos.
+Só o aprovador vê **Revisão**. Em **Revisão** (`/ui/revisao`) ficam os mapeamentos pendentes, do mais confirmado para o menos.
 
 - **Aprovar**: passa a valer como busca exata. Os outros pendentes do mesmo nome são rejeitados.
 - **Rejeitar**: exige motivo.
 - **Revogar**: tira um aprovado de circulação, com motivo. O histórico é mantido.
 
-Informe sempre o nome do revisor. Cada mudança fica registrada com quem fez, quando e por quê.
+Cada mudança fica registrada com o usuário logado, quando e por quê.
 
 ## 4. Implantar (equipe técnica)
 

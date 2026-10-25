@@ -104,8 +104,20 @@ O schema do banco é versionado em `src/main/resources/db/migration`. Ao iniciar
 | `V6__cat_horarios.sql` | `cat_horarios` com os sufixos da Smart Key |
 | `V7__servicos_mock_codigo_nbs.sql` | Coluna `codigo_nbs` em `servicos_mock` |
 | `V8__cat_horarios_unica_fonte.sql` | `cat_horarios.ativo` e remoção do `CHECK` de condição em `servicos_mock` |
+| `V9__usuarios.sql` | Tabela `usuarios` (login) e dois usuários de exemplo |
 
 Para alterar o banco, crie um novo arquivo seguindo a convenção `V{n}__descricao.sql` (ex.: `V3__add_coluna_x.sql`). **Nunca edite uma migration já aplicada**: o Flyway valida o checksum e a aplicação deixa de subir.
+
+## Login e perfis
+
+Todas as telas e a API exigem login (usuário e senha guardados na tabela `usuarios`, senha com BCrypt). Há dois perfis:
+
+| Perfil | Pode |
+|--------|------|
+| `COMPRADOR` | Cadastrar serviço, buscar serviços, buscar NBS, Smart Key e confirmar uma sugestão de NBS |
+| `APROVADOR` | Tudo o que o comprador faz, mais a revisão do De-Para (`/ui/revisao` e `/api/de-para/**`) |
+
+Sem login, as telas redirecionam para `/login` e a API responde `401`. Com perfil insuficiente a resposta é `403`. Usuários de exemplo (V9) e como trocar as senhas: `docs/GUIA_DE_USO.md`. O revisor gravado no histórico do De-Para é sempre o usuário logado.
 
 ## Telas
 
@@ -115,9 +127,12 @@ Para alterar o banco, crie um novo arquivo seguindo a convenção `V{n}__descric
 | `/ui/busca` | Busca de NBS e Smart Key |
 | `/ui/servicos/novo` | Cadastro de novo serviço (com filtro de duplicados) |
 | `/ui/servicos/{id}` | Detalhe do serviço |
-| `/ui/revisao` | Fila de revisão do De-Para |
+| `/login` | Entrar (única tela sem login) |
+| `/ui/revisao` | Fila de revisão do De-Para (só `APROVADOR`) |
 
 ## Endpoints
+
+Todas as rotas exigem login. As de `/api/de-para` (exceto `confirmacoes`) são só do `APROVADOR`. Requisições `POST` precisam do token CSRF (header `X-CSRF-TOKEN`, valor na `<meta name="_csrf">` das telas).
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
@@ -131,9 +146,9 @@ Para alterar o banco, crie um novo arquivo seguindo a convenção `V{n}__descric
 | GET | `/api/smart-key?nbs=&horario=` | Monta a Smart Key (`400` se NBS ou horário não existem) |
 | POST | `/api/de-para/confirmacoes` | Registra a confirmação de um usuário como `PENDENTE` |
 | GET | `/api/de-para/fila` | Lista os pendentes |
-| POST | `/api/de-para/{id}/aprovar` | Aprova (corpo: `revisor`) |
-| POST | `/api/de-para/{id}/rejeitar` | Rejeita (corpo: `revisor`, `motivo`) |
-| POST | `/api/de-para/{id}/revogar` | Revoga um aprovado (corpo: `revisor`, `motivo`) |
+| POST | `/api/de-para/{id}/aprovar` | Aprova (o revisor é o usuário logado) |
+| POST | `/api/de-para/{id}/rejeitar` | Rejeita (corpo: `motivo`) |
+| POST | `/api/de-para/{id}/revogar` | Revoga um aprovado (corpo: `motivo`) |
 
 ### Exemplos
 
