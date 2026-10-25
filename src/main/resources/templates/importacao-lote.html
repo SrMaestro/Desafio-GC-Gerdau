@@ -28,6 +28,26 @@
             <span id="enviar-info" class="contador"></span>
         </div>
 
+        <section class="card decisoes" aria-labelledby="titulo-decisoes">
+            <h2 id="titulo-decisoes">Decisões do aprovador</h2>
+            <p class="contador" aria-live="polite">Aprovadas: <strong id="contagem-aprovada">0</strong>
+                · Rejeitadas: <strong id="contagem-rejeitada">0</strong>
+                · Em conflito: <strong id="contagem-conflito">0</strong>
+                · Aguardando o aprovador: <strong id="contagem-enviada">0</strong></p>
+            <details class="bloco bloco-rejeitada" id="bloco-rejeitada" data-etapa="REJEITADA">
+                <summary>Rejeitadas pelo aprovador <span class="suave">com o motivo</span></summary>
+                <p class="ajuda">Estas linhas não podem mais ser alteradas aqui: corrija na planilha e envie num novo lote.</p>
+                <ul class="linhas" data-lista></ul>
+                <nav class="paginas" aria-label="Páginas das linhas rejeitadas" data-paginas></nav>
+            </details>
+            <details class="bloco bloco-conflito" id="bloco-conflito" data-etapa="CONFLITO">
+                <summary>Em conflito na aprovação <span class="suave">com o motivo</span></summary>
+                <p class="ajuda">Não puderam virar código (por exemplo, já existe um parecido ou o código foi criado por outra operação). Corrija na planilha e envie num novo lote.</p>
+                <ul class="linhas" data-lista></ul>
+                <nav class="paginas" aria-label="Páginas das linhas em conflito" data-paginas></nav>
+            </details>
+        </section>
+
         <section class="bloco bloco-erro" id="bloco-erro" data-situacao="ERRO" aria-labelledby="titulo-erro">
             <h2 id="titulo-erro"><span id="contagem-erro">0</span> com erro</h2>
             <p class="ajuda">Corrija cada linha ou descarte. As linhas com erro não impedem o envio das que estão prontas.</p>

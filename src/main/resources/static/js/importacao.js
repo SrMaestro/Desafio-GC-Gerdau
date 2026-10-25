@@ -112,11 +112,13 @@
         });
 
         // Cada bloco guarda só a página atual; o DOM tem no máximo TAMANHO_PAGINA linhas por bloco.
+        // Blocos por situação (data-situacao) e blocos das decisões do aprovador, por etapa (data-etapa).
         const blocos = {};
-        raiz.querySelectorAll('.bloco[data-situacao]').forEach((no) => {
+        raiz.querySelectorAll('.bloco[data-situacao], .bloco[data-etapa]').forEach((no) => {
             const b = {
                 no,
-                situacao: no.dataset.situacao,
+                situacao: no.dataset.situacao || '',
+                etapa: no.dataset.etapa || '',
                 lista: no.querySelector('[data-lista]'),
                 paginas: no.querySelector('[data-paginas]'),
                 pendentes: no.querySelector('[data-pendentes]'),
@@ -124,7 +126,7 @@
                 pagina: 0,
                 carregado: false
             };
-            blocos[b.situacao] = b;
+            blocos[b.situacao || ('ETAPA_' + b.etapa)] = b;
             if (no.tagName === 'DETAILS') {
                 no.addEventListener('toggle', () => { if (no.open && !b.carregado) carregarBloco(b); });
             }
@@ -132,6 +134,7 @@
         });
 
         function etapaFiltro(b) {
+            if (b.etapa) return b.etapa;
             // Erros e parecidas: por padrão só o que ainda precisa de ação do comprador
             if ((b.situacao === 'ERRO' || b.situacao === 'PARECIDA') && !(b.todas && b.todas.checked)) return 'EM_CONFERENCIA';
             return '';
@@ -139,7 +142,7 @@
 
         function urlLinhas(situacao, etapa, pagina, tamanho) {
             const p = new URLSearchParams();
-            p.set('situacao', situacao);
+            if (situacao) p.set('situacao', situacao);
             if (etapa) p.set('etapa', etapa);
             p.set('pagina', String(pagina));
             p.set('tamanho', String(tamanho));
@@ -158,6 +161,10 @@
             ['ERRO', 'PARECIDA', 'NOVA', 'EXISTENTE', 'REPETIDA'].forEach((s) => {
                 const c = $('contagem-' + s.toLowerCase());
                 if (c) c.textContent = String(contagem(porSit, s));
+            });
+            ['APROVADA', 'REJEITADA', 'CONFLITO', 'ENVIADA'].forEach((e) => {
+                const c = $('contagem-' + e.toLowerCase());
+                if (c) c.textContent = String(contagem(r.porEtapa, e));
             });
             const prontas = contagem(r.porEtapa, 'PRONTA');
             btnEnviar.disabled = prontas === 0;
@@ -314,13 +321,33 @@
             if ((b.situacao === 'EXISTENTE' || b.situacao === 'REPETIDA') && l.motivo) {
                 li.append(el('span', { classe: 'detalhe', texto: l.motivo }));
             }
-            if (b.situacao === 'PARECIDA' && l.decisao) {
+            if (b.etapa && l.codigoGerado) {
+                const det = el('span', { classe: 'detalhe' });
+                det.append('Código proposto: ', el('code', { texto: l.codigoGerado }));
+                li.append(det);
+            }
+            if ((b.situacao === 'PARECIDA' || b.etapa) && l.decisao) {
                 li.append(el('span', { classe: 'detalhe', texto: l.decisao === 'MESMO_SERVICO' ? 'Decidido: é o mesmo serviço.' : 'Decidido: é outro serviço.' }));
             }
+            // Em qualquer bloco: por que o aprovador rejeitou ou por que a aprovação deu conflito
+            const motivo = motivoDoAprovador(l);
+            if (motivo) li.append(el('span', { classe: 'detalhe motivo', texto: motivo }));
 
             const acoes = acoesDaLinha(b, l, li);
             if (acoes) li.append(acoes);
             return li;
+        }
+
+        function motivoDoAprovador(l) {
+            const motivo = String(l.motivo || 'sem motivo informado').trim().replace(/[.\s]+$/, '');
+            if (l.etapa === 'REJEITADA') {
+                return 'Rejeitada' + (l.decididoPor ? ' por ' + l.decididoPor : '') + ': ' + motivo
+                    + '. Corrija na planilha e envie num novo lote.';
+            }
+            if (l.etapa === 'CONFLITO') {
+                return 'Conflito na aprovação: ' + motivo + '. Corrija na planilha e envie num novo lote.';
+            }
+            return null;
         }
 
         function acoesDaLinha(b, l, li) {

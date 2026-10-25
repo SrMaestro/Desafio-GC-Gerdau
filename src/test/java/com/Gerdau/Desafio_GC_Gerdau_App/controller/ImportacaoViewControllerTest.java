@@ -87,6 +87,22 @@ class ImportacaoViewControllerTest {
 
     @Test
     @WithMockUser(username = "bia", roles = "COMPRADOR")
+    void lote_mostraDecisoesDoAprovadorComMotivo() throws Exception {
+        // contagens por etapa (porEtapa do resumo) e blocos que listam rejeitadas e em conflito pelo filtro etapa=
+        when(loteRepository.findById(7L)).thenReturn(Optional.of(lote(7, "bia")));
+
+        mvc.perform(get("/ui/importacoes/7"))
+                .andExpect(content().string(containsString("id=\"contagem-aprovada\"")))
+                .andExpect(content().string(containsString("id=\"contagem-rejeitada\"")))
+                .andExpect(content().string(containsString("id=\"contagem-conflito\"")))
+                .andExpect(content().string(containsString("data-etapa=\"REJEITADA\"")))
+                .andExpect(content().string(containsString("data-etapa=\"CONFLITO\"")));
+        String js = Files.readString(Path.of("src/main/resources/static/js/importacao.js"));
+        assertThat(js).contains("porEtapa").contains("dataset.etapa").contains("motivoDoAprovador");
+    }
+
+    @Test
+    @WithMockUser(username = "bia", roles = "COMPRADOR")
     void lote_deOutroUsuario_404() throws Exception {
         when(loteRepository.findById(7L)).thenReturn(Optional.of(lote(7, "carlos")));
 
