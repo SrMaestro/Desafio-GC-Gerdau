@@ -41,6 +41,13 @@ Em **Busca** (`/ui/busca`), digite o serviço, mesmo com erro de digitação (ex
 
 Ao escolher um NBS e um horário, a tela mostra a **Smart Key** (ex.: `1.01.01-HN`) para usar no pedido de compra. A escolha também é enviada para revisão, e assim o sistema aprende.
 
+## 2b. Importar vários serviços de uma planilha (comprador)
+
+1. No menu, clique em **Importar** e envie um arquivo `.xlsx` ou `.csv` (até 10 MB). A barra de progresso mostra o andamento; você pode sair e voltar depois em "Meus lotes".
+2. A tela mostra os resultados em blocos: **com erro** e **parecidas** primeiro (precisam de você), depois **novas**, **já existiam** e **repetidas** (recolhidos; abra para ver).
+3. Em **com erro**, clique em "Corrigir", ajuste os campos e salve. Em **parecidas**, veja o serviço já cadastrado e a similaridade e escolha "É o mesmo serviço", "É outro serviço" ou "Descartar". Para muitas de uma vez, informe a similaridade mínima (ex.: 90%) e use os botões de decisão em bloco; o sistema pede confirmação.
+4. **Enviar ao aprovador** envia as linhas que já estão prontas; linhas com erro ou ainda sem decisão não impedem o envio e podem ser tratadas depois. A tela informa quantas foram enviadas e quantas ainda precisam de atenção.
+
 ## 3. Revisar sugestões (aprovador)
 
 Só o aprovador vê **Revisão**. Em **Revisão** (`/ui/revisao`) ficam os mapeamentos pendentes, do mais confirmado para o menos.
