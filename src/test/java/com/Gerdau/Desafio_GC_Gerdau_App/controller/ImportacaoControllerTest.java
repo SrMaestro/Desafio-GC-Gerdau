@@ -207,13 +207,14 @@ class ImportacaoControllerTest {
     void aprovador_listaLotesComEnviadas() throws Exception {
         LoteImportacao l = lote(3, "bia");
         when(linhaRepository.lotesComLinhasEnviadas()).thenReturn(java.util.Collections.singletonList(
-                new Object[]{3L, "servicos.xlsx", "bia", null, 12L}));
+                new Object[]{3L, "servicos.xlsx", "bia", null, 12L, 2L}));
 
         mvc.perform(get("/api/importacoes/aprovacao/lotes"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(3))
                 .andExpect(jsonPath("$[0].enviadoPor").value("bia"))
-                .andExpect(jsonPath("$[0].enviadas").value(12));
+                .andExpect(jsonPath("$[0].enviadas").value(12))
+                .andExpect(jsonPath("$[0].conflitos").value(2));
     }
 
     @Test
@@ -244,7 +245,7 @@ class ImportacaoControllerTest {
     @WithMockUser(username = "ana", roles = "APROVADOR")
     void aprovador_abreLoteDeOutroComEnviadas_soVeLinhasEnviadas() throws Exception {
         when(loteRepository.findById(3L)).thenReturn(Optional.of(lote(3, "bia")));
-        when(linhaRepository.existsByLoteIdAndEtapa(3L, EtapaLinha.ENVIADA)).thenReturn(true);
+        when(linhaRepository.existsByLoteIdAndEtapaIn(eq(3L), any())).thenReturn(true);
         when(linhaRepository.findByLoteIdAndEtapa(eq(3L), eq(EtapaLinha.ENVIADA), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 100), 0));
 
@@ -254,9 +255,69 @@ class ImportacaoControllerTest {
 
     @Test
     @WithMockUser(username = "ana", roles = "APROVADOR")
+    void aprovador_listaLinhasEmConflitoDeLoteAlheio() throws Exception {
+        LinhaImportacao li = new LinhaImportacao();
+        li.setId(9L);
+        li.setNumero(2);
+        li.setSituacao(SituacaoLinha.NOVA);
+        li.setEtapa(EtapaLinha.CONFLITO);
+        li.setMotivo("Código já existe");
+        when(loteRepository.findById(3L)).thenReturn(Optional.of(lote(3, "bia")));
+        when(linhaRepository.existsByLoteIdAndEtapaIn(eq(3L), any())).thenReturn(true);
+        when(linhaRepository.findByLoteIdAndEtapa(eq(3L), eq(EtapaLinha.CONFLITO), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(li), PageRequest.of(0, 100), 1));
+
+        mvc.perform(get("/api/importacoes/3/linhas?etapa=CONFLITO"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.linhas[0].motivo").value("Código já existe"));
+        verify(linhaRepository).findByLoteIdAndEtapa(eq(3L), eq(EtapaLinha.CONFLITO), any(Pageable.class));
+    }
+
+    @Test
+    @WithMockUser(username = "ana", roles = "APROVADOR")
+    void aprovador_etapaAprovadaEmLoteAlheio_ficaLimitadaAEnviada() throws Exception {
+        when(loteRepository.findById(3L)).thenReturn(Optional.of(lote(3, "bia")));
+        when(linhaRepository.existsByLoteIdAndEtapaIn(eq(3L), any())).thenReturn(true);
+        when(linhaRepository.findByLoteIdAndEtapa(eq(3L), eq(EtapaLinha.ENVIADA), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 100), 0));
+
+        mvc.perform(get("/api/importacoes/3/linhas?etapa=APROVADA")).andExpect(status().isOk());
+        mvc.perform(get("/api/importacoes/3/linhas")).andExpect(status().isOk());
+        verify(linhaRepository, org.mockito.Mockito.times(2))
+                .findByLoteIdAndEtapa(eq(3L), eq(EtapaLinha.ENVIADA), any(Pageable.class));
+        verify(linhaRepository, never()).findByLoteIdAndEtapa(eq(3L), eq(EtapaLinha.APROVADA), any(Pageable.class));
+    }
+
+    @Test
+    @WithMockUser(username = "ana", roles = "APROVADOR")
+    void aprovador_filtraLinhasPorTipoEScoreMinimo() throws Exception {
+        when(loteRepository.findById(3L)).thenReturn(Optional.of(lote(3, "bia")));
+        when(linhaRepository.existsByLoteIdAndEtapaIn(eq(3L), any())).thenReturn(true);
+        when(linhaRepository.findByLoteIdAndSituacaoAndEtapaAndScoreGreaterThanEqual(eq(3L),
+                eq(SituacaoLinha.PARECIDA), eq(EtapaLinha.ENVIADA), eq(0.9), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 50), 37));
+
+        mvc.perform(get("/api/importacoes/3/linhas?situacao=PARECIDA&etapa=ENVIADA&scoreMinimo=0.9&tamanho=50"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(37));
+    }
+
+    @Test
+    @WithMockUser(username = "bia", roles = "COMPRADOR")
+    void compradorDono_continuaVendoTodasAsEtapas() throws Exception {
+        when(loteRepository.findById(3L)).thenReturn(Optional.of(lote(3, "bia")));
+        when(linhaRepository.findByLoteIdAndEtapa(eq(3L), eq(EtapaLinha.APROVADA), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 100), 0));
+
+        mvc.perform(get("/api/importacoes/3/linhas?etapa=APROVADA")).andExpect(status().isOk());
+        verify(linhaRepository).findByLoteIdAndEtapa(eq(3L), eq(EtapaLinha.APROVADA), any(Pageable.class));
+    }
+
+    @Test
+    @WithMockUser(username = "ana", roles = "APROVADOR")
     void aprovador_loteDeOutroSemEnviadas_404() throws Exception {
         when(loteRepository.findById(3L)).thenReturn(Optional.of(lote(3, "bia")));
-        when(linhaRepository.existsByLoteIdAndEtapa(3L, EtapaLinha.ENVIADA)).thenReturn(false);
+        when(linhaRepository.existsByLoteIdAndEtapaIn(eq(3L), any())).thenReturn(false);
 
         mvc.perform(get("/api/importacoes/3")).andExpect(status().isNotFound());
     }

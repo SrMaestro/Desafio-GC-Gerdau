@@ -113,11 +113,28 @@ public interface LinhaImportacaoRepository extends JpaRepository<LinhaImportacao
     Page<LinhaImportacao> findByLoteIdAndSituacaoAndEtapa(Long loteId, SituacaoLinha situacao, EtapaLinha etapa,
                                                           Pageable pageable);
 
+    /** Mesmo corte do filtro de aprovação em bloco: score a partir do mínimo (linhas sem score ficam de fora). */
+    Page<LinhaImportacao> findByLoteIdAndSituacaoAndEtapaAndScoreGreaterThanEqual(Long loteId, SituacaoLinha situacao,
+                                                                                 EtapaLinha etapa, double scoreMinimo,
+                                                                                 Pageable pageable);
+
+    Page<LinhaImportacao> findByLoteIdAndSituacaoAndScoreGreaterThanEqual(Long loteId, SituacaoLinha situacao,
+                                                                         double scoreMinimo, Pageable pageable);
+
     boolean existsByLoteIdAndEtapa(Long loteId, EtapaLinha etapa);
 
-    /** Lotes com ao menos uma linha ENVIADA: {id, arquivo, enviadoPor, criadoEm, quantidade de enviadas}, mais novos primeiro. */
-    @Query("select l.lote.id, l.lote.arquivoNome, l.lote.enviadoPor, l.lote.criadoEm, count(l) from LinhaImportacao l "
-            + "where l.etapa = com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha.ENVIADA "
+    boolean existsByLoteIdAndEtapaIn(Long loteId, Collection<EtapaLinha> etapas);
+
+    /**
+     * Lotes com ao menos uma linha ENVIADA ou CONFLITO: {id, arquivo, enviadoPor, criadoEm, enviadas, conflitos},
+     * mais novos primeiro.
+     */
+    @Query("select l.lote.id, l.lote.arquivoNome, l.lote.enviadoPor, l.lote.criadoEm, "
+            + "sum(case when l.etapa = com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha.ENVIADA then 1 else 0 end), "
+            + "sum(case when l.etapa = com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha.CONFLITO then 1 else 0 end) "
+            + "from LinhaImportacao l "
+            + "where l.etapa in (com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha.ENVIADA, "
+            + "com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha.CONFLITO) "
             + "group by l.lote.id, l.lote.arquivoNome, l.lote.enviadoPor, l.lote.criadoEm order by l.lote.criadoEm desc")
     List<Object[]> lotesComLinhasEnviadas();
 }

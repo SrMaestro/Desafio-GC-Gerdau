@@ -88,7 +88,8 @@ public class ImportacaoController {
     public record PaginaLinhas(List<LinhaResponse> linhas, long total, int pagina, int tamanho, int totalPaginas) {
     }
 
-    public record LoteComEnviadas(Long id, String arquivo, String enviadoPor, LocalDateTime criadoEm, long enviadas) {
+    public record LoteComEnviadas(Long id, String arquivo, String enviadoPor, LocalDateTime criadoEm, long enviadas,
+                               long conflitos) {
     }
 
     public record LoteResumido(Long id, String arquivo, StatusLote status, int total, int processadas,
@@ -142,16 +143,22 @@ public class ImportacaoController {
     public PaginaLinhas linhas(@PathVariable Long id,
                                @RequestParam(required = false) SituacaoLinha situacao,
                                @RequestParam(required = false) EtapaLinha etapa,
+                               @RequestParam(required = false) Double scoreMinimo,
                                @RequestParam(defaultValue = "0") int pagina,
                                @RequestParam(defaultValue = "" + TAMANHO_PADRAO) int tamanho,
                                Authentication auth) {
         LoteImportacao lote = loteVisivel(id, auth);
-        // Quem só enxerga o lote por ter linhas enviadas (aprovador de outro dono) vê apenas essas linhas
-        EtapaLinha etapaEfetiva = ehDono(lote, auth) ? etapa : EtapaLinha.ENVIADA;
+        // Quem só enxerga o lote por ter linhas a decidir (aprovador de outro dono) vê apenas enviadas e em conflito
+        EtapaLinha etapaEfetiva = ehDono(lote, auth) ? etapa : etapaVisivelAoAprovador(etapa);
         int tam = Math.min(Math.max(tamanho, 1), TAMANHO_MAXIMO);
         PageRequest pageable = PageRequest.of(Math.max(pagina, 0), tam, Sort.by("numero"));
         Page<LinhaImportacao> p;
-        if (situacao != null && etapaEfetiva != null) {
+        if (scoreMinimo != null && situacao != null && etapaEfetiva != null) {
+            p = linhaRepository.findByLoteIdAndSituacaoAndEtapaAndScoreGreaterThanEqual(id, situacao, etapaEfetiva,
+                    scoreMinimo, pageable);
+        } else if (scoreMinimo != null && situacao != null) {
+            p = linhaRepository.findByLoteIdAndSituacaoAndScoreGreaterThanEqual(id, situacao, scoreMinimo, pageable);
+        } else if (situacao != null && etapaEfetiva != null) {
             p = linhaRepository.findByLoteIdAndSituacaoAndEtapa(id, situacao, etapaEfetiva, pageable);
         } else if (situacao != null) {
             p = linhaRepository.findByLoteIdAndSituacao(id, situacao, pageable);
@@ -203,7 +210,7 @@ public class ImportacaoController {
     public List<LoteComEnviadas> lotesParaAprovar() {
         return linhaRepository.lotesComLinhasEnviadas().stream()
                 .map(r -> new LoteComEnviadas((Long) r[0], (String) r[1], (String) r[2], (LocalDateTime) r[3],
-                        ((Number) r[4]).longValue()))
+                        ((Number) r[4]).longValue(), ((Number) r[5]).longValue()))
                 .toList();
     }
 
@@ -233,7 +240,14 @@ public class ImportacaoController {
 
     // Posse
 
-    /** O dono vê o lote; o aprovador também vê o de outros enquanto houver linha enviada. Os demais: 404. */
+    /** Etapas que o aprovador enxerga em lote alheio: o que espera decisão e o que deu conflito. */
+    static final Set<EtapaLinha> ETAPAS_DO_APROVADOR = Set.of(EtapaLinha.ENVIADA, EtapaLinha.CONFLITO);
+
+    private static EtapaLinha etapaVisivelAoAprovador(EtapaLinha pedida) {
+        return pedida != null && ETAPAS_DO_APROVADOR.contains(pedida) ? pedida : EtapaLinha.ENVIADA;
+    }
+
+    /** O dono vê o lote; o aprovador também vê o de outros enquanto houver linha enviada ou em conflito. Os demais: 404. */
     private LoteImportacao loteVisivel(Long id, Authentication auth) {
         LoteImportacao lote = loteRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Lote de importação não encontrado: " + id));
@@ -241,7 +255,7 @@ public class ImportacaoController {
             return lote;
         }
         boolean aprovador = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_APROVADOR"));
-        if (aprovador && linhaRepository.existsByLoteIdAndEtapa(id, EtapaLinha.ENVIADA)) {
+        if (aprovador && linhaRepository.existsByLoteIdAndEtapaIn(id, ETAPAS_DO_APROVADOR)) {
             return lote;
         }
         throw new NoSuchElementException("Lote de importação não encontrado: " + id);
