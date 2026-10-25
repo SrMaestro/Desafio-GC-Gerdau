@@ -46,7 +46,8 @@ public class ServicoService {
         return montarCodigo(form, condicaoAtiva(form.getCondicao()));
     }
 
-    private String montarCodigo(NovoServicoForm form, CatHorario condicao) {
+    /** Regra única de montagem do código, também usada pela importação em massa. */
+    static String montarCodigo(NovoServicoForm form, CatHorario condicao) {
         String complemento = form.getComplemento() == null ? "" : form.getComplemento();
         String codigo = form.getAbreviatura() + complemento + "_" + condicao.getSufixoCodigo() + form.getCnae();
         return codigo.toUpperCase(Locale.ROOT);
