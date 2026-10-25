@@ -19,6 +19,8 @@ public interface DicionarioDeParaRepository extends JpaRepository<DicionarioDePa
 
     List<DicionarioDePara> findByNomeNormalizadoAndStatusOrderByConfirmacoesDesc(String nomeNormalizado, StatusDePara status);
 
+    long countByStatus(StatusDePara status);
+
     /** Fila de revisão: mais confirmados primeiro, os mais antigos desempatam. */
     List<DicionarioDePara> findByStatusOrderByConfirmacoesDescCriadoEmAsc(StatusDePara status);
 

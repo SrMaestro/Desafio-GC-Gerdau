@@ -25,6 +25,8 @@ public interface LinhaImportacaoRepository extends JpaRepository<LinhaImportacao
 
     List<LinhaImportacao> findByLoteIdAndEtapa(Long loteId, EtapaLinha etapa);
 
+    long countByEtapa(EtapaLinha etapa);
+
     boolean existsByCodigoGeradoAndEtapaIn(String codigoGerado, Collection<EtapaLinha> etapas);
 
     @Query("select l.situacao, count(l) from LinhaImportacao l where l.lote.id = :loteId group by l.situacao")
