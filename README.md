@@ -152,10 +152,16 @@ Todas as rotas exigem login. As de `/api/de-para` (exceto `confirmacoes`) são s
 
 ### Exemplos
 
+A API usa a sessão do login. Com `curl`, entre uma vez e guarde o cookie; os `POST` também precisam do token CSRF, que está na `<meta name="_csrf">` das telas.
+
 ```bash
-curl localhost:8080/api/nbs/busca?texto=instalaa%20eletrica
-curl "localhost:8080/api/smart-key?nbs=1.01.01&horario=HN"
-curl -X POST localhost:8080/servicos/analise -H 'Content-Type: application/json' -d '{
+TOKEN=$(curl -s -c cj localhost:8080/login | grep -o 'name="_csrf" value="[^"]*"' | sed 's/.*value="//;s/"//')
+curl -s -o /dev/null -b cj -c cj -d "username=comprador&password=comprador123&_csrf=$TOKEN" localhost:8080/login
+CSRF=$(curl -s -b cj localhost:8080/ui/busca | grep -o '<meta name="_csrf" content="[^"]*"' | sed 's/.*content="//;s/"//')
+
+curl -b cj "localhost:8080/api/nbs/busca?texto=instalaa%20eletrica"
+curl -b cj "localhost:8080/api/smart-key?nbs=1.01.01&horario=HN"
+curl -b cj -X POST localhost:8080/servicos/analise -H "X-CSRF-TOKEN: $CSRF" -H 'Content-Type: application/json' -d '{
   "areaServico":"Civil","textoBreve":"Concretagem de fundação","abreviatura":"CONC",
   "complemento":"_CONCRE","condicao":"HORA_NORMAL","cnae":"4399103"}'
 ```
