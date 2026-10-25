@@ -1,5 +1,8 @@
 package com.Gerdau.Desafio_GC_Gerdau_App.controller;
 
+import com.Gerdau.Desafio_GC_Gerdau_App.config.SecurityConfig;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
 import com.Gerdau.Desafio_GC_Gerdau_App.dto.SmartKey;
 import com.Gerdau.Desafio_GC_Gerdau_App.service.SmartKeyService;
 import org.junit.jupiter.api.Test;
@@ -14,6 +17,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(SmartKeyController.class)
+@Import(SecurityConfig.class)
+@WithMockUser(roles = "APROVADOR")
 class SmartKeyControllerTest {
 
     @Autowired

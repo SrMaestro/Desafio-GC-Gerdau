@@ -1,5 +1,8 @@
 package com.Gerdau.Desafio_GC_Gerdau_App.controller;
 
+import com.Gerdau.Desafio_GC_Gerdau_App.config.SecurityConfig;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.CatNbs;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.CatHorario;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.CatHorarioRepository;
@@ -23,6 +26,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(ServicoViewController.class)
+@Import(SecurityConfig.class)
+@WithMockUser(roles = "APROVADOR")
 class ServicoViewControllerTest {
 
     @Autowired

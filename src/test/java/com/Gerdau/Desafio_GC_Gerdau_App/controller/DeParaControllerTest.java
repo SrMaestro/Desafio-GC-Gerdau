@@ -1,5 +1,9 @@
 package com.Gerdau.Desafio_GC_Gerdau_App.controller;
 
+import com.Gerdau.Desafio_GC_Gerdau_App.config.SecurityConfig;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import com.Gerdau.Desafio_GC_Gerdau_App.exception.DeParaNaoEncontradoException;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.DicionarioDePara;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.StatusDePara;
@@ -23,6 +27,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(DeParaController.class)
+@Import(SecurityConfig.class)
+@WithMockUser(roles = "APROVADOR")
 class DeParaControllerTest {
 
     @Autowired
@@ -46,7 +52,7 @@ class DeParaControllerTest {
     void confirmar_respondeCreatedQuandoRegistra() throws Exception {
         when(service.confirmar("Motor", "1.01", 0.7f)).thenReturn(true);
 
-        mvc.perform(post("/api/de-para/confirmacoes").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/de-para/confirmacoes").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"nomeDigitado\":\"Motor\",\"codigoNbs\":\"1.01\",\"score\":0.7}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.registrado").value(true));
@@ -56,7 +62,7 @@ class DeParaControllerTest {
     void confirmar_respondeOkQuandoIgnorada() throws Exception {
         when(service.confirmar(any(), any(), any())).thenReturn(false);
 
-        mvc.perform(post("/api/de-para/confirmacoes").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/de-para/confirmacoes").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"nomeDigitado\":\"Motor\",\"codigoNbs\":\"1.01\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.registrado").value(false));
@@ -64,7 +70,7 @@ class DeParaControllerTest {
 
     @Test
     void confirmar_rejeitaCorpoSemNome() throws Exception {
-        mvc.perform(post("/api/de-para/confirmacoes").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/de-para/confirmacoes").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"codigoNbs\":\"1.01\"}"))
                 .andExpect(status().isBadRequest());
     }
@@ -74,7 +80,7 @@ class DeParaControllerTest {
         when(service.confirmar(any(), eq("9.99"), any()))
                 .thenThrow(new IllegalArgumentException("Código NBS desconhecido: 9.99"));
 
-        mvc.perform(post("/api/de-para/confirmacoes").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/de-para/confirmacoes").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"nomeDigitado\":\"Motor\",\"codigoNbs\":\"9.99\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.erro").value("Código NBS desconhecido: 9.99"));
@@ -96,7 +102,7 @@ class DeParaControllerTest {
     void aprovar_devolveMapeamentoAprovado() throws Exception {
         when(service.aprovar(1L, "ana")).thenReturn(mapeamento(1, StatusDePara.APROVADO));
 
-        mvc.perform(post("/api/de-para/1/aprovar").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/de-para/1/aprovar").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"revisor\":\"ana\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("APROVADO"));
@@ -104,7 +110,7 @@ class DeParaControllerTest {
 
     @Test
     void aprovar_exigeRevisor() throws Exception {
-        mvc.perform(post("/api/de-para/1/aprovar").contentType(MediaType.APPLICATION_JSON).content("{}"))
+        mvc.perform(post("/api/de-para/1/aprovar").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -112,7 +118,7 @@ class DeParaControllerTest {
     void aprovar_inexistenteViraNotFound() throws Exception {
         when(service.aprovar(99L, "ana")).thenThrow(new DeParaNaoEncontradoException(99L));
 
-        mvc.perform(post("/api/de-para/99/aprovar").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/de-para/99/aprovar").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"revisor\":\"ana\"}"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.erro").value("Mapeamento não encontrado: 99"));
@@ -122,7 +128,7 @@ class DeParaControllerTest {
     void aprovar_transicaoInvalidaViraConflict() throws Exception {
         when(service.aprovar(1L, "ana")).thenThrow(new IllegalStateException("Já existe mapeamento aprovado"));
 
-        mvc.perform(post("/api/de-para/1/aprovar").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/de-para/1/aprovar").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"revisor\":\"ana\"}"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.erro").value("Já existe mapeamento aprovado"));
@@ -132,7 +138,7 @@ class DeParaControllerTest {
     void rejeitar_repassaRevisorEMotivo() throws Exception {
         when(service.rejeitar(1L, "ana", "NBS errado")).thenReturn(mapeamento(1, StatusDePara.REJEITADO));
 
-        mvc.perform(post("/api/de-para/1/rejeitar").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/de-para/1/rejeitar").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"revisor\":\"ana\",\"motivo\":\"NBS errado\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("REJEITADO"));
@@ -143,7 +149,7 @@ class DeParaControllerTest {
     void revogar_repassaRevisorEMotivo() throws Exception {
         when(service.revogar(1L, "ana", "NBS mudou")).thenReturn(mapeamento(1, StatusDePara.REVOGADO));
 
-        mvc.perform(post("/api/de-para/1/revogar").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/de-para/1/revogar").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"revisor\":\"ana\",\"motivo\":\"NBS mudou\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("REVOGADO"));
