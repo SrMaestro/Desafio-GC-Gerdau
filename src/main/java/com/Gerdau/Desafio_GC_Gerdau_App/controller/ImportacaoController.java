@@ -10,6 +10,7 @@ import com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.LinhaImportacao;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.LoteImportacao;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.SituacaoLinha;
+import com.Gerdau.Desafio_GC_Gerdau_App.model.StatusLote;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.LinhaImportacaoRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.LoteImportacaoRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.service.AprovacaoImportacaoService;
@@ -90,6 +91,10 @@ public class ImportacaoController {
     public record LoteComEnviadas(Long id, String arquivo, String enviadoPor, LocalDateTime criadoEm, long enviadas) {
     }
 
+    public record LoteResumido(Long id, String arquivo, StatusLote status, int total, int processadas,
+                               LocalDateTime criadoEm) {
+    }
+
     public record CorrecaoRequest(String areaServico, String textoBreve, String abreviatura, String complemento,
                                   String condicao, String cnae, String codigoNbs, String criadorCodigo) {
     }
@@ -116,6 +121,15 @@ public class ImportacaoController {
         }
         Long id = importacaoService.iniciar(arquivo.getOriginalFilename(), arquivo.getBytes(), auth.getName());
         return ResponseEntity.status(HttpStatus.CREATED).body(new LoteCriado(id));
+    }
+
+    /** Os lotes do próprio usuário (mais recentes primeiro, até 50); nunca os de outros. */
+    @GetMapping
+    public List<LoteResumido> meusLotes(Authentication auth) {
+        return loteRepository.findTop50ByEnviadoPorOrderByCriadoEmDescIdDesc(auth.getName()).stream()
+                .map(l -> new LoteResumido(l.getId(), l.getArquivoNome(), l.getStatus(), l.getTotalLinhas(),
+                        l.getProcessadas(), l.getCriadoEm()))
+                .toList();
     }
 
     @GetMapping("/{id}")

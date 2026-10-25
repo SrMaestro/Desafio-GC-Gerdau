@@ -89,6 +89,41 @@ class ImportacaoControllerTest {
     }
 
     @Test
+    void listaDeLotes_semLogin_401() throws Exception {
+        mvc.perform(get("/api/importacoes")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(username = "bia", roles = "COMPRADOR")
+    void listaDeLotes_soOsDoUsuarioLogado() throws Exception {
+        LoteImportacao l = lote(4, "bia");
+        l.setTotalLinhas(10);
+        l.setProcessadas(10);
+        when(loteRepository.findTop50ByEnviadoPorOrderByCriadoEmDescIdDesc("bia")).thenReturn(List.of(l));
+
+        mvc.perform(get("/api/importacoes"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(4))
+                .andExpect(jsonPath("$[0].arquivo").value("servicos.xlsx"))
+                .andExpect(jsonPath("$[0].status").value("CONCLUIDO"))
+                .andExpect(jsonPath("$[0].total").value(10))
+                .andExpect(jsonPath("$[0].processadas").value(10));
+        verify(loteRepository, never()).findAll();
+        verify(loteRepository, never()).findTop50ByEnviadoPorOrderByCriadoEmDescIdDesc("outra");
+    }
+
+    @Test
+    @WithMockUser(username = "ana", roles = "APROVADOR")
+    void listaDeLotes_aprovadorTambemVeOsProprios() throws Exception {
+        when(loteRepository.findTop50ByEnviadoPorOrderByCriadoEmDescIdDesc("ana")).thenReturn(List.of());
+
+        mvc.perform(get("/api/importacoes"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
     void semLogin_401() throws Exception {
         mvc.perform(get("/api/importacoes/1")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/importacoes/aprovacao/lotes")).andExpect(status().isUnauthorized());

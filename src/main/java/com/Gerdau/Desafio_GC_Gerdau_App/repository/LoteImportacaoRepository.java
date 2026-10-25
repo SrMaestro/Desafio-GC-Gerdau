@@ -9,4 +9,7 @@ import java.util.List;
 public interface LoteImportacaoRepository extends JpaRepository<LoteImportacao, Long> {
 
     List<LoteImportacao> findByStatus(StatusLote status);
+
+    /** Os 50 lotes mais recentes de um usuário. */
+    List<LoteImportacao> findTop50ByEnviadoPorOrderByCriadoEmDescIdDesc(String enviadoPor);
 }
