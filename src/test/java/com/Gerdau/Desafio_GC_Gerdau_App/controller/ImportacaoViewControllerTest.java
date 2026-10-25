@@ -75,6 +75,18 @@ class ImportacaoViewControllerTest {
 
     @Test
     @WithMockUser(username = "bia", roles = "COMPRADOR")
+    void lote_parecidaComparaCondicaoECnaeDoServicoParecido() throws Exception {
+        // a tela resolve a condição da linha pelo catálogo e compara com a do serviço parecido (GET /servicos/{id})
+        when(loteRepository.findById(7L)).thenReturn(Optional.of(lote(7, "bia")));
+
+        mvc.perform(get("/ui/importacoes/7"))
+                .andExpect(content().string(containsString("data-url-horarios=\"/api/horarios\"")));
+        String js = Files.readString(Path.of("src/main/resources/static/js/importacao.js"));
+        assertThat(js).contains("id1Condicao").contains("id2Cnae").contains("dataset.urlHorarios");
+    }
+
+    @Test
+    @WithMockUser(username = "bia", roles = "COMPRADOR")
     void lote_deOutroUsuario_404() throws Exception {
         when(loteRepository.findById(7L)).thenReturn(Optional.of(lote(7, "carlos")));
 

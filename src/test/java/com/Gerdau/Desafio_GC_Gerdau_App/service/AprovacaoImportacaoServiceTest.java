@@ -82,6 +82,8 @@ class AprovacaoImportacaoServiceTest {
         existente = new Servico();
         existente.setId(50);
         existente.setCodigoPadronizado("PINTTUB_HN4321000");
+        existente.setId1Condicao("Hora normal");
+        existente.setId2Cnae("4321000");
         when(servicoRepository.findById(50)).thenReturn(Optional.of(existente));
         when(servicoRepository.findByCodigoPadronizado(anyString())).thenReturn(Optional.empty());
         when(servicoRepository.saveAndFlush(any(Servico.class))).thenAnswer(inv -> {
@@ -268,6 +270,43 @@ class AprovacaoImportacaoServiceTest {
         assertThat(l.getServicoCriadoId()).isNull();
         assertThat(l.getDecididoPor()).isEqualTo("gil");
         assertThat(l.getDecididoEm()).isNotNull();
+    }
+
+    @Test
+    void aprovarMesmoServico_servicoDeOutraCondicao_viraConflitoSemGravar() {
+        linha(1, SituacaoLinha.PARECIDA, DecisaoParecida.MESMO_SERVICO);
+        existente.setId1Condicao("Hora extra");
+
+        assertThat(service.aprovar(1L, "gil")).isEqualTo(EtapaLinha.CONFLITO);
+
+        verify(sinonimoServicoService, never()).registrar(any(), any(), any(), any(), any(), any());
+        verify(linhaRepository, never()).save(any());
+        assertThat(motivoConflito(1)).isEqualTo("O serviço parecido (PINTTUB_HN4321000) é de outra condição/CNAE; "
+                + "use 'é outro serviço' ou corrija a linha");
+    }
+
+    @Test
+    void aprovarMesmoServico_servicoDeOutroCnae_viraConflitoSemGravar() {
+        linha(1, SituacaoLinha.PARECIDA, DecisaoParecida.MESMO_SERVICO);
+        existente.setId2Cnae("1111111");
+
+        assertThat(service.aprovar(1L, "gil")).isEqualTo(EtapaLinha.CONFLITO);
+
+        verify(sinonimoServicoService, never()).registrar(any(), any(), any(), any(), any(), any());
+        verify(linhaRepository, never()).save(any());
+        assertThat(motivoConflito(1)).contains("PINTTUB_HN4321000").contains("outra condição/CNAE");
+    }
+
+    @Test
+    void aprovarMesmoServico_cnaeDoExcelECondicaoPeloSufixo_contamComoIguais() {
+        LinhaImportacao l = linha(1, SituacaoLinha.PARECIDA, DecisaoParecida.MESMO_SERVICO);
+        l.setCondicao("HN");
+        l.setCnae("4321000.0");
+
+        assertThat(service.aprovar(1L, "gil")).isEqualTo(EtapaLinha.APROVADA);
+
+        verify(sinonimoServicoService).registrar("Pintura de tubulação", "Hora normal", "4321000", existente,
+                "gil", 1L);
     }
 
     @Test

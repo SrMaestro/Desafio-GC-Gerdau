@@ -90,6 +90,7 @@
         const urlApi = raiz.dataset.urlApi + '/' + encodeURIComponent(loteId);
         const urlLinhasBase = raiz.dataset.urlApi + '/linhas/';
         const urlServicos = raiz.dataset.urlServicos;
+        const urlHorarios = raiz.dataset.urlHorarios;
 
         const $ = (id) => document.getElementById(id);
         const msgGeral = $('lote-msg');
@@ -103,6 +104,7 @@
         let timer = null;
         let blocosLiberados = false;
         const servicos = new Map();
+        let horarios = null; // catálogo de condições, carregado uma vez quando aparece a primeira parecida
 
         window.addEventListener('pagehide', () => {
             encerrada = true;
@@ -300,8 +302,9 @@
                 const det = el('span', { classe: 'detalhe' });
                 const alvo = el('span', { texto: 'carregando serviço parecido...' });
                 det.append(el('strong', { texto: pct(l.score) + ' parecido com ' }), alvo);
-                li.append(det);
-                preencherParecido(alvo, l.servicoParecidoId);
+                const comparacao = el('span', { classe: 'detalhe' });
+                li.append(det, comparacao);
+                preencherParecido(alvo, comparacao, l);
             }
             if (b.situacao === 'NOVA' && l.codigoGerado) {
                 const det = el('span', { classe: 'detalhe' });
@@ -378,7 +381,8 @@
             await atualizarAtencao();
         }
 
-        function preencherParecido(no, id) {
+        function preencherParecido(no, comparacao, l) {
+            const id = l.servicoParecidoId;
             if (id === null || id === undefined) {
                 no.textContent = 'serviço não informado';
                 return;
@@ -393,7 +397,44 @@
                     return;
                 }
                 no.append(el('code', { texto: s.codigoPadronizado || '' }), ' ' + (s.textoBreve || ''));
-            });
+                return compararCondicaoECnae(comparacao, l, s);
+            }).catch(() => { comparacao.textContent = ''; });
+        }
+
+        // "É o mesmo serviço" só vale para serviço da mesma condição e CNAE (senão a aprovação dá conflito)
+        async function compararCondicaoECnae(no, l, s) {
+            const descricao = await descricaoCondicao(l.condicao);
+            const condicaoLinha = descricao || l.condicao || '';
+            const mesmaCondicao = normalizarTexto(condicaoLinha) === normalizarTexto(s.id1Condicao);
+            const mesmoCnae = cnaeDigitos(l.cnae) === cnaeDigitos(s.id2Cnae);
+            limpar(no);
+            no.append('Esta linha: ' + condicaoLinha + ' · CNAE ' + (l.cnae || '') + '. Serviço parecido: '
+                + (s.id1Condicao || '') + ' · CNAE ' + (s.id2Cnae || '') + '.');
+            if (!mesmaCondicao || !mesmoCnae) {
+                no.classList.add('divergente');
+                no.append(' ', el('strong', { texto: (mesmaCondicao ? 'CNAE diferente' : (mesmoCnae ? 'Condição diferente' : 'Condição e CNAE diferentes'))
+                    + ': marcar como o mesmo serviço vai dar conflito na aprovação. Use "É outro serviço" ou corrija a linha.' }));
+            }
+        }
+
+        async function descricaoCondicao(informada) {
+            if (!horarios) horarios = api(urlHorarios).catch(() => null);
+            const lista = await horarios;
+            const nome = normalizarTexto(informada);
+            const sufixo = String(informada || '').trim().toUpperCase();
+            const h = (lista || []).find((x) => normalizarTexto(x.descricao) === nome
+                || String(x.sufixo || '').toUpperCase() === sufixo);
+            return h ? h.descricao : null;
+        }
+
+        // Mesma regra do servidor: sem acento, minúsculo, espaços simples
+        function normalizarTexto(t) {
+            return String(t || '').normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().trim().replace(/\s+/g, ' ');
+        }
+
+        // CNAE só com os dígitos ("4399103.0" do Excel vale 4399103)
+        function cnaeDigitos(c) {
+            return String(c || '').trim().replace(/\.0+$/, '').replace(/\D/g, '');
         }
 
         // ---- correção de linha com erro ----

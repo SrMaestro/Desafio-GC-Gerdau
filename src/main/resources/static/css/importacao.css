@@ -33,6 +33,7 @@ progress { width: 100%; height: 1.2rem; }
 .linhas .texto { font-weight: 600; overflow-wrap: anywhere; }
 .linhas .detalhe { grid-column: 2; color: var(--texto-suave); font-size: .92rem; overflow-wrap: anywhere; }
 .linhas .detalhe.motivo { color: #b3261e; }
+.linhas .detalhe.divergente { color: #b3261e; }
 .linhas code { font-family: var(--mono); background: var(--papel); padding: .1rem .4rem; border-radius: 2px; font-size: .88rem; }
 .linhas .estado { font-size: .85rem; padding: .1rem .6rem; border-radius: 999px; background: var(--papel); white-space: nowrap; }
 .linhas .acoes { grid-column: 2 / 4; display: flex; flex-wrap: wrap; gap: .5rem; }

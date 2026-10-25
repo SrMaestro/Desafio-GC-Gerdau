@@ -167,6 +167,12 @@ class AprovadorLinha {
         }
         String condicao = condicao(linha).getDescricaoHorario();
         String cnae = cnae(linha);
+        // a chave do sinônimo usa a condição e o CNAE da linha: ligar a um serviço de outra condição/CNAE faria
+        // o texto passar a ser reconhecido como um serviço que não é o dele
+        if (!mesmaCondicao(servico.getId1Condicao(), condicao) || !mesmoCnae(servico.getId2Cnae(), cnae)) {
+            throw new ConflitoAprovacao("O serviço parecido (" + servico.getCodigoPadronizado()
+                    + ") é de outra condição/CNAE; use 'é outro serviço' ou corrija a linha");
+        }
         Optional<Servico> ligado = sinonimoServicoService.reconhecer(texto, condicao, cnae);
         if (ligado.isPresent()) {
             if (Objects.equals(ligado.get().getId(), servico.getId())) {
@@ -182,6 +188,14 @@ class AprovadorLinha {
             throw new ConflitoAprovacao("O banco recusou o sinônimo (provavelmente registrado ao mesmo tempo "
                     + "por outra operação)", true);
         }
+    }
+
+    private static boolean mesmaCondicao(String doServico, String descricaoDaLinha) {
+        return doServico != null && DeParaService.normalizar(doServico).equals(DeParaService.normalizar(descricaoDaLinha));
+    }
+
+    private static boolean mesmoCnae(String doServico, String cnaeDaLinha) {
+        return doServico != null && doServico.replaceAll("\\D", "").equals(cnaeDaLinha);
     }
 
     private CatHorario condicao(LinhaImportacao linha) {
