@@ -3,17 +3,13 @@
 <head th:replace="~{layout :: head('Revisão')}"></head>
 <body>
 <link rel="stylesheet" th:href="@{/css/revisao.css}">
-<script th:src="@{/js/revisao.js}" defer></script>
-<header><a th:href="@{/}">Catálogo de Serviços</a><a class="nav" th:href="@{/ui/revisao}">Revisão</a></header>
+<header><a th:href="@{/}">Catálogo de Serviços</a><a class="nav" th:if="${ehAprovador}" th:href="@{/ui/revisao}">Revisão</a><th:block th:replace="~{layout :: usuario}"/></header>
 <main>
     <div class="topo">
         <div>
             <h1>Revisão de mapeamentos</h1>
             <p>Confirme ou recuse o que os compradores escolheram. Só o que for aprovado vira busca exata.</p>
         </div>
-        <label class="revisor">Seu nome
-            <input type="text" id="revisor" autocomplete="name" placeholder="ex.: ana.souza">
-        </label>
     </div>
 
     <p th:if="${mensagem}" class="aviso ok" role="status" th:text="${mensagem}"></p>
@@ -40,12 +36,10 @@
                 <td th:text="${i.confirmacoes}"></td>
                 <td th:text="${i.score != null} ? ${#numbers.formatDecimal(i.score * 100, 1, 0)} + '%' : '—'"></td>
                 <td class="acoes">
-                    <form method="post" th:action="@{/ui/revisao/{id}/aprovar(id=${i.id})}" data-revisor>
-                        <input type="hidden" name="revisor">
+                    <form method="post" th:action="@{/ui/revisao/{id}/aprovar(id=${i.id})}">
                         <button type="submit" class="aprovar">Aprovar</button>
                     </form>
-                    <form method="post" th:action="@{/ui/revisao/{id}/rejeitar(id=${i.id})}" data-revisor>
-                        <input type="hidden" name="revisor">
+                    <form method="post" th:action="@{/ui/revisao/{id}/rejeitar(id=${i.id})}">
                         <input type="text" name="motivo" required maxlength="255" placeholder="Motivo" aria-label="Motivo da rejeição">
                         <button type="submit">Rejeitar</button>
                     </form>
@@ -68,8 +62,7 @@
                 <td><code th:text="${a.codigoNbs}"></code> <span th:text="${descricoes[a.codigoNbs]}"></span></td>
                 <td th:text="${a.revisadoPor} ?: '—'"></td>
                 <td class="acoes">
-                    <form method="post" th:action="@{/ui/revisao/{id}/revogar(id=${a.id})}" data-revisor>
-                        <input type="hidden" name="revisor">
+                    <form method="post" th:action="@{/ui/revisao/{id}/revogar(id=${a.id})}">
                         <input type="text" name="motivo" required maxlength="255" placeholder="Motivo" aria-label="Motivo da revogação">
                         <button type="submit">Revogar</button>
                     </form>

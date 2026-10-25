@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Entrar')}"></head>
+<body>
+<header><a th:href="@{/}">Catálogo de Serviços</a></header>
+<main>
+    <div class="card">
+        <h1>Entrar</h1>
+        <p th:if="${param.error}" class="aviso erro" role="alert">Usuário ou senha inválidos.</p>
+        <p th:if="${param.logout}" class="aviso ok" role="status">Você saiu.</p>
+        <form method="post" th:action="@{/login}">
+            <label>Usuário
+                <input type="text" name="username" required autofocus autocomplete="username">
+            </label>
+            <label>Senha
+                <input type="password" name="password" required autocomplete="current-password">
+            </label>
+            <button type="submit">Entrar</button>
+        </form>
+    </div>
+</main>
+</body>
+</html>

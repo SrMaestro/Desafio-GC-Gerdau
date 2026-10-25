@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.security.Principal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,20 +55,20 @@ public class RevisaoViewController {
     }
 
     @PostMapping("/ui/revisao/{id}/aprovar")
-    public String aprovar(@PathVariable Long id, @RequestParam String revisor, RedirectAttributes redirect) {
-        return executar(redirect, "Mapeamento aprovado.", () -> service.aprovar(id, revisor));
+    public String aprovar(@PathVariable Long id, Principal principal, RedirectAttributes redirect) {
+        return executar(redirect, "Mapeamento aprovado.", () -> service.aprovar(id, principal.getName()));
     }
 
     @PostMapping("/ui/revisao/{id}/rejeitar")
-    public String rejeitar(@PathVariable Long id, @RequestParam String revisor,
+    public String rejeitar(@PathVariable Long id, Principal principal,
                            @RequestParam String motivo, RedirectAttributes redirect) {
-        return executar(redirect, "Mapeamento rejeitado.", () -> service.rejeitar(id, revisor, motivo));
+        return executar(redirect, "Mapeamento rejeitado.", () -> service.rejeitar(id, principal.getName(), motivo));
     }
 
     @PostMapping("/ui/revisao/{id}/revogar")
-    public String revogar(@PathVariable Long id, @RequestParam String revisor,
+    public String revogar(@PathVariable Long id, Principal principal,
                           @RequestParam String motivo, RedirectAttributes redirect) {
-        return executar(redirect, "Mapeamento revogado.", () -> service.revogar(id, revisor, motivo));
+        return executar(redirect, "Mapeamento revogado.", () -> service.revogar(id, principal.getName(), motivo));
     }
 
     private String executar(RedirectAttributes redirect, String sucesso, Runnable acao) {

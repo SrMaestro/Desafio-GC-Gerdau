@@ -37,3 +37,7 @@ data-db/
 
 ### Segredos ###
 .env
+
+### Superpowers (rascunhos locais) ###
+.superpowers/
+

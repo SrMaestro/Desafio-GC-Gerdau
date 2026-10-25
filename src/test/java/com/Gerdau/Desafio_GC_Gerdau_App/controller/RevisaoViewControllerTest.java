@@ -1,5 +1,9 @@
 package com.Gerdau.Desafio_GC_Gerdau_App.controller;
 
+import com.Gerdau.Desafio_GC_Gerdau_App.config.SecurityConfig;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.CatNbs;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.DicionarioDePara;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.StatusDePara;
@@ -25,6 +29,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(RevisaoViewController.class)
+@Import(SecurityConfig.class)
+@WithMockUser(username = "ana", roles = "APROVADOR")
 class RevisaoViewControllerTest {
 
     @Autowired
@@ -85,9 +91,16 @@ class RevisaoViewControllerTest {
 
     @Test
     void aprovar_redirecionaComMensagem() throws Exception {
-        mvc.perform(post("/ui/revisao/1/aprovar").param("revisor", "ana"))
+        mvc.perform(post("/ui/revisao/1/aprovar").with(csrf()))
                 .andExpect(redirectedUrl("/ui/revisao"))
                 .andExpect(flash().attribute("mensagem", "Mapeamento aprovado."));
+        verify(service).aprovar(1L, "ana");
+    }
+
+    @Test
+    void aprovar_ignoraRevisorEnviadoNoFormulario() throws Exception {
+        mvc.perform(post("/ui/revisao/1/aprovar").with(csrf()).param("revisor", "outro"))
+                .andExpect(redirectedUrl("/ui/revisao"));
         verify(service).aprovar(1L, "ana");
     }
 
@@ -95,14 +108,14 @@ class RevisaoViewControllerTest {
     void aprovar_erroDeNegocioViraMensagemDeErro() throws Exception {
         when(service.aprovar(1L, "ana")).thenThrow(new IllegalStateException("Já existe mapeamento aprovado"));
 
-        mvc.perform(post("/ui/revisao/1/aprovar").param("revisor", "ana"))
+        mvc.perform(post("/ui/revisao/1/aprovar").with(csrf()))
                 .andExpect(redirectedUrl("/ui/revisao"))
                 .andExpect(flash().attribute("erro", "Já existe mapeamento aprovado"));
     }
 
     @Test
     void rejeitar_repassaMotivo() throws Exception {
-        mvc.perform(post("/ui/revisao/1/rejeitar").param("revisor", "ana").param("motivo", "NBS errado"))
+        mvc.perform(post("/ui/revisao/1/rejeitar").with(csrf()).param("motivo", "NBS errado"))
                 .andExpect(redirectedUrl("/ui/revisao"))
                 .andExpect(flash().attribute("mensagem", "Mapeamento rejeitado."));
         verify(service).rejeitar(1L, "ana", "NBS errado");
@@ -110,7 +123,7 @@ class RevisaoViewControllerTest {
 
     @Test
     void revogar_repassaMotivo() throws Exception {
-        mvc.perform(post("/ui/revisao/1/revogar").param("revisor", "ana").param("motivo", "NBS mudou"))
+        mvc.perform(post("/ui/revisao/1/revogar").with(csrf()).param("motivo", "NBS mudou"))
                 .andExpect(flash().attribute("mensagem", "Mapeamento revogado."));
         verify(service).revogar(1L, "ana", "NBS mudou");
     }

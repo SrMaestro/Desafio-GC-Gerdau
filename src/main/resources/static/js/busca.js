@@ -63,12 +63,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return li;
     }
 
+    function cabecalhoCsrf() {
+        const token = document.querySelector('meta[name="_csrf"]');
+        const nome = document.querySelector('meta[name="_csrf_header"]');
+        return token && nome ? {[nome.content]: token.content} : {};
+    }
+
     async function confirmar(sugestao, texto, botao) {
         botao.disabled = true;
         try {
             const resp = await fetch(urlConfirmar, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: {'Content-Type': 'application/json', ...cabecalhoCsrf()},
                 body: JSON.stringify({nomeDigitado: texto, codigoNbs: sugestao.codigoNbs, score: sugestao.score})
             });
             if (!resp.ok) throw new Error();

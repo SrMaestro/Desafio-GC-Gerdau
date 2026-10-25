@@ -1,5 +1,8 @@
 package com.Gerdau.Desafio_GC_Gerdau_App.controller;
 
+import com.Gerdau.Desafio_GC_Gerdau_App.config.SecurityConfig;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
 import com.Gerdau.Desafio_GC_Gerdau_App.dto.ResultadoBuscaNbs;
 import com.Gerdau.Desafio_GC_Gerdau_App.dto.ResultadoBuscaNbs.Tipo;
 import com.Gerdau.Desafio_GC_Gerdau_App.dto.SugestaoNbs;
@@ -18,6 +21,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(BuscaNbsController.class)
+@Import(SecurityConfig.class)
+@WithMockUser(roles = "APROVADOR")
 class BuscaNbsControllerTest {
 
     @Autowired

@@ -26,7 +26,7 @@ cadastro -> gera código -> compara (pg_trgm) -> bloqueia | pede confirmação |
 
 | Status | Significado |
 |--------|-------------|
-| `PENDENTE` | Confirmado por usuário, aguardando revisor |
+| `PENDENTE` | Confirmado por usuário, aguardando o aprovador |
 | `APROVADO` | Vale como busca exata. Só um por nome |
 | `REJEITADO` | Recusado (motivo obrigatório, ou outro foi aprovado) |
 | `REVOGADO` | Aprovado que saiu de circulação (motivo obrigatório) |

@@ -40,9 +40,13 @@ Quatro serviços formam o fluxo de negócio (ver `docs/REGRAS_DE_NEGOCIO.md` par
 
 A similaridade de texto é feita no banco com `pg_trgm` por **queries nativas** nos repositories (extensão e índices criados na migration V3). Mudanças nessa lógica normalmente envolvem repository + migration, não só Java.
 
+## Login e perfis
+
+Spring Security com sessão e tela `/login`. Usuários na tabela `usuarios` (V9, senha BCrypt), perfis `COMPRADOR` e `APROVADOR`. Regras de rota em `config/SecurityConfig`: `/ui/revisao/**` e `/api/de-para/**` só `APROVADOR`, exceto `POST /api/de-para/confirmacoes` (o comprador usa na busca NBS). API sem login responde `401`, telas redirecionam para `/login`. O revisor do De-Para vem do `Principal`, nunca do corpo ou formulário. Testes `@WebMvcTest` precisam de `@Import(SecurityConfig.class)`, `@WithMockUser` e `.with(csrf())` nos `POST`; o JS que faz `POST` envia o token lido das `<meta name="_csrf">` do `layout.html`.
+
 ## Banco e migrations
 
-- `ddl-auto=validate`: o Hibernate não cria schema. Qualquer mudança em entidade exige uma migration `V{n}__descricao.sql` em `src/main/resources/db/migration` (hoje V1–V8). **Nunca edite uma migration já aplicada** (falha de checksum do Flyway); crie uma nova.
+- `ddl-auto=validate`: o Hibernate não cria schema. Qualquer mudança em entidade exige uma migration `V{n}__descricao.sql` em `src/main/resources/db/migration` (hoje V1–V9). **Nunca edite uma migration já aplicada** (falha de checksum do Flyway); crie uma nova.
 - As condições (hora normal, hora extra, posto mensal...) vivem só em `cat_horarios`. Condição nova = `INSERT` numa migration; condição aposentada = `ativo = FALSE` (nunca apagar). `servicos_mock.id1_condicao` guarda o texto da condição na hora do cadastro, sem FK, então serviços antigos não mudam quando o catálogo muda.
 - A conexão vem do `.env` (importado por `spring.config.import`) via `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`. A app roda fora do Docker, então o host é `localhost`.
 - Se o Flyway reclamar de schema sem histórico, ou o Postgres de `data-db` for de outra versão/senha: `docker compose down`, apagar `data-db` e subir de novo (apaga os dados).

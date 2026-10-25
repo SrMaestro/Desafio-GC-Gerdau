@@ -3,10 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="_csrf" th:content="${_csrf?.token}">
+    <meta name="_csrf_header" th:content="${_csrf?.headerName}">
     <title th:text="${title}">Serviços</title>
     <link rel="stylesheet" th:href="@{/css/style.css}">
     <script th:src="@{/js/app.js}" defer></script>
     <script th:src="@{/js/busca.js}" defer></script>
 </head>
-<body></body>
+<body>
+<span class="usuario" th:fragment="usuario" th:if="${usuarioLogado}">
+    <span th:text="${usuarioLogado}"></span>
+    <form method="post" th:action="@{/logout}"><button type="submit">Sair</button></form>
+</span>
+</body>
 </html>

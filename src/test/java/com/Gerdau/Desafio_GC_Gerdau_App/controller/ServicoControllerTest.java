@@ -1,5 +1,8 @@
 package com.Gerdau.Desafio_GC_Gerdau_App.controller;
 
+import com.Gerdau.Desafio_GC_Gerdau_App.config.SecurityConfig;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
 import com.Gerdau.Desafio_GC_Gerdau_App.dto.AnaliseSimilaridade.SimilarDto;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.ServicoRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.service.ServicoService;
@@ -17,6 +20,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(ServicoController.class)
+@Import(SecurityConfig.class)
+@WithMockUser(roles = "APROVADOR")
 class ServicoControllerTest {
 
     @Autowired

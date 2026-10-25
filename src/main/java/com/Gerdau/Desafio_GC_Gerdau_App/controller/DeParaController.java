@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 
@@ -43,18 +44,18 @@ public class DeParaController {
     }
 
     @PostMapping("/{id}/aprovar")
-    public DeParaResponse aprovar(@PathVariable Long id, @Valid @RequestBody RevisaoRequest request) {
-        return DeParaResponse.de(service.aprovar(id, request.revisor()));
+    public DeParaResponse aprovar(@PathVariable Long id, @RequestBody RevisaoRequest request, Principal principal) {
+        return DeParaResponse.de(service.aprovar(id, principal.getName()));
     }
 
     @PostMapping("/{id}/rejeitar")
-    public DeParaResponse rejeitar(@PathVariable Long id, @Valid @RequestBody RevisaoRequest request) {
-        return DeParaResponse.de(service.rejeitar(id, request.revisor(), request.motivo()));
+    public DeParaResponse rejeitar(@PathVariable Long id, @RequestBody RevisaoRequest request, Principal principal) {
+        return DeParaResponse.de(service.rejeitar(id, principal.getName(), request.motivo()));
     }
 
     @PostMapping("/{id}/revogar")
-    public DeParaResponse revogar(@PathVariable Long id, @Valid @RequestBody RevisaoRequest request) {
-        return DeParaResponse.de(service.revogar(id, request.revisor(), request.motivo()));
+    public DeParaResponse revogar(@PathVariable Long id, @RequestBody RevisaoRequest request, Principal principal) {
+        return DeParaResponse.de(service.revogar(id, principal.getName(), request.motivo()));
     }
 
     @ExceptionHandler(DeParaNaoEncontradoException.class)
