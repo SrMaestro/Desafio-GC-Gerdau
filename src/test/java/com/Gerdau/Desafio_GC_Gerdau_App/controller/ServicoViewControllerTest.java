@@ -3,6 +3,7 @@ package com.Gerdau.Desafio_GC_Gerdau_App.controller;
 import com.Gerdau.Desafio_GC_Gerdau_App.config.SecurityConfig;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.test.context.support.WithMockUser;
+import com.Gerdau.Desafio_GC_Gerdau_App.dto.Indicadores;
 import com.Gerdau.Desafio_GC_Gerdau_App.dto.Resumo;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.CatNbs;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.CatHorario;
@@ -56,6 +57,7 @@ class ServicoViewControllerTest {
     @BeforeEach
     void resumoPadrao() {
         when(resumoService.resumo(anyBoolean())).thenReturn(new Resumo(0L, 0L, 0L));
+        when(resumoService.indicadores()).thenReturn(new Indicadores(10L, 3L, 2L, 4L));
     }
 
     private CatHorario horasExtra() {
@@ -300,5 +302,39 @@ class ServicoViewControllerTest {
         mvc.perform(get("/ui/servicos/novo"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("data-url-reutilizar=\"/ui/servicos/reutilizar\"")));
+    }
+
+    @Test
+    @WithMockUser(username = "ana", roles = "COMPRADOR")
+    void indicadores_todosVeemOsNumerosEATaxa() throws Exception {
+        when(resumoService.indicadores()).thenReturn(new Indicadores(40L, 12L, 8L, 15L));
+
+        mvc.perform(get("/"))
+                .andExpect(content().string(containsString("Duplicados barrados")))
+                .andExpect(content().string(containsString("Códigos reaproveitados")))
+                .andExpect(content().string(containsString("Sem correspondência")))
+                .andExpect(content().string(containsString("Duplicidade evitada")))
+                .andExpect(content().string(containsString("resumo-valor\">12<")))
+                .andExpect(content().string(containsString("resumo-valor\">8<")))
+                .andExpect(content().string(containsString("resumo-valor\">15<")))
+                .andExpect(content().string(containsString("resumo-valor\">50%<")));
+    }
+
+    @Test
+    void indicadores_semTentativasMostraTracoNaTaxaEZeroNosOutros() throws Exception {
+        when(resumoService.indicadores()).thenReturn(new Indicadores(0L, 0L, 0L, 0L));
+
+        mvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("resumo-valor\">—<")));
+    }
+
+    @Test
+    void indicadores_contagemIndisponivelMostraTracoEAPaginaAbre() throws Exception {
+        when(resumoService.indicadores()).thenReturn(new Indicadores(null, null, null, null));
+
+        mvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Duplicados barrados")));
     }
 }

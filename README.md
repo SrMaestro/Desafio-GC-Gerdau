@@ -20,7 +20,7 @@ Resolve o problema de códigos de serviço duplicados (TAP do Desafio GC 2026) n
 2. **Busca de NBS**: o comprador digita o serviço (mesmo com erro) e recebe o código NBS oficial, por busca exata no De-Para ou por sugestões de similaridade.
 3. **Smart Key**: junta o NBS ao sufixo de horário (ex.: `1.01.01-HN`).
 4. **De-Para com revisão**: confirmações de usuários viram mapeamentos `PENDENTE`; um revisor aprova, rejeita ou revoga, com histórico. Só `APROVADO` vale como busca exata.
-5. **Registro das consultas**: toda tentativa de cadastro individual (bloqueada, que pediu confirmação ou cadastrada) e toda reutilização de um código sugerido ficam gravadas, e o aprovador as confere em `/ui/consultas`.
+5. **Registro das consultas**: toda tentativa de cadastro individual (bloqueada, que pediu confirmação ou cadastrada) e toda reutilização de um código sugerido ficam gravadas, e o aprovador as confere em `/ui/consultas`. Com esse registro, a tela inicial mostra os indicadores: duplicados barrados, códigos reaproveitados, cadastros sem correspondência e a duplicidade evitada.
 6. **Importação em massa**: o comprador envia uma planilha (`.csv`/`.xlsx`, até 20.000 linhas e 10 MB); o sistema aplica o filtro a cada linha em segundo plano, o comprador confere o resultado e envia ao **aprovador**, que decide. Nada entra na base sem essa aprovação. O que o aprovador liga a um serviço existente vira **sinônimo** e passa a bloquear o cadastro individual daquele texto.
 
 Passo a passo de uso: [docs/GUIA_DE_USO.md](docs/GUIA_DE_USO.md). Regras de negócio e decisões: [docs/REGRAS_DE_NEGOCIO.md](docs/REGRAS_DE_NEGOCIO.md).
@@ -130,7 +130,7 @@ Sem login, as telas redirecionam para `/login` e a API responde `401`. Com perfi
 
 | Rota | Tela |
 |------|------|
-| `/` | Lista de serviços |
+| `/` | Lista de serviços, com cards de resumo e indicadores de cadastro |
 | `/ui/busca` | Busca de NBS e Smart Key |
 | `/ui/servicos/novo` | Cadastro de novo serviço (com filtro de duplicados) |
 | `/ui/servicos/{id}` | Detalhe do serviço |

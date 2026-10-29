@@ -28,6 +28,25 @@
         </div>
     </section>
 
+    <section class="resumo" aria-label="Indicadores de cadastro">
+        <div class="resumo-card">
+            <span class="resumo-rotulo">Duplicados barrados</span>
+            <span class="resumo-valor" th:text="${indicadores.barradas} ?: '—'">0</span>
+        </div>
+        <div class="resumo-card">
+            <span class="resumo-rotulo">Códigos reaproveitados</span>
+            <span class="resumo-valor" th:text="${indicadores.reutilizadas} ?: '—'">0</span>
+        </div>
+        <div class="resumo-card">
+            <span class="resumo-rotulo">Sem correspondência (código novo)</span>
+            <span class="resumo-valor" th:text="${indicadores.semCorrespondencia} ?: '—'">0</span>
+        </div>
+        <div class="resumo-card destaque">
+            <span class="resumo-rotulo">Duplicidade evitada</span>
+            <span class="resumo-valor" th:text="${indicadores.percentualEvitado != null} ? ${indicadores.percentualEvitado} + '%' : '—'">0</span>
+        </div>
+    </section>
+
     <input type="search" id="busca" class="busca" aria-label="Buscar serviços" placeholder="Buscar serviço, área, código ou CNAE" autocomplete="off">
 
     <nav class="filtros" aria-label="Filtrar por área">

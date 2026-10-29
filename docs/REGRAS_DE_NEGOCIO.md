@@ -32,6 +32,19 @@ Cada tentativa de cadastro individual (tela ou API) grava uma linha em `consulta
 - A importação em massa não usa esta tabela; ela tem o próprio rastro (quem conferiu, quem decidiu, motivo).
 - O aprovador consulta o histórico em `/ui/consultas` (últimas 200).
 
+### Indicadores
+
+A tela inicial mostra quatro indicadores, calculados em tempo real sobre `consultas_cadastro` (contagens simples, sem cache):
+
+| Indicador | Como é contado |
+|-----------|----------------|
+| Duplicados barrados | `resultado = BLOQUEADO` |
+| Códigos reaproveitados | `decisao = REUTILIZOU_EXISTENTE` |
+| Sem correspondência (código novo) | `decisao = CADASTROU_NOVO`, isto é, cadastrado sem nenhum parecido |
+| Duplicidade evitada | (barrados + reaproveitados) ÷ total de tentativas, arredondado para inteiro; sem tentativas, "—" |
+
+Uma tentativa bloqueada que o comprador repete conta de novo: o indicador mede tentativas, não pessoas nem serviços distintos. A importação em massa não entra nestes números.
+
 ## Busca de NBS (fall-back)
 
 1. **Exata**: o nome normalizado (minúsculo, sem acento, espaços colapsados) tem mapeamento `APROVADO` no De-Para.

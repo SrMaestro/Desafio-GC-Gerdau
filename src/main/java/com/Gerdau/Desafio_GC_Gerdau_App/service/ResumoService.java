@@ -1,8 +1,12 @@
 package com.Gerdau.Desafio_GC_Gerdau_App.service;
 
+import com.Gerdau.Desafio_GC_Gerdau_App.dto.Indicadores;
 import com.Gerdau.Desafio_GC_Gerdau_App.dto.Resumo;
+import com.Gerdau.Desafio_GC_Gerdau_App.model.DecisaoConsulta;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha;
+import com.Gerdau.Desafio_GC_Gerdau_App.model.ResultadoConsulta;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.StatusDePara;
+import com.Gerdau.Desafio_GC_Gerdau_App.repository.ConsultaCadastroRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.DicionarioDeParaRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.LinhaImportacaoRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.ServicoRepository;
@@ -17,12 +21,15 @@ public class ResumoService {
     private final ServicoRepository servicoRepository;
     private final DicionarioDeParaRepository dicionarioDeParaRepository;
     private final LinhaImportacaoRepository linhaImportacaoRepository;
+    private final ConsultaCadastroRepository consultaCadastroRepository;
 
     public ResumoService(ServicoRepository servicoRepository, DicionarioDeParaRepository dicionarioDeParaRepository,
-                         LinhaImportacaoRepository linhaImportacaoRepository) {
+                         LinhaImportacaoRepository linhaImportacaoRepository,
+                         ConsultaCadastroRepository consultaCadastroRepository) {
         this.servicoRepository = servicoRepository;
         this.dicionarioDeParaRepository = dicionarioDeParaRepository;
         this.linhaImportacaoRepository = linhaImportacaoRepository;
+        this.consultaCadastroRepository = consultaCadastroRepository;
     }
 
     /** Só o aprovador recebe as linhas aguardando aprovação; para o comprador esse total fica {@code null}. */
@@ -33,6 +40,15 @@ public class ResumoService {
                 ? contar(() -> linhaImportacaoRepository.countByEtapa(EtapaLinha.ENVIADA))
                 : null;
         return new Resumo(servicos, pendentes, aguardando);
+    }
+
+    /** Indicadores do registro de consultas de cadastro, iguais para todos os perfis. */
+    public Indicadores indicadores() {
+        return new Indicadores(
+                contar(consultaCadastroRepository::count),
+                contar(() -> consultaCadastroRepository.countByResultado(ResultadoConsulta.BLOQUEADO)),
+                contar(() -> consultaCadastroRepository.countByDecisao(DecisaoConsulta.REUTILIZOU_EXISTENTE)),
+                contar(() -> consultaCadastroRepository.countByDecisao(DecisaoConsulta.CADASTROU_NOVO)));
     }
 
     /** Uma contagem que falha não derruba a tela: vira {@code null} e o card mostra "—". */

@@ -53,6 +53,7 @@ public class ServicoViewController {
         model.addAttribute("areas", areas);
         model.addAttribute("areaSelecionada", area);
         model.addAttribute("resumo", resumoService.resumo(ehAprovador(authentication)));
+        model.addAttribute("indicadores", resumoService.indicadores());
         return "servicos";
     }
 

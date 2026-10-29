@@ -1,6 +1,7 @@
 package com.Gerdau.Desafio_GC_Gerdau_App.repository;
 
 import com.Gerdau.Desafio_GC_Gerdau_App.model.ConsultaCadastro;
+import com.Gerdau.Desafio_GC_Gerdau_App.model.DecisaoConsulta;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.ResultadoConsulta;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.SugestaoConsulta;
 import jakarta.persistence.EntityManager;
@@ -75,5 +76,25 @@ class ConsultaCadastroRepositoryTest {
         assertThatThrownBy(() -> em.createNativeQuery(
                 "INSERT INTO consultas_cadastro (usuario, texto_breve, resultado) VALUES ('t', 'x', 'XYZ')")
                 .executeUpdate()).isInstanceOf(RuntimeException.class);
+    }
+
+    @Test
+    void contaPorResultadoEPorDecisao() {
+        long bloqueadas = repository.countByResultado(ResultadoConsulta.BLOQUEADO);
+        long reutilizadas = repository.countByDecisao(DecisaoConsulta.REUTILIZOU_EXISTENTE);
+        long novas = repository.countByDecisao(DecisaoConsulta.CADASTROU_NOVO);
+
+        repository.save(consulta("a", ResultadoConsulta.BLOQUEADO));
+        repository.save(consulta("b", ResultadoConsulta.BLOQUEADO));
+        ConsultaCadastro reutilizou = consulta("c", ResultadoConsulta.SUGERIDO);
+        reutilizou.setDecisao(DecisaoConsulta.REUTILIZOU_EXISTENTE);
+        repository.save(reutilizou);
+        ConsultaCadastro nova = consulta("d", ResultadoConsulta.CADASTRADO);
+        nova.setDecisao(DecisaoConsulta.CADASTROU_NOVO);
+        repository.saveAndFlush(nova);
+
+        assertThat(repository.countByResultado(ResultadoConsulta.BLOQUEADO)).isEqualTo(bloqueadas + 2);
+        assertThat(repository.countByDecisao(DecisaoConsulta.REUTILIZOU_EXISTENTE)).isEqualTo(reutilizadas + 1);
+        assertThat(repository.countByDecisao(DecisaoConsulta.CADASTROU_NOVO)).isEqualTo(novas + 1);
     }
 }

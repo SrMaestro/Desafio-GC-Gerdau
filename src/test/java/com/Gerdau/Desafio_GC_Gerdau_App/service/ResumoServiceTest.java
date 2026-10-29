@@ -1,8 +1,12 @@
 package com.Gerdau.Desafio_GC_Gerdau_App.service;
 
+import com.Gerdau.Desafio_GC_Gerdau_App.dto.Indicadores;
 import com.Gerdau.Desafio_GC_Gerdau_App.dto.Resumo;
+import com.Gerdau.Desafio_GC_Gerdau_App.model.DecisaoConsulta;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.EtapaLinha;
+import com.Gerdau.Desafio_GC_Gerdau_App.model.ResultadoConsulta;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.StatusDePara;
+import com.Gerdau.Desafio_GC_Gerdau_App.repository.ConsultaCadastroRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.DicionarioDeParaRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.LinhaImportacaoRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.ServicoRepository;
@@ -29,6 +33,9 @@ class ResumoServiceTest {
 
     @Mock
     LinhaImportacaoRepository linhaImportacaoRepository;
+
+    @Mock
+    ConsultaCadastroRepository consultaCadastroRepository;
 
     @InjectMocks
     ResumoService service;
@@ -74,5 +81,36 @@ class ResumoServiceTest {
         assertThat(resumo.pendentes()).isNull();
         assertThat(resumo.servicos()).isEqualTo(1122L);
         assertThat(resumo.aguardandoAprovacao()).isEqualTo(5L);
+    }
+
+    @Test
+    void indicadores_devolvemAsContagensDoRegistroDeConsultas() {
+        when(consultaCadastroRepository.count()).thenReturn(40L);
+        when(consultaCadastroRepository.countByResultado(ResultadoConsulta.BLOQUEADO)).thenReturn(12L);
+        when(consultaCadastroRepository.countByDecisao(DecisaoConsulta.REUTILIZOU_EXISTENTE)).thenReturn(8L);
+        when(consultaCadastroRepository.countByDecisao(DecisaoConsulta.CADASTROU_NOVO)).thenReturn(15L);
+
+        assertThat(service.indicadores()).isEqualTo(new Indicadores(40L, 12L, 8L, 15L));
+    }
+
+    @Test
+    void indicadores_semRegistrosDevolveZeros() {
+        assertThat(service.indicadores()).isEqualTo(new Indicadores(0L, 0L, 0L, 0L));
+    }
+
+    @Test
+    void indicadores_contagemQueFalha_viraNullSemPropagar() {
+        when(consultaCadastroRepository.count()).thenReturn(40L);
+        when(consultaCadastroRepository.countByResultado(any()))
+                .thenThrow(new DataAccessResourceFailureException("banco fora"));
+        when(consultaCadastroRepository.countByDecisao(DecisaoConsulta.REUTILIZOU_EXISTENTE)).thenReturn(8L);
+        when(consultaCadastroRepository.countByDecisao(DecisaoConsulta.CADASTROU_NOVO)).thenReturn(15L);
+
+        Indicadores indicadores = service.indicadores();
+
+        assertThat(indicadores.barradas()).isNull();
+        assertThat(indicadores.tentativas()).isEqualTo(40L);
+        assertThat(indicadores.reutilizadas()).isEqualTo(8L);
+        assertThat(indicadores.semCorrespondencia()).isEqualTo(15L);
     }
 }

@@ -14,6 +14,8 @@ Usuários de exemplo, criados na instalação: `comprador` / `comprador123` e `a
 
 No topo da lista de **Serviços** há três cards: **Serviços cadastrados** (total do catálogo), **Mapeamentos pendentes** (sugestões do De-Para ainda sem decisão) e, só para o aprovador, **Linhas aguardando aprovação** (linhas de planilhas já enviadas, esperando decisão). Se um número não puder ser lido na hora, o card mostra "—" e o resto da tela funciona normalmente.
 
+Logo abaixo há quatro **indicadores de cadastro**, iguais para todos, calculados sobre o registro das tentativas de cadastro: **Duplicados barrados** (tentativas que o sistema bloqueou), **Códigos reaproveitados** (quantas vezes alguém escolheu "Usar este código" em vez de criar outro), **Sem correspondência (código novo)** (cadastros feitos sem nenhum serviço parecido) e **Duplicidade evitada** (a parte das tentativas que não gerou código novo: barradas mais reaproveitadas, sobre o total). Enquanto não houver nenhuma tentativa registrada, a duplicidade evitada mostra "—".
+
 ## 1. Cadastrar um novo serviço (comprador)
 
 Abra **Novo serviço** (`/ui/servicos/novo`) e preencha:
