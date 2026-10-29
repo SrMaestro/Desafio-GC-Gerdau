@@ -15,6 +15,10 @@ import com.Gerdau.Desafio_GC_Gerdau_App.service.ServicoService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -25,7 +29,11 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -58,6 +66,7 @@ class ServicoViewControllerTest {
     void resumoPadrao() {
         when(resumoService.resumo(anyBoolean())).thenReturn(new Resumo(0L, 0L, 0L));
         when(resumoService.indicadores()).thenReturn(new Indicadores(10L, 3L, 2L, 4L));
+        when(repository.pesquisar(anyString(), anyString(), any(Pageable.class))).thenReturn(Page.empty());
     }
 
     private CatHorario horasExtra() {
@@ -398,5 +407,116 @@ class ServicoViewControllerTest {
 
         org.assertj.core.api.Assertions.assertThat(captor.getValue().getJustificativaOutroServico())
                 .isEqualTo("Capacidade diferente");
+    }
+
+    // --- lista paginada ---
+
+    private com.Gerdau.Desafio_GC_Gerdau_App.model.Servico servico(int id) {
+        com.Gerdau.Desafio_GC_Gerdau_App.model.Servico s = new com.Gerdau.Desafio_GC_Gerdau_App.model.Servico();
+        s.setId(id);
+        s.setAreaServico("Civil");
+        s.setTextoBreve("Serviço " + id);
+        s.setCodigoPadronizado("COD_" + id);
+        s.setId2Cnae("4399103");
+        return s;
+    }
+
+    private Page<com.Gerdau.Desafio_GC_Gerdau_App.model.Servico> paginaDeServicos(int primeiroId, int quantos, int pagina,
+                                                                                    long total) {
+        return new PageImpl<>(java.util.stream.IntStream.range(primeiroId, primeiroId + quantos)
+                .mapToObj(this::servico).toList(), PageRequest.of(pagina, 25), total);
+    }
+
+    @Test
+    void lista_semParametrosPedeAPrimeiraPaginaDe25() throws Exception {
+        when(repository.pesquisar("", "", PageRequest.of(0, 25))).thenReturn(paginaDeServicos(1, 25, 0, 60));
+
+        mvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Serviço 25<")))
+                .andExpect(content().string(not(containsString("Serviço 26<"))))
+                .andExpect(content().string(containsString("1 a 25 de 60")));
+    }
+
+    @Test
+    void lista_paginaDoMeioTemAnteriorEProximaQueMantemOFiltro() throws Exception {
+        when(repository.pesquisar("bomba", "Civil", PageRequest.of(1, 25))).thenReturn(paginaDeServicos(26, 25, 1, 80));
+
+        String html = mvc.perform(get("/").param("q", "bomba").param("area", "Civil").param("pagina", "2"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("26 a 50 de 80")))
+                .andExpect(content().string(containsString("Página 2 de 4")))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(html).contains("rel=\"prev\"").contains("rel=\"next\"");
+        assertThat(html).contains("pagina=1").contains("pagina=3");
+        assertThat(html).contains("q=bomba").contains("area=Civil");
+    }
+
+    @Test
+    void lista_primeiraPaginaNaoOferecePaginaAnterior() throws Exception {
+        when(repository.pesquisar("", "", PageRequest.of(0, 25))).thenReturn(paginaDeServicos(1, 25, 0, 60));
+
+        mvc.perform(get("/"))
+                .andExpect(content().string(not(containsString("rel=\"prev\""))))
+                .andExpect(content().string(containsString("rel=\"next\"")));
+    }
+
+    @Test
+    void lista_umaPaginaSoNaoMostraPaginacao() throws Exception {
+        when(repository.pesquisar("", "", PageRequest.of(0, 25))).thenReturn(paginaDeServicos(1, 3, 0, 3));
+
+        mvc.perform(get("/"))
+                .andExpect(content().string(containsString("3 serviços")))
+                .andExpect(content().string(not(containsString("rel=\"next\""))))
+                .andExpect(content().string(not(containsString("Página 1 de"))));
+    }
+
+    @Test
+    void lista_paginaAlemDoFimMostraAUltima() throws Exception {
+        when(repository.pesquisar("", "", PageRequest.of(99, 25))).thenReturn(
+                new PageImpl<>(List.of(), PageRequest.of(99, 25), 60));
+        when(repository.pesquisar("", "", PageRequest.of(2, 25))).thenReturn(paginaDeServicos(51, 10, 2, 60));
+
+        mvc.perform(get("/").param("pagina", "100"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Serviço 60<")))
+                .andExpect(content().string(containsString("Página 3 de 3")));
+    }
+
+    @Test
+    void lista_paginaInvalidaOuZeroCaiNaPrimeira() throws Exception {
+        when(repository.pesquisar("", "", PageRequest.of(0, 25))).thenReturn(paginaDeServicos(1, 2, 0, 2));
+
+        mvc.perform(get("/").param("pagina", "0")).andExpect(status().isOk());
+        mvc.perform(get("/").param("pagina", "-4")).andExpect(status().isOk());
+        mvc.perform(get("/").param("pagina", "abc")).andExpect(status().isOk());
+
+        verify(repository, org.mockito.Mockito.times(3)).pesquisar("", "", PageRequest.of(0, 25));
+    }
+
+    @Test
+    void lista_buscaSemResultadoDizQueNadaCorresponde() throws Exception {
+        mvc.perform(get("/").param("q", "xyz"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Nenhum serviço corresponde à busca")))
+                .andExpect(content().string(containsString("value=\"xyz\"")));
+    }
+
+    @Test
+    void lista_termoEhNormalizadoParaABusca() throws Exception {
+        mvc.perform(get("/").param("q", "  Manutenção  ")).andExpect(status().isOk());
+
+        verify(repository).pesquisar(eq("manutencao"), eq(""), eq(PageRequest.of(0, 25)));
+    }
+
+    @Test
+    void lista_areasVemDoBancoSemCarregarTudo() throws Exception {
+        when(repository.findAreas()).thenReturn(List.of("Civil", "Elétrica"));
+
+        mvc.perform(get("/"))
+                .andExpect(content().string(containsString(">Civil<")))
+                .andExpect(content().string(containsString(">Elétrica<")));
+        verify(repository, org.mockito.Mockito.never()).findAll();
     }
 }

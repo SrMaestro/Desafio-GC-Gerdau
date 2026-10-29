@@ -9,6 +9,8 @@ import com.Gerdau.Desafio_GC_Gerdau_App.exception.CadastroRejeitadoException;
 import com.Gerdau.Desafio_GC_Gerdau_App.service.ResumoService;
 import com.Gerdau.Desafio_GC_Gerdau_App.service.ServicoService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
@@ -20,12 +22,15 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.text.Normalizer;
 import java.util.List;
 import java.util.Locale;
 import java.util.NoSuchElementException;
 
 @Controller
 public class ServicoViewController {
+
+    private static final int TAMANHO_PAGINA = 25;
 
     private final ServicoRepository repository;
     private final ServicoService service;
@@ -44,17 +49,47 @@ public class ServicoViewController {
     }
 
     @GetMapping("/")
-    public String listar(@RequestParam(required = false) String area, Authentication authentication, Model model) {
-        List<Servico> todos = repository.findAll();
-        List<String> areas = todos.stream().map(Servico::getAreaServico).distinct().sorted().toList();
-        List<Servico> servicos = (area == null || area.isBlank()) ? todos : repository.findByAreaServico(area);
+    public String listar(@RequestParam(required = false) String area, @RequestParam(required = false) String q,
+                         @RequestParam(defaultValue = "1") String pagina, Authentication authentication, Model model) {
+        String areaFiltro = area == null ? "" : area.trim();
+        String termo = normalizar(q);
+        int numero = Math.max(numeroDaPagina(pagina), 1);
 
-        model.addAttribute("servicos", servicos);
-        model.addAttribute("areas", areas);
-        model.addAttribute("areaSelecionada", area);
+        Page<Servico> resultado = repository.pesquisar(termo, areaFiltro, PageRequest.of(numero - 1, TAMANHO_PAGINA));
+        if (resultado.getTotalPages() > 0 && numero > resultado.getTotalPages()) {
+            numero = resultado.getTotalPages();
+            resultado = repository.pesquisar(termo, areaFiltro, PageRequest.of(numero - 1, TAMANHO_PAGINA));
+        }
+
+        model.addAttribute("servicos", resultado.getContent());
+        model.addAttribute("total", resultado.getTotalElements());
+        model.addAttribute("pagina", numero);
+        model.addAttribute("totalPaginas", resultado.getTotalPages());
+        model.addAttribute("de", resultado.isEmpty() ? 0 : (numero - 1) * TAMANHO_PAGINA + 1);
+        model.addAttribute("ate", (numero - 1) * TAMANHO_PAGINA + resultado.getNumberOfElements());
+        model.addAttribute("q", q == null ? "" : q.trim());
+        model.addAttribute("areas", repository.findAreas());
+        model.addAttribute("areaSelecionada", areaFiltro);
         model.addAttribute("resumo", resumoService.resumo(ehAprovador(authentication)));
         model.addAttribute("indicadores", resumoService.indicadores());
         return "servicos";
+    }
+
+    /** Minúsculo e sem acento, como o banco compara; {@code ""} quando não há busca. */
+    private static String normalizar(String texto) {
+        if (texto == null) {
+            return "";
+        }
+        return Normalizer.normalize(texto.trim(), Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT);
+    }
+
+    private static int numeroDaPagina(String texto) {
+        try {
+            return Integer.parseInt(texto.trim());
+        } catch (NumberFormatException e) {
+            return 1;
+        }
     }
 
     private boolean ehAprovador(Authentication authentication) {

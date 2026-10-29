@@ -132,7 +132,7 @@ Sem login, as telas redirecionam para `/login` e a API responde `401`. Com perfi
 
 | Rota | Tela |
 |------|------|
-| `/` | Lista de serviços, com cards de resumo e indicadores de cadastro |
+| `/` | Lista de serviços (25 por página, com busca no servidor por `?q=`, filtro `?area=` e `?pagina=`), cards de resumo e indicadores de cadastro |
 | `/ui/busca` | Busca de NBS e Smart Key |
 | `/ui/servicos/novo` | Cadastro de novo serviço (com filtro de duplicados) |
 | `/ui/servicos/{id}` | Detalhe do serviço |

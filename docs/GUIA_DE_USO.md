@@ -16,6 +16,10 @@ No topo da lista de **Serviços** há três cards: **Serviços cadastrados** (to
 
 Logo abaixo há quatro **indicadores de cadastro**, iguais para todos, calculados sobre o registro das tentativas de cadastro: **Duplicados barrados** (tentativas que o sistema bloqueou), **Códigos reaproveitados** (quantas vezes alguém escolheu "Usar este código" em vez de criar outro), **Sem correspondência (código novo)** (cadastros feitos sem nenhum serviço parecido) e **Duplicidade evitada** (a parte das tentativas que não gerou código novo: barradas mais reaproveitadas, sobre o total). Enquanto não houver nenhuma tentativa registrada, a duplicidade evitada mostra "—".
 
+## Procurar um serviço na lista
+
+A lista mostra 25 serviços por vez. Use **Anterior** e **Próxima** no fim da tabela para mudar de página. Para procurar, digite no campo de busca e aperte **Enter**: a busca olha o ID, a área, o texto, o código, o CNAE e o criador, sem diferenciar maiúsculas nem acentos, e vale para a base inteira, não só para a página aberta. Os botões de área filtram a lista; a tecla `/` leva o cursor ao campo de busca.
+
 ## 1. Cadastrar um novo serviço (comprador)
 
 Abra **Novo serviço** (`/ui/servicos/novo`) e preencha:

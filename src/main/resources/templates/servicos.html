@@ -47,17 +47,20 @@
         </div>
     </section>
 
-    <input type="search" id="busca" class="busca" aria-label="Buscar serviços" placeholder="Buscar serviço, área, código ou CNAE" autocomplete="off">
+    <form method="get" th:action="@{/}" role="search">
+        <input type="hidden" name="area" th:value="${areaSelecionada}" th:if="${areaSelecionada != ''}">
+        <input type="search" id="busca" name="q" class="busca" aria-label="Buscar serviços" th:value="${q}"
+               placeholder="Buscar serviço, área, código ou CNAE (Enter para buscar)" autocomplete="off">
+    </form>
 
     <nav class="filtros" aria-label="Filtrar por área">
-        <a class="chip" th:href="@{/}" th:attr="aria-current=${areaSelecionada == null or areaSelecionada == ''} ? 'true' : null">Todas</a>
+        <a class="chip" th:href="@{/}" th:attr="aria-current=${areaSelecionada == ''} ? 'true' : null">Todas</a>
         <a class="chip" th:each="a : ${areas}" th:href="@{/(area=${a})}" th:text="${a}"
            th:attr="aria-current=${a == areaSelecionada} ? 'true' : null"></a>
     </nav>
 
-    <p class="contador" id="contador" aria-live="polite">
-        <span id="contador-n" th:text="${#lists.size(servicos)}">0</span> serviços
-    </p>
+    <p class="contador" id="contador" aria-live="polite"
+       th:text="${totalPaginas > 1} ? ${de} + ' a ' + ${ate} + ' de ' + ${total} + ' serviços' : ${total} + ' serviços'">0 serviços</p>
 
     <div class="tabela-wrap">
         <table id="tabela-servicos">
@@ -79,11 +82,17 @@
                 <td class="cnae" th:text="${s.id2Cnae}"></td>
                 <td class="criador" th:text="${s.criadorCodigo} ?: '—'"></td>
             </tr>
-            <tr class="vazio" th:if="${#lists.isEmpty(servicos)}"><td colspan="6">Nenhum serviço nesta área.</td></tr>
-            <tr class="vazio" id="sem-resultados" hidden><td colspan="6">Nenhum serviço corresponde à busca. Tente outro termo.</td></tr>
+            <tr class="vazio" th:if="${#lists.isEmpty(servicos) and q != ''}"><td colspan="6">Nenhum serviço corresponde à busca. Tente outro termo.</td></tr>
+            <tr class="vazio" th:if="${#lists.isEmpty(servicos) and q == ''}"><td colspan="6">Nenhum serviço nesta área.</td></tr>
             </tbody>
         </table>
     </div>
+
+    <nav class="paginacao" aria-label="Paginação" th:if="${totalPaginas > 1}">
+        <a th:if="${pagina > 1}" rel="prev" th:href="@{/(area=${areaSelecionada},q=${q},pagina=${pagina - 1})}">&larr; Anterior</a>
+        <span class="paginacao-posicao" th:text="'Página ' + ${pagina} + ' de ' + ${totalPaginas}">Página 1 de 1</span>
+        <a th:if="${pagina < totalPaginas}" rel="next" th:href="@{/(area=${areaSelecionada},q=${q},pagina=${pagina + 1})}">Próxima &rarr;</a>
+    </nav>
 </main>
 </body>
 </html>
