@@ -1,0 +1,7 @@
+area_servico;texto_breve;abreviatura;complemento;condicao;cnae
+Caldeiraria;Jateamento de superfície metálica;JATEAM;_SUPMET;Hora normal;2539001
+Civil;Concretagem de fundação;CONC;_CONCRE;Hora normal;4399103
+Eletromecânica;Manutenção de motor;MANUT;_MOTOR;Hora normal;3313000
+Caldeiraria;Limpeza química de caldeira;LIMPQ;_CALDEI;Hora extra Seg a Sab;2539001
+Caldeiraria;Jateamento de superfície metálica;JATEAM;_SUPMET;Hora normal;2539001
+Tubulação;Teste hidrostático de tubulação;TESTE;_HIDROS;Condição que não existe;3329599

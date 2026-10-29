@@ -61,7 +61,7 @@ Em **Busca** (`/ui/busca`), digite o serviço, mesmo com erro de digitação (ex
 - **Resultado exato**: o nome já foi revisado e aprovado. Use o código mostrado.
 - **Sugestões**: opções parecidas da NBS, ainda sem revisão. Escolha a correta.
 
-Ao escolher um NBS e um horário, a tela mostra a **Smart Key** (ex.: `1.01.01-HN`) para usar no pedido de compra. A escolha também é enviada para revisão, e assim o sistema aprende.
+Ao escolher um NBS e um horário, a tela mostra a **Smart Key** (ex.: `1.0106.19.00-HN`) para usar no pedido de compra. A escolha também é enviada para revisão, e assim o sistema aprende.
 
 ## 3. Importar vários serviços de uma planilha (comprador)
 
@@ -162,3 +162,112 @@ O banco é criado e populado pelo Flyway na primeira execução. Erros comuns es
 | Tamanho máximo da planilha | 10 MB | `spring.servlet.multipart.max-file-size` (`application.properties`) |
 
 A busca de serviços parecidos usa o operador `%` do `pg_trgm` para aproveitar o índice, e esse operador só devolve o que passa do limiar de similaridade do próprio `pg_trgm` (padrão 0,3; o valor em uso aparece em `SELECT show_limit()`). Por isso não baixe `LIMIAR_SUGESTAO` para 0,3 ou menos: a busca continuaria cortando em 0,3 e os parecidos entre o novo valor e 0,3 deixariam de aparecer, sem erro nenhum. Se isso for mesmo necessário, é preciso mudar também a consulta `ServicoRepository.buscarSimilares` ou o limiar do `pg_trgm` no banco (tarefa de quem administra o Postgres). O teste `LimiarSimilaridadeTest` falha para avisar quando `LIMIAR_SUGESTAO` não fica acima do limiar do `pg_trgm`.
+
+## 5. Roteiro de teste para a equipe
+
+Um passo a passo para conferir, em cerca de 30 minutos, se o sistema faz o que promete. Cada linha diz o que fazer e o que deve acontecer. Se o resultado for diferente, anote o passo, o que você viu e o horário (o aprovador acha a tentativa em **Consultas**), e avise quem cuida do projeto.
+
+**Antes de começar:** o sistema precisa estar no ar (veja "Teste rápido" no [README](../README.md#teste-rápido)) e o banco no estado inicial, com os serviços de exemplo. Os resultados abaixo valem para esse estado. Se alguém já cadastrou coisas, as respostas podem mudar; para voltar ao início, siga "Voltar ao estado inicial" no README. Faça os passos na ordem: alguns usam o que o anterior criou.
+
+### Parte A: comprador (entre como `comprador`)
+
+**A1. Lista de serviços.** Abra **Serviços** (`/`).
+- Os cards de resumo e os quatro indicadores aparecem. Os indicadores podem estar zerados no início.
+- Digite `motor` no campo de busca e aperte **Enter**: aparece 1 serviço (Manutenção de motor elétrico). Busque `eletrico` (sem acento): aparecem 2 serviços, os dois com "elétrico" no texto, e é o mesmo resultado de `elétrico`.
+- Clique num botão de área (por exemplo, Civil): só serviços dessa área aparecem.
+- Clique em **Copiar** ao lado de um código e cole em outro lugar: o código copiado confere.
+- A paginação (25 por página, com **Anterior** e **Próxima**) só aparece quando houver mais de 25 serviços.
+
+**A2. Cadastro bloqueado: código idêntico.** Em **Novo serviço**, preencha:
+
+| Campo | Valor |
+|-------|-------|
+| Área | Civil |
+| Texto breve | Concretagem de fundação |
+| Abreviatura | CONC |
+| Complemento | _CONCRE |
+| Condição | Hora normal |
+| CNAE | 4399103 |
+
+Resultado: **Cadastro bloqueado**, mostrando o serviço `CONC_CONCRE_HN4399103`. Não há como contestar este bloqueio: a saída é mudar a abreviatura ou o complemento.
+
+**A3. Cadastro bloqueado: texto igual com código diferente.** Preencha:
+
+| Campo | Valor |
+|-------|-------|
+| Área | Eletromecânica |
+| Texto breve | Manutenção de motor elétrico |
+| Abreviatura | MANUT |
+| Complemento | _MOTOR2 |
+| Condição | Hora extra Seg a Sab |
+| CNAE | 3313000 |
+
+Resultado: **Cadastro bloqueado**, com `MANUT_MOTORE_HES3313000` (100% de similaridade) e, desta vez, o campo **Explique a diferença** com o botão **É outro serviço: cadastrar**.
+
+**A4. Contestar o bloqueio.** Na mesma tela do A3:
+1. Escreva `outro` na explicação e clique em **É outro serviço: cadastrar**: o sistema recusa e pede pelo menos 10 caracteres.
+2. Escreva `Motor de 440 V, diferente do motor de baixa tensão` e clique de novo: o serviço é cadastrado com o código `MANUT_MOTOR2_HES3313000`.
+
+**A5. Pede confirmação.** Preencha:
+
+| Campo | Valor |
+|-------|-------|
+| Área | Eletromecânica |
+| Texto breve | Manutenção de bomba |
+| Abreviatura | MANUT |
+| Complemento | _BOMBAB |
+| Condição | Hora normal |
+| CNAE | 3314801 |
+
+Resultado: aviso **Existem serviços parecidos**, com `MANUT_BOMBAS_NOT3314801` (65%) na lista ao lado. Clique em **Cadastrar serviço** sem marcar nada: o sistema não cadastra. Marque **Cadastrar mesmo assim** e clique de novo: cadastra `MANUT_BOMBAB_HN3314801`.
+
+**A6. Mesmo texto em outra condição.** Preencha `Concretagem de fundação`, abreviatura `CONCR`, complemento `_FUNDAC`, condição **Hora extra Seg a Sab**, CNAE `4399103`. Resultado: **não bloqueia** (a condição é outra), mas pede confirmação mostrando o serviço de Hora normal com 100%. **Não** marque a confirmação: este passo é só para ver a resposta.
+
+**A7. Cadastro sem parecidos.** Preencha:
+
+| Campo | Valor |
+|-------|-------|
+| Área | Caldeiraria |
+| Texto breve | Teste de estanqueidade em vaso de pressão |
+| Abreviatura | ESTANQ |
+| Complemento | _VASOPR |
+| Condição | Hora normal |
+| CNAE | 2539001 |
+
+Resultado: cadastrado direto, e o sistema abre o serviço com o código `ESTANQ_VASOPR_HN2539001`.
+
+**A8. "Usar este código".** Em **Novo serviço**, digite só `Manutenção de bomba` no texto breve. Na lista de parecidos ao lado aparecem os serviços de bomba, entre eles `MANUT_BOMBAS_NOT3314801`. Clique em **Usar este código** nele: o sistema abre o serviço, sem cadastrar nada novo.
+
+**A9. Busca de NBS.** Em **Buscar NBS**, digite `instalaa eletrica` (com o erro mesmo). Resultado: sugestões da NBS, com a primeira `1.0106.19.00` (cerca de 52%). Clique em **Usar este** nessa sugestão: o botão passa a **Registrado**, a tela avisa "Escolha registrada para revisão" e aparece o seletor de horário. Escolha **Hora normal**: a tela mostra a Smart Key `1.0106.19.00-HN`.
+
+**A10. Importar uma planilha.** Em **Importar**, envie o arquivo `docs/exemplos/servicos_exemplo.csv` (está no repositório). Quando o lote terminar, o resultado deve ser:
+
+| Situação | Quantas | Quais |
+|----------|---------|-------|
+| Nova | 2 | Jateamento de superfície metálica; Limpeza química de caldeira |
+| Parecida | 1 | Manutenção de motor |
+| Já existia | 1 | Concretagem de fundação |
+| Repetida | 1 | O segundo Jateamento (igual ao da primeira linha) |
+| Com erro | 1 | Teste hidrostático de tubulação (a condição "Condição que não existe") |
+
+Depois:
+1. Em **com erro**, clique em **Corrigir**, troque a condição para `Hora normal` e salve: a linha vira **nova**.
+2. Em **parecidas**, veja o serviço parecido e decida: **É outro serviço** (vai criar o serviço) ou **É o mesmo serviço** (grava um sinônimo).
+3. Clique em **Enviar ao aprovador**.
+
+### Parte B: aprovador (saia e entre como `aprovador`)
+
+**B1. Consultas.** Abra **Consultas**. As tentativas dos passos A2 a A8 estão lá, com o usuário `comprador`. Abra a do passo A4: aparece **Contestou o bloqueio** com a justificativa que você escreveu. Abra a do A2: **Bloqueado**. A do A8: **Reutilizou código existente**.
+
+**B2. Indicadores.** Volte para **Serviços**. **Duplicados barrados**, **Códigos reaproveitados** e **Sem correspondência** passaram a ter números, e **Duplicidade evitada** mostra uma porcentagem.
+
+**B3. Aprovar a planilha.** Em **Aprovações**, abra o lote, confira as linhas e use **Aprovar** (ou **Aprovar todas**). Depois, na lista de **Serviços**, os serviços novos aparecem. Se o catálogo passar de 25 serviços, aparece também a **paginação**.
+
+**B4. Revisão do De-Para.** Em **Revisão**, a escolha do passo A9 está pendente. **Aprove**-a. Repita a busca `instalaa eletrica` como comprador: agora o resultado vem com o selo **Aprovado** (o nome foi revisado).
+
+**B5. Perfis.** Entre como `comprador` e tente abrir `/ui/consultas`, `/ui/aprovacao` ou `/ui/revisao` na barra de endereço: o comprador não tem acesso.
+
+### Fechando o teste
+
+Os serviços e registros criados ficam no banco. Para repetir o roteiro do zero, siga "Voltar ao estado inicial" no README.
+

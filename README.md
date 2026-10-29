@@ -1,6 +1,6 @@
 # Desafio GC Gerdau App
 
-API REST em **Spring Boot** conectada a um banco **PostgreSQL** executado em container **Docker**. O projeto padroniza códigos de serviço e bloqueia a criação de duplicados.
+Aplicação web (telas e API REST) em **Spring Boot**, conectada a um banco **PostgreSQL** executado em container **Docker**. O projeto padroniza códigos de serviço e bloqueia a criação de duplicados.
 
 ## Tecnologias
 
@@ -16,14 +16,50 @@ API REST em **Spring Boot** conectada a um banco **PostgreSQL** executado em con
 
 Resolve o problema de códigos de serviço duplicados (TAP do Desafio GC 2026) na trilha Java:
 
-1. **Cadastro com filtro**: ao criar um serviço, o sistema gera o código padronizado, compara o texto com os serviços existentes (`pg_trgm`) e **bloqueia duplicados**, avisando o comprador. Parecidos pedem confirmação.
+1. **Cadastro com filtro**: ao criar um serviço, o sistema gera o código padronizado, compara o texto com os serviços existentes (`pg_trgm`) e **bloqueia duplicados**, avisando o comprador. Parecidos pedem confirmação, e o comprador pode contestar um bloqueio por texto dizendo, com justificativa registrada, que é outro serviço.
 2. **Busca de NBS**: o comprador digita o serviço (mesmo com erro) e recebe o código NBS oficial, por busca exata no De-Para ou por sugestões de similaridade.
-3. **Smart Key**: junta o NBS ao sufixo de horário (ex.: `1.01.01-HN`).
+3. **Smart Key**: junta o NBS ao sufixo de horário (ex.: `1.0106.19.00-HN`).
 4. **De-Para com revisão**: confirmações de usuários viram mapeamentos `PENDENTE`; um revisor aprova, rejeita ou revoga, com histórico. Só `APROVADO` vale como busca exata.
 5. **Registro das consultas**: toda tentativa de cadastro individual (bloqueada, que pediu confirmação ou cadastrada) e toda reutilização de um código sugerido ficam gravadas, e o aprovador as confere em `/ui/consultas`. Com esse registro, a tela inicial mostra os indicadores: duplicados barrados, códigos reaproveitados, cadastros sem correspondência e a duplicidade evitada.
 6. **Importação em massa**: o comprador envia uma planilha (`.csv`/`.xlsx`, até 20.000 linhas e 10 MB); o sistema aplica o filtro a cada linha em segundo plano, o comprador confere o resultado e envia ao **aprovador**, que decide. Nada entra na base sem essa aprovação. O que o aprovador liga a um serviço existente vira **sinônimo** e passa a bloquear o cadastro individual daquele texto.
 
 Passo a passo de uso: [docs/GUIA_DE_USO.md](docs/GUIA_DE_USO.md). Regras de negócio e decisões: [docs/REGRAS_DE_NEGOCIO.md](docs/REGRAS_DE_NEGOCIO.md). Validação da similaridade (casos corretos, ambíguos e incorretos, limitações): [docs/VALIDACAO_SIMILARIDADE.md](docs/VALIDACAO_SIMILARIDADE.md).
+
+## Teste rápido
+
+Para a equipe testar a aplicação na própria máquina.
+
+**Precisa de:** Docker (com Docker Compose) e JDK 21.
+
+```bash
+cp env.example .env              # primeira vez: troque as senhas por qualquer valor
+docker compose up -d             # sobe o banco (e o pgAdmin em :5050)
+export JAVA_HOME=/caminho/do/jdk-21   # só se o seu JDK padrão não for o 21
+./mvnw spring-boot:run           # espere a mensagem "Started ..."
+```
+
+Abra **http://localhost:8080** e entre com um dos usuários de exemplo:
+
+| Usuário | Senha | Perfil |
+|---------|-------|--------|
+| `comprador` | `comprador123` | Cadastra, busca e importa planilhas |
+| `aprovador` | `aprovador123` | Tudo isso, mais aprovar planilhas, revisar o De-Para e ver as consultas |
+
+O passo a passo do teste, com os dados a digitar e o resultado esperado de cada passo, está em [docs/GUIA_DE_USO.md](docs/GUIA_DE_USO.md#5-roteiro-de-teste-para-a-equipe). A planilha de exemplo para o teste de importação é [docs/exemplos/servicos_exemplo.csv](docs/exemplos/servicos_exemplo.csv). Para rodar os testes automáticos: `./mvnw test` (com o banco no ar).
+
+### Voltar ao estado inicial
+
+Tudo o que se cadastra durante o teste fica no banco. Para recomeçar com só os serviços de exemplo (**apaga todos os dados**):
+
+```bash
+# pare a aplicação (Ctrl+C) e depois:
+docker compose down
+sudo rm -rf data-db
+docker compose up -d
+./mvnw spring-boot:run
+```
+
+Os usuários de exemplo são só para teste. **Não use essas senhas fora da sua máquina.**
 
 ## Estrutura
 
@@ -37,7 +73,7 @@ src/main/java/com/Gerdau/Desafio_GC_Gerdau_App/
 ├── dto/          requests e responses
 └── exception/    CadastroRejeitadoException, DeParaNaoEncontradoException
 src/main/resources/
-├── db/migration/ migrations Flyway (V1 a V12)
+├── db/migration/ migrations Flyway (V1 a V13)
 ├── templates/    telas (busca, servicos, formulário, revisão, importação, aprovação)
 └── static/       css e js
 ```
@@ -112,12 +148,11 @@ O schema do banco é versionado em `src/main/resources/db/migration`. Ao iniciar
 | `V10__importacao_em_massa.sql` | `lotes_importacao`, `linhas_importacao` (situação e etapa de cada linha) e `servico_sinonimo` |
 | `V11__conferido_em.sql` | `linhas_importacao.conferido_em`: data da última decisão do comprador na linha |
 | `V12__consultas_cadastro.sql` | `consultas_cadastro` e `consulta_cadastro_sugestoes`: histórico de cada tentativa de cadastro individual |
+| `V13__contestacao_do_bloqueio.sql` | `consultas_cadastro.justificativa` e a decisão `CONTESTOU_BLOQUEIO` |
 
 Para alterar o banco, crie um novo arquivo seguindo a convenção `V{n}__descricao.sql` (ex.: `V3__add_coluna_x.sql`). **Nunca edite uma migration já aplicada**: o Flyway valida o checksum e a aplicação deixa de subir.
 
 ## Login e perfis
-
-As telas usam as fontes Barlow (títulos) e Open Sans (texto), carregadas do Google Fonts em `templates/layout.html`. Sem acesso à internet, o navegador usa a fonte padrão do sistema e a tela continua funcionando; para uso fechado na rede da Gerdau, vale hospedar as fontes junto da aplicação.
 
 Todas as telas e a API exigem login (usuário e senha guardados na tabela `usuarios`, senha com BCrypt). Há dois perfis:
 
@@ -129,6 +164,8 @@ Todas as telas e a API exigem login (usuário e senha guardados na tabela `usuar
 Sem login, as telas redirecionam para `/login` e a API responde `401`. Com perfil insuficiente a resposta é `403`. Usuários de exemplo (V9) e como trocar as senhas: `docs/GUIA_DE_USO.md`. O revisor gravado no histórico do De-Para é sempre o usuário logado.
 
 ## Telas
+
+As telas usam as fontes Barlow (títulos) e Open Sans (texto), carregadas do Google Fonts em `templates/layout.html`. Sem acesso à internet, o navegador usa a fonte padrão do sistema e a tela continua funcionando; para uso fechado na rede da Gerdau, vale hospedar as fontes junto da aplicação.
 
 | Rota | Tela |
 |------|------|
@@ -199,10 +236,10 @@ curl -s -o /dev/null -b cj -c cj -d "username=comprador&password=comprador123&_c
 CSRF=$(curl -s -b cj localhost:8080/ui/busca | grep -o '<meta name="_csrf" content="[^"]*"' | sed 's/.*content="//;s/"//')
 
 curl -b cj "localhost:8080/api/nbs/busca?texto=instalaa%20eletrica"
-curl -b cj "localhost:8080/api/smart-key?nbs=1.01.01&horario=HN"
+curl -b cj "localhost:8080/api/smart-key?nbs=1.0106.19.00&horario=HN"
 curl -b cj -X POST localhost:8080/servicos/analise -H "X-CSRF-TOKEN: $CSRF" -H 'Content-Type: application/json' -d '{
   "areaServico":"Civil","textoBreve":"Concretagem de fundação","abreviatura":"CONC",
-  "complemento":"_CONCRE","condicao":"HORA_NORMAL","cnae":"4399103"}'
+  "complemento":"_CONCRE","condicao":"HN","cnae":"4399103"}'
 ```
 
 ## Verificando o banco
