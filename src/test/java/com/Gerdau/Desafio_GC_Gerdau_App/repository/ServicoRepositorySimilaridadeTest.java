@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -33,6 +34,18 @@ class ServicoRepositorySimilaridadeTest {
         s.setComplemento("_TESTE");
         s.setId1Condicao("Hora normal");
         s.setId2Cnae("1234567");
+        s.setCodigoPadronizado(codigo);
+        servicoRepository.saveAndFlush(s);
+    }
+
+    private void servico(String texto, String codigo, String condicao, String cnae) {
+        Servico s = new Servico();
+        s.setAreaServico("Teste");
+        s.setTextoBreve(texto);
+        s.setAbreviatura("TST");
+        s.setComplemento("_TESTE");
+        s.setId1Condicao(condicao);
+        s.setId2Cnae(cnae);
         s.setCodigoPadronizado(codigo);
         servicoRepository.saveAndFlush(s);
     }
@@ -70,5 +83,50 @@ class ServicoRepositorySimilaridadeTest {
         servico(BASE, "TST_SIM5_HN1234567");
 
         assertThat(codigos("nada a ver kkkkkk")).doesNotContain("TST_SIM5_HN1234567");
+    }
+
+    // ---- buscarDuplicado: o filtro de condição e CNAE acontece no banco ----
+
+    @Test
+    void buscarDuplicado_achaOMesmoServicoMesmoComMuitasVariacoesDeOutraCondicao() {
+        // o catálogo tem 14 condições e o mesmo texto costuma existir em várias: todas com score 1,0
+        String[] outras = {"Hora extra Seg a Sab", "Hora extra Dom/Feriado", "Adicional noturno (hora)",
+                "Hora extra noturna Seg a Sab", "Hora extra noturna Dom/Feriado", "Retroativo"};
+        for (int i = 0; i < outras.length; i++) {
+            servico("Zqxjv ploktrum vandelio", "TST_VAR" + i + "_X1234567", outras[i], "1234567");
+        }
+        servico("Zqxjv ploktrum vandelio", "TST_ALVO_HN1234567", "Hora normal", "1234567");
+
+        Optional<ServicoSimilar> r = servicoRepository.buscarDuplicado(BASE, 0.8, "Hora normal", "1234567");
+
+        assertThat(r).isPresent();
+        assertThat(r.get().getCodigoPadronizado()).isEqualTo("TST_ALVO_HN1234567");
+        assertThat(r.get().getScore()).isEqualTo(1.0);
+    }
+
+    @Test
+    void buscarDuplicado_ignoraOutraCondicaoEOutroCnae() {
+        servico("Zqxjv ploktrum vandelio", "TST_DUP1_HE1234567", "Hora extra Seg a Sab", "1234567");
+        servico("Zqxjv ploktrum vandelio", "TST_DUP2_HN7654321", "Hora normal", "7654321");
+
+        assertThat(servicoRepository.buscarDuplicado(BASE, 0.8, "Hora normal", "1234567")).isEmpty();
+    }
+
+    @Test
+    void buscarDuplicado_ignoraOQueFicaAbaixoDoMinimo() {
+        servico("Zqxjv ploktrum vandelio ghbnm rtyuw", "TST_DUP3_HN1234567", "Hora normal", "1234567"); // ~0,67
+
+        assertThat(servicoRepository.buscarDuplicado(BASE, 0.8, "Hora normal", "1234567")).isEmpty();
+        assertThat(servicoRepository.buscarDuplicado(BASE, 0.6, "Hora normal", "1234567")).isPresent();
+    }
+
+    @Test
+    void buscarDuplicado_devolveOMaisParecidoQuandoHaVarios() {
+        servico("Zqxjv ploktrum vandelio ghbnm rtyuw", "TST_DUP4_HN1234567", "Hora normal", "1234567"); // ~0,67
+        servico("Zqxjv ploktrum vandelio", "TST_DUP5_HN1234567", "Hora normal", "1234567"); // 1,0
+
+        Optional<ServicoSimilar> r = servicoRepository.buscarDuplicado(BASE, 0.6, "Hora normal", "1234567");
+
+        assertThat(r.orElseThrow().getCodigoPadronizado()).isEqualTo("TST_DUP5_HN1234567");
     }
 }

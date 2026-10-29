@@ -43,4 +43,26 @@ public interface ServicoRepository extends JpaRepository<Servico, Integer> {
     List<ServicoSimilar> buscarSimilares(@Param("texto") String texto,
                                          @Param("minimo") double minimo,
                                          @Param("limite") int limite);
+
+    /**
+     * O serviço mais parecido que conta como duplicado: mesma condição e mesmo CNAE e similaridade a partir de
+     * {@code minimo}. Filtra tudo no banco de propósito: filtrar só os N mais parecidos (como {@code buscarSimilares})
+     * perde o duplicado quando há N ou mais serviços com o mesmo texto em outras condições ou CNAEs.
+     */
+    @Query(value = """
+            SELECT id_servico AS id, texto_breve AS textoBreve, codigo_padronizado AS codigoPadronizado,
+                   id1_condicao AS id1Condicao, id2_cnae AS id2Cnae,
+                   similarity(lower(texto_breve), lower(:texto)) AS score
+            FROM servicos_mock
+            WHERE lower(texto_breve) % lower(:texto)
+              AND similarity(lower(texto_breve), lower(:texto)) >= :minimo
+              AND id1_condicao = :condicao
+              AND id2_cnae = :cnae
+            ORDER BY score DESC
+            LIMIT 1
+            """, nativeQuery = true)
+    Optional<ServicoSimilar> buscarDuplicado(@Param("texto") String texto,
+                                             @Param("minimo") double minimo,
+                                             @Param("condicao") String condicao,
+                                             @Param("cnae") String cnae);
 }

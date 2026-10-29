@@ -8,6 +8,7 @@ cadastro -> gera código -> compara (pg_trgm) -> bloqueia | pede confirmação |
 
 1. O código é gerado em maiúsculas: `abreviatura + complemento + "_" + sufixo da condição + CNAE`.
 2. Bloqueio: o código já existe, **ou** há serviço com similaridade de texto ≥ 0,8, mesma condição e mesmo CNAE.
+   A busca desse serviço é própria e filtra a condição e o CNAE no banco (`ServicoRepository.buscarDuplicado`); ela não depende dos 5 parecidos mostrados como sugestão. Isso importa porque o mesmo texto costuma existir em várias das 14 condições, e os 5 mais parecidos podem ser todos de outras condições. Quando bloqueia, o serviço duplicado aparece em primeiro lugar nas sugestões, mesmo que não estivesse entre os 5.
 3. Confirmação: há serviços com similaridade ≥ 0,4 que não bloqueiam. O cadastro só segue com `confirmar=true`.
    O 0,4 precisa ficar acima do limiar de similaridade do `pg_trgm` (padrão 0,3, visto em `SELECT show_limit()`), pois a consulta usa o operador `%` para aproveitar o índice e ele já corta nesse limiar. Com `LIMIAR_SUGESTAO` em 0,3 ou menos, a busca perde em silêncio os parecidos abaixo de 0,3; o teste `LimiarSimilaridadeTest` falha para avisar.
 4. O código gerado não pode passar de 40 caracteres.

@@ -136,9 +136,8 @@ class AprovadorLinha {
             throw new ConflitoAprovacao("O código " + codigo + " já foi cadastrado por outra operação");
         }
         if (bloquearPorTexto && linha.getTextoBreve() != null) {
-            Optional<ServicoSimilar> duplicado = ServicoService.duplicadoPorTexto(
-                    ServicoService.buscarParecidos(servicoRepository, linha.getTextoBreve()),
-                    condicao.getDescricaoHorario(), form.getCnae());
+            Optional<ServicoSimilar> duplicado = ServicoService.buscarDuplicado(
+                    servicoRepository, linha.getTextoBreve(), condicao.getDescricaoHorario(), form.getCnae());
             if (duplicado.isPresent()) {
                 throw new ConflitoAprovacao("Parecido com " + duplicado.get().getCodigoPadronizado()
                         + " (similaridade " + Math.round(duplicado.get().getScore() * 100)

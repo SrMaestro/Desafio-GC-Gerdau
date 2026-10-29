@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
-import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -98,15 +98,23 @@ public class ServicoService {
         }
 
         List<ServicoSimilar> encontrados = buscarParecidos(repository, form.getTextoBreve());
+        // o bloqueio tem consulta própria: não pode depender de o duplicado estar entre as poucas sugestões
+        Optional<ServicoSimilar> duplicado = buscarDuplicado(repository, form.getTextoBreve(),
+                condicao.getDescricaoHorario(), form.getCnae());
 
-        boolean duplicadoPorTexto = duplicadoPorTexto(encontrados, condicao.getDescricaoHorario(), form.getCnae())
-                .isPresent();
+        // o duplicado vai primeiro nas sugestões, para o comprador ver (e usar) o código que o bloqueou
+        List<SimilarDto> similares = new ArrayList<>();
+        duplicado.ifPresent(d -> similares.add(paraDto(d)));
+        encontrados.stream()
+                .filter(s -> duplicado.isEmpty() || !Objects.equals(duplicado.get().getId(), s.getId()))
+                .forEach(s -> similares.add(paraDto(s)));
 
-        List<SimilarDto> similares = encontrados.stream()
-                .map(s -> new SimilarDto(s.getId(), s.getTextoBreve(), s.getCodigoPadronizado(), s.getScore()))
-                .toList();
+        return new AnaliseSimilaridade(codigo, codigoExistente, similares,
+                codigoExistente || duplicado.isPresent(), null);
+    }
 
-        return new AnaliseSimilaridade(codigo, codigoExistente, similares, codigoExistente || duplicadoPorTexto, null);
+    private static SimilarDto paraDto(ServicoSimilar s) {
+        return new SimilarDto(s.getId(), s.getTextoBreve(), s.getCodigoPadronizado(), s.getScore());
     }
 
     /** Os serviços parecidos com o texto, como o cadastro individual consulta (também usado na importação). */
@@ -115,16 +123,12 @@ public class ServicoService {
     }
 
     /**
-     * Regra de bloqueio do cadastro individual: entre os parecidos, o de maior score que conta como duplicado
-     * (score a partir de {@link #LIMIAR_BLOQUEIO}, mesma condição pela descrição e mesmo CNAE).
+     * Regra de bloqueio do cadastro individual: o serviço de maior score que conta como duplicado (score a partir de
+     * {@link #LIMIAR_BLOQUEIO}, mesma condição pela descrição e mesmo CNAE). Também usada na aprovação da importação.
      */
-    static Optional<ServicoSimilar> duplicadoPorTexto(List<ServicoSimilar> encontrados, String descricaoCondicao,
-                                                      String cnae) {
-        return encontrados.stream()
-                .filter(s -> s.getScore() != null && s.getScore() >= LIMIAR_BLOQUEIO
-                        && Objects.equals(s.getId1Condicao(), descricaoCondicao)
-                        && Objects.equals(s.getId2Cnae(), cnae))
-                .max(Comparator.comparingDouble(ServicoSimilar::getScore));
+    static Optional<ServicoSimilar> buscarDuplicado(ServicoRepository repository, String texto,
+                                                    String descricaoCondicao, String cnae) {
+        return repository.buscarDuplicado(texto.trim(), LIMIAR_BLOQUEIO, descricaoCondicao, cnae);
     }
 
     /** Cada tentativa que chega à análise fica registrada (ver {@link RegistroConsultaService}); erro de validação não. */

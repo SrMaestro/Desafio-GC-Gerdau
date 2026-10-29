@@ -163,10 +163,85 @@ class ServicoServiceTest {
     void bloqueiaTextoQuaseIdenticoComMesmaCondicaoECnae() {
         condicaoAtiva("HN", "Hora normal");
         when(repository.findByCodigoPadronizado(anyString())).thenReturn(Optional.empty());
-        when(repository.buscarSimilares(anyString(), anyDouble(), anyInt()))
-                .thenReturn(List.of(similar(0.9, "Hora normal", "4399103")));
+        when(repository.buscarSimilares(anyString(), anyDouble(), anyInt())).thenReturn(List.of());
+        when(repository.buscarDuplicado("Concretagem de fundação", ServicoService.LIMIAR_BLOQUEIO,
+                "Hora normal", "4399103")).thenReturn(Optional.of(similar(0.9, "Hora normal", "4399103")));
 
         assertTrue(service.analisar(form()).bloqueado());
+    }
+
+    private ServicoSimilar similarComId(int id, String codigo, double score, String condicao, String cnae) {
+        return new ServicoSimilar() {
+            public Integer getId() { return id; }
+            public String getTextoBreve() { return "Concretagem de fundação"; }
+            public String getCodigoPadronizado() { return codigo; }
+            public String getId1Condicao() { return condicao; }
+            public String getId2Cnae() { return cnae; }
+            public Double getScore() { return score; }
+        };
+    }
+
+    private List<ServicoSimilar> cincoDeOutrasCondicoes() {
+        return List.of(
+                similarComId(11, "CONC_CONCRE_HES4399103", 1.0, "Hora extra Seg a Sab", "4399103"),
+                similarComId(12, "CONC_CONCRE_HED4399103", 1.0, "Hora extra Dom/Feriado", "4399103"),
+                similarComId(13, "CONC_CONCRE_ADN4399103", 1.0, "Adicional noturno (hora)", "4399103"),
+                similarComId(14, "CONC_CONCRE_HEN4399103", 1.0, "Hora extra noturna Seg a Sab", "4399103"),
+                similarComId(15, "CONC_CONCRE_RET4399103", 1.0, "Retroativo", "4399103"));
+    }
+
+    @Test
+    void bloqueio_naoDependeDeOServicoDuplicadoEstarEntreAsSugestoes() {
+        // as 5 sugestões são todas de outras condições; o duplicado verdadeiro ficou de fora delas
+        condicaoAtiva("HN", "Hora normal");
+        when(repository.findByCodigoPadronizado(anyString())).thenReturn(Optional.empty());
+        when(repository.buscarSimilares(anyString(), anyDouble(), anyInt())).thenReturn(cincoDeOutrasCondicoes());
+        when(repository.buscarDuplicado(anyString(), anyDouble(), anyString(), anyString()))
+                .thenReturn(Optional.of(similarComId(1, "CONC_CONCRE_HN4399103", 1.0, "Hora normal", "4399103")));
+
+        AnaliseSimilaridade analise = service.analisar(form());
+
+        assertTrue(analise.bloqueado());
+    }
+
+    @Test
+    void bloqueado_mostraODuplicadoPrimeiroNasSugestoesMesmoForaDoTop5() {
+        condicaoAtiva("HN", "Hora normal");
+        when(repository.findByCodigoPadronizado(anyString())).thenReturn(Optional.empty());
+        when(repository.buscarSimilares(anyString(), anyDouble(), anyInt())).thenReturn(cincoDeOutrasCondicoes());
+        when(repository.buscarDuplicado(anyString(), anyDouble(), anyString(), anyString()))
+                .thenReturn(Optional.of(similarComId(1, "CONC_CONCRE_HN4399103", 1.0, "Hora normal", "4399103")));
+
+        AnaliseSimilaridade analise = service.analisar(form());
+
+        assertEquals(6, analise.similares().size());
+        assertEquals("CONC_CONCRE_HN4399103", analise.similares().get(0).codigoPadronizado());
+    }
+
+    @Test
+    void bloqueado_comODuplicadoJaNasSugestoes_naoRepete() {
+        condicaoAtiva("HN", "Hora normal");
+        when(repository.findByCodigoPadronizado(anyString())).thenReturn(Optional.empty());
+        ServicoSimilar duplicado = similarComId(1, "CONC_CONCRE_HN4399103", 0.9, "Hora normal", "4399103");
+        when(repository.buscarSimilares(anyString(), anyDouble(), anyInt())).thenReturn(List.of(duplicado));
+        when(repository.buscarDuplicado(anyString(), anyDouble(), anyString(), anyString()))
+                .thenReturn(Optional.of(duplicado));
+
+        AnaliseSimilaridade analise = service.analisar(form());
+
+        assertEquals(1, analise.similares().size());
+    }
+
+    @Test
+    void semDuplicado_asSugestoesNaoMudam() {
+        condicaoAtiva("HN", "Hora normal");
+        when(repository.findByCodigoPadronizado(anyString())).thenReturn(Optional.empty());
+        when(repository.buscarSimilares(anyString(), anyDouble(), anyInt())).thenReturn(cincoDeOutrasCondicoes());
+
+        AnaliseSimilaridade analise = service.analisar(form());
+
+        assertFalse(analise.bloqueado());
+        assertEquals(5, analise.similares().size());
     }
 
     @Test
@@ -293,8 +368,9 @@ class ServicoServiceTest {
     void cadastrar_bloqueado_registraBloqueadoEAindaLancaExcecao() {
         condicaoAtiva("HN", "Hora normal");
         when(repository.findByCodigoPadronizado(anyString())).thenReturn(Optional.empty());
-        when(repository.buscarSimilares(anyString(), anyDouble(), anyInt()))
-                .thenReturn(List.of(similar(0.9, "Hora normal", "4399103")));
+        when(repository.buscarSimilares(anyString(), anyDouble(), anyInt())).thenReturn(List.of());
+        when(repository.buscarDuplicado(anyString(), anyDouble(), anyString(), anyString()))
+                .thenReturn(Optional.of(similar(0.9, "Hora normal", "4399103")));
 
         assertThrows(CadastroRejeitadoException.class, () -> service.cadastrar(form(), true, "ana"));
 

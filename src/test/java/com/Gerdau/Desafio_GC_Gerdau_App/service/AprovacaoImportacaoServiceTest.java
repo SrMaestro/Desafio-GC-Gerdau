@@ -563,9 +563,9 @@ class AprovacaoImportacaoServiceTest {
             gravados.add(s);
             return s;
         });
-        when(servicoRepository.buscarSimilares(anyString(), org.mockito.ArgumentMatchers.anyDouble(),
-                org.mockito.ArgumentMatchers.anyInt()))
-                .thenAnswer(inv -> gravados.stream().map(s -> similar(s, 0.92)).toList());
+        when(servicoRepository.buscarDuplicado(anyString(), org.mockito.ArgumentMatchers.anyDouble(), anyString(),
+                anyString()))
+                .thenAnswer(inv -> gravados.stream().findFirst().map(s -> similar(s, 0.92)));
         when(linhaRepository.idsEnviadasDoLote(anyLong(), any(), any())).thenReturn(List.of(1L, 2L));
 
         ResumoAprovacao r = service.aprovarEmBloco(7L, new FiltroAprovacao(null, null), "gil");
@@ -579,30 +579,33 @@ class AprovacaoImportacaoServiceTest {
     }
 
     @Test
-    void aprovarNova_parecidoAcimaDoBloqueioMasDeOutraCondicaoOuCnae_criaServico() {
+    void aprovarNova_semDuplicadoNaBase_consultaPelaCondicaoECnaeDaLinhaECriaOServico() {
+        // o filtro por condição e CNAE acontece no banco (ServicoRepositorySimilaridadeTest)
         linha(1, SituacaoLinha.NOVA, null);
-        Servico outraCondicao = new Servico();
-        outraCondicao.setId(70);
-        outraCondicao.setCodigoPadronizado("PINT_TUB_HE4321000");
-        outraCondicao.setId1Condicao("Hora extra");
-        outraCondicao.setId2Cnae("4321000");
-        Servico outroCnae = new Servico();
-        outroCnae.setId(71);
-        outroCnae.setCodigoPadronizado("PINT_TUB_HN1111111");
-        outroCnae.setId1Condicao("Hora normal");
-        outroCnae.setId2Cnae("1111111");
-        Servico abaixo = new Servico();
-        abaixo.setId(72);
-        abaixo.setCodigoPadronizado("PINTX_HN4321000");
-        abaixo.setId1Condicao("Hora normal");
-        abaixo.setId2Cnae("4321000");
-        when(servicoRepository.buscarSimilares(anyString(), org.mockito.ArgumentMatchers.anyDouble(),
-                org.mockito.ArgumentMatchers.anyInt()))
-                .thenReturn(List.of(similar(outraCondicao, 0.95), similar(outroCnae, 0.95), similar(abaixo, 0.79)));
+        when(servicoRepository.buscarDuplicado(anyString(), org.mockito.ArgumentMatchers.anyDouble(), anyString(),
+                anyString())).thenReturn(java.util.Optional.empty());
 
         assertThat(service.aprovar(1L, "gil")).isEqualTo(EtapaLinha.APROVADA);
 
+        verify(servicoRepository).buscarDuplicado(anyString(), org.mockito.ArgumentMatchers.eq(0.8),
+                org.mockito.ArgumentMatchers.eq("Hora normal"), org.mockito.ArgumentMatchers.eq("4321000"));
         verify(servicoRepository).saveAndFlush(any(Servico.class));
+    }
+
+    @Test
+    void aprovarNova_comDuplicadoNaBase_viraConflitoComOMotivo() {
+        linha(1, SituacaoLinha.NOVA, null);
+        Servico existente = new Servico();
+        existente.setId(70);
+        existente.setCodigoPadronizado("PINT_TUB_HN4321000");
+        when(servicoRepository.buscarDuplicado(anyString(), org.mockito.ArgumentMatchers.anyDouble(), anyString(),
+                anyString())).thenReturn(java.util.Optional.of(similar(existente, 0.95)));
+
+        assertThat(service.aprovar(1L, "gil")).isEqualTo(EtapaLinha.CONFLITO);
+
+        assertThat(motivoConflito(1)).isEqualTo(
+                "Parecido com PINT_TUB_HN4321000 (similaridade 95%) já na base; verifique se é duplicado");
+        verify(servicoRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -611,10 +614,13 @@ class AprovacaoImportacaoServiceTest {
         LinhaImportacao l = linha(1, SituacaoLinha.PARECIDA, DecisaoParecida.OUTRO_SERVICO);
         existente.setId1Condicao("Hora normal");
         existente.setId2Cnae("4321000");
-        when(servicoRepository.buscarSimilares(anyString(), org.mockito.ArgumentMatchers.anyDouble(),
-                org.mockito.ArgumentMatchers.anyInt())).thenReturn(List.of(similar(existente, 0.97)));
+        when(servicoRepository.buscarDuplicado(anyString(), org.mockito.ArgumentMatchers.anyDouble(), anyString(),
+                anyString())).thenReturn(java.util.Optional.of(similar(existente, 0.97)));
 
         assertThat(service.aprovar(1L, "gil")).isEqualTo(EtapaLinha.APROVADA);
+
+        verify(servicoRepository, never()).buscarDuplicado(anyString(), org.mockito.ArgumentMatchers.anyDouble(),
+                anyString(), anyString());
 
         verify(servicoRepository).saveAndFlush(any(Servico.class));
         assertThat(l.getServicoCriadoId()).isEqualTo(99);
