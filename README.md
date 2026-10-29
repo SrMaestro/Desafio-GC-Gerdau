@@ -23,7 +23,7 @@ Resolve o problema de códigos de serviço duplicados (TAP do Desafio GC 2026) n
 5. **Registro das consultas**: toda tentativa de cadastro individual (bloqueada, que pediu confirmação ou cadastrada) e toda reutilização de um código sugerido ficam gravadas, e o aprovador as confere em `/ui/consultas`. Com esse registro, a tela inicial mostra os indicadores: duplicados barrados, códigos reaproveitados, cadastros sem correspondência e a duplicidade evitada.
 6. **Importação em massa**: o comprador envia uma planilha (`.csv`/`.xlsx`, até 20.000 linhas e 10 MB); o sistema aplica o filtro a cada linha em segundo plano, o comprador confere o resultado e envia ao **aprovador**, que decide. Nada entra na base sem essa aprovação. O que o aprovador liga a um serviço existente vira **sinônimo** e passa a bloquear o cadastro individual daquele texto.
 
-Passo a passo de uso: [docs/GUIA_DE_USO.md](docs/GUIA_DE_USO.md). Regras de negócio e decisões: [docs/REGRAS_DE_NEGOCIO.md](docs/REGRAS_DE_NEGOCIO.md).
+Passo a passo de uso: [docs/GUIA_DE_USO.md](docs/GUIA_DE_USO.md). Regras de negócio e decisões: [docs/REGRAS_DE_NEGOCIO.md](docs/REGRAS_DE_NEGOCIO.md). Validação da similaridade (casos corretos, ambíguos e incorretos, limitações): [docs/VALIDACAO_SIMILARIDADE.md](docs/VALIDACAO_SIMILARIDADE.md).
 
 ## Estrutura
 
@@ -154,7 +154,7 @@ Todas as rotas exigem login. As de `/api/de-para` (exceto `confirmacoes`) e as d
 | GET | `/servicos/{id}` | Busca um serviço pelo id |
 | GET | `/servicos/area/{area}` | Lista os serviços de uma área |
 | POST | `/servicos/analise` | Simula o cadastro: código gerado, similares e se bloquearia |
-| POST | `/servicos?confirmar=false` | Cadastra. `201` criado; `409` com a análise se bloqueado ou se pede confirmação |
+| POST | `/servicos?confirmar=false` | Cadastra. `201` criado; `409` com a análise se bloqueado ou se pede confirmação. Para contestar um bloqueio por texto parecido, envie `justificativaOutroServico` (10 a 500 caracteres) no corpo |
 | GET | `/api/nbs/busca?texto=` | Busca de NBS: `EXATO` (De-Para aprovado) ou `SUGESTOES` |
 | GET | `/api/horarios` | Lista os horários e sufixos |
 | GET | `/api/smart-key?nbs=&horario=` | Monta a Smart Key (`400` se NBS ou horário não existem) |

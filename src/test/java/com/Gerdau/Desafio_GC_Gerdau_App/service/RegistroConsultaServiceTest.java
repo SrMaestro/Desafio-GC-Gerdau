@@ -36,7 +36,7 @@ class RegistroConsultaServiceTest {
     void registrar_montaConsultaComSugestoes() {
         service.registrar("ana", "Solda de tubo", "Hora normal", "4399103", "SOLDA_HN4399103",
                 ResultadoConsulta.REQUER_CONFIRMACAO, null, null,
-                List.of(new SimilarDto(7, "Soldagem de tubos", "SOLTUB_HN4399103", 0.62)));
+                List.of(new SimilarDto(7, "Soldagem de tubos", "SOLTUB_HN4399103", 0.62)), null);
 
         ArgumentCaptor<ConsultaCadastro> captor = ArgumentCaptor.forClass(ConsultaCadastro.class);
         verify(repository).save(captor.capture());
@@ -59,7 +59,7 @@ class RegistroConsultaServiceTest {
     @Test
     void registrar_gravaDecisaoEServico() {
         service.registrar("ana", "Solda", null, null, null,
-                ResultadoConsulta.SUGERIDO, DecisaoConsulta.REUTILIZOU_EXISTENTE, 7, List.of());
+                ResultadoConsulta.SUGERIDO, DecisaoConsulta.REUTILIZOU_EXISTENTE, 7, List.of(), null);
 
         ArgumentCaptor<ConsultaCadastro> captor = ArgumentCaptor.forClass(ConsultaCadastro.class);
         verify(repository).save(captor.capture());
@@ -69,8 +69,8 @@ class RegistroConsultaServiceTest {
 
     @Test
     void registrar_comSugestoesNulaOuVazia_naoQuebra() {
-        service.registrar("ana", "a", null, null, null, ResultadoConsulta.CADASTRADO, null, null, null);
-        service.registrar("ana", "b", null, null, null, ResultadoConsulta.CADASTRADO, null, null, List.of());
+        service.registrar("ana", "a", null, null, null, ResultadoConsulta.CADASTRADO, null, null, null, null);
+        service.registrar("ana", "b", null, null, null, ResultadoConsulta.CADASTRADO, null, null, List.of(), null);
 
         ArgumentCaptor<ConsultaCadastro> captor = ArgumentCaptor.forClass(ConsultaCadastro.class);
         verify(repository, org.mockito.Mockito.times(2)).save(captor.capture());
@@ -82,6 +82,18 @@ class RegistroConsultaServiceTest {
         when(repository.save(any())).thenThrow(new DataAccessResourceFailureException("banco fora"));
 
         assertDoesNotThrow(() -> service.registrar("ana", "x", null, null, null,
-                ResultadoConsulta.BLOQUEADO, null, null, List.of()));
+                ResultadoConsulta.BLOQUEADO, null, null, List.of(), null));
+    }
+
+    @Test
+    void registrar_gravaAJustificativaDaContestacao() {
+        service.registrar("ana", "Bomba 20 cv", "Hora normal", "3314801", "BOMBA_HN3314801",
+                ResultadoConsulta.CADASTRADO, DecisaoConsulta.CONTESTOU_BLOQUEIO, 9, List.of(),
+                "Capacidade diferente");
+
+        ArgumentCaptor<ConsultaCadastro> captor = ArgumentCaptor.forClass(ConsultaCadastro.class);
+        verify(repository).save(captor.capture());
+        assertEquals(DecisaoConsulta.CONTESTOU_BLOQUEIO, captor.getValue().getDecisao());
+        assertEquals("Capacidade diferente", captor.getValue().getJustificativa());
     }
 }

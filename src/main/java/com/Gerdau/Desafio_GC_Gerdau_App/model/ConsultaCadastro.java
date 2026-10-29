@@ -49,6 +49,10 @@ public class ConsultaCadastro {
     @Column(name = "servico_id")
     private Integer servicoId;
 
+    /** Só na contestação do bloqueio: por que o comprador disse que era outro serviço. */
+    @Column(length = 500)
+    private String justificativa;
+
     @OneToMany(mappedBy = "consulta", cascade = CascadeType.ALL)
     @OrderBy("score DESC")
     private List<SugestaoConsulta> sugestoes = new ArrayList<>();

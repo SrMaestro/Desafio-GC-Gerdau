@@ -337,4 +337,66 @@ class ServicoViewControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Duplicados barrados")));
     }
+
+    private org.springframework.test.web.servlet.ResultActions postarBloqueado(
+            com.Gerdau.Desafio_GC_Gerdau_App.dto.AnaliseSimilaridade analise) throws Exception {
+        when(repository.findAreas()).thenReturn(List.of("Civil"));
+        when(service.cadastrar(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyBoolean(),
+                org.mockito.ArgumentMatchers.anyString()))
+                .thenThrow(new com.Gerdau.Desafio_GC_Gerdau_App.exception.CadastroRejeitadoException(analise));
+        return mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/ui/servicos")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
+                .param("areaServico", "Civil").param("textoBreve", "Bomba 20 cv").param("abreviatura", "BOMBA")
+                .param("condicao", "HN").param("cnae", "3314801"));
+    }
+
+    private static com.Gerdau.Desafio_GC_Gerdau_App.dto.AnaliseSimilaridade analise(boolean codigoExistente,
+                                                                                    String reconhecidoComo) {
+        return new com.Gerdau.Desafio_GC_Gerdau_App.dto.AnaliseSimilaridade("COD", codigoExistente,
+                List.of(new com.Gerdau.Desafio_GC_Gerdau_App.dto.AnaliseSimilaridade.SimilarDto(
+                        7, "Bomba 10 cv", "BOMBA_HN3314801", 0.85)), true, reconhecidoComo);
+    }
+
+    @Test
+    void bloqueioPorTexto_ofereceCampoDeJustificativaEBotaoDeContestar() throws Exception {
+        postarBloqueado(analise(false, null))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("name=\"justificativaOutroServico\"")))
+                .andExpect(content().string(containsString("É outro serviço")));
+    }
+
+    @Test
+    void bloqueioPorCodigoExistente_naoOfereceContestacao() throws Exception {
+        postarBloqueado(analise(true, null))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("name=\"justificativaOutroServico\""))));
+    }
+
+    @Test
+    void bloqueioPorSinonimo_naoOfereceContestacao() throws Exception {
+        postarBloqueado(analise(false, "BOMBA_HN3314801"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("name=\"justificativaOutroServico\""))));
+    }
+
+    @Test
+    void criar_passaAJustificativaAoServico() throws Exception {
+        com.Gerdau.Desafio_GC_Gerdau_App.model.Servico criado = new com.Gerdau.Desafio_GC_Gerdau_App.model.Servico();
+        criado.setId(5);
+        criado.setCodigoPadronizado("BOMBA_HN3314801");
+        org.mockito.ArgumentCaptor<com.Gerdau.Desafio_GC_Gerdau_App.dto.NovoServicoForm> captor =
+                org.mockito.ArgumentCaptor.forClass(com.Gerdau.Desafio_GC_Gerdau_App.dto.NovoServicoForm.class);
+        when(service.cadastrar(captor.capture(), org.mockito.ArgumentMatchers.anyBoolean(),
+                org.mockito.ArgumentMatchers.anyString())).thenReturn(criado);
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/ui/servicos")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
+                        .param("areaServico", "Civil").param("textoBreve", "Bomba 20 cv").param("abreviatura", "BOMBA")
+                        .param("condicao", "HN").param("cnae", "3314801")
+                        .param("justificativaOutroServico", "Capacidade diferente"))
+                .andExpect(status().is3xxRedirection());
+
+        org.assertj.core.api.Assertions.assertThat(captor.getValue().getJustificativaOutroServico())
+                .isEqualTo("Capacidade diferente");
+    }
 }

@@ -18,6 +18,7 @@
         <span th:if="${analise.reconhecidoComo != null}">Este texto já é o serviço <code th:text="${analise.reconhecidoComo}"></code>. Use esse código.</span>
         <span th:if="${analise.reconhecidoComo == null and analise.codigoExistente}">O código <code th:text="${analise.codigoGerado}"></code> já existe.</span>
         <span th:if="${analise.reconhecidoComo == null and !analise.codigoExistente}">Já existe um serviço praticamente idêntico. Use o código dele.</span>
+        <span th:if="${analise.contestavel}">Se for outro serviço, explique a diferença mais abaixo.</span>
     </div>
     <div th:if="${analise != null and analise.requerConfirmacao}" class="aviso atencao" role="alert">
         <strong>Existem serviços parecidos.</strong> Confira a lista ao lado e marque "Cadastrar mesmo assim" só se for outro serviço.
@@ -85,6 +86,16 @@
             </fieldset>
 
             <button type="submit" class="botao">Cadastrar serviço</button>
+
+            <fieldset class="contestar" th:if="${analise != null and analise.contestavel}">
+                <legend>Este é outro serviço?</legend>
+                <label class="campo">Explique a diferença
+                    <textarea th:field="*{justificativaOutroServico}" rows="3" maxlength="500"></textarea>
+                    <small class="dica">Pelo menos 10 caracteres. Fica registrado com o seu nome e o aprovador pode conferir.</small>
+                    <small class="erro" th:errors="*{justificativaOutroServico}"></small>
+                </label>
+                <button type="submit" class="botao">É outro serviço: cadastrar</button>
+            </fieldset>
         </div>
 
         <aside class="chapa" aria-label="Resumo do código">

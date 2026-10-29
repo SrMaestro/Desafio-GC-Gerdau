@@ -4,7 +4,8 @@ package com.Gerdau.Desafio_GC_Gerdau_App.model;
 public enum DecisaoConsulta {
     CADASTROU_NOVO("Cadastrou novo"),
     CONFIRMOU_MESMO_ASSIM("Cadastrou mesmo assim"),
-    REUTILIZOU_EXISTENTE("Reutilizou código existente");
+    REUTILIZOU_EXISTENTE("Reutilizou código existente"),
+    CONTESTOU_BLOQUEIO("Contestou o bloqueio");
 
     private final String rotulo;
 

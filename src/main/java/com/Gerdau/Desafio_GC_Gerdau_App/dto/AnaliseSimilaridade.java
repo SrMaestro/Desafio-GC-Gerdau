@@ -8,6 +8,11 @@ public record AnaliseSimilaridade(String codigoGerado, boolean codigoExistente, 
     public record SimilarDto(Integer id, String textoBreve, String codigoPadronizado, double score) {
     }
 
+    /** Só o bloqueio por texto parecido pode ser contestado: código idêntico e sinônimo aprovado não. */
+    public boolean contestavel() {
+        return bloqueado && !codigoExistente && reconhecidoComo == null;
+    }
+
     public boolean requerConfirmacao() {
         return !bloqueado && !similares.isEmpty();
     }

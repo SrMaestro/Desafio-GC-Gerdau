@@ -375,7 +375,7 @@ class ServicoServiceTest {
         assertThrows(CadastroRejeitadoException.class, () -> service.cadastrar(form(), true, "ana"));
 
         verify(registro).registrar(eq("ana"), eq("Concretagem de fundação"), eq("Hora normal"), eq("4399103"),
-                eq("CONC_CONCRE_HN4399103"), eq(ResultadoConsulta.BLOQUEADO), isNull(), isNull(), anyList());
+                eq("CONC_CONCRE_HN4399103"), eq(ResultadoConsulta.BLOQUEADO), isNull(), isNull(), anyList(), isNull());
     }
 
     @Test
@@ -388,7 +388,7 @@ class ServicoServiceTest {
         assertThrows(CadastroRejeitadoException.class, () -> service.cadastrar(form(), false, "ana"));
 
         verify(registro).registrar(eq("ana"), anyString(), anyString(), anyString(), anyString(),
-                eq(ResultadoConsulta.REQUER_CONFIRMACAO), isNull(), isNull(), anyList());
+                eq(ResultadoConsulta.REQUER_CONFIRMACAO), isNull(), isNull(), anyList(), isNull());
     }
 
     @Test
@@ -403,7 +403,7 @@ class ServicoServiceTest {
         service.cadastrar(form(), false, "ana");
 
         verify(registro).registrar(eq("ana"), anyString(), anyString(), anyString(), anyString(),
-                eq(ResultadoConsulta.CADASTRADO), eq(DecisaoConsulta.CADASTROU_NOVO), eq(42), anyList());
+                eq(ResultadoConsulta.CADASTRADO), eq(DecisaoConsulta.CADASTROU_NOVO), eq(42), anyList(), isNull());
     }
 
     @Test
@@ -421,7 +421,7 @@ class ServicoServiceTest {
         service.cadastrar(form(), true, "ana");
 
         verify(registro).registrar(eq("ana"), anyString(), anyString(), anyString(), anyString(),
-                eq(ResultadoConsulta.CADASTRADO), eq(DecisaoConsulta.CONFIRMOU_MESMO_ASSIM), eq(43), anyList());
+                eq(ResultadoConsulta.CADASTRADO), eq(DecisaoConsulta.CONFIRMOU_MESMO_ASSIM), eq(43), anyList(), isNull());
     }
 
     @Test
@@ -433,7 +433,7 @@ class ServicoServiceTest {
         assertThrows(CadastroRejeitadoException.class, () -> service.cadastrar(form(), false, "ana"));
 
         verify(registro).registrar(eq("ana"), anyString(), anyString(), anyString(), anyString(),
-                eq(ResultadoConsulta.BLOQUEADO), isNull(), isNull(), anyList());
+                eq(ResultadoConsulta.BLOQUEADO), isNull(), isNull(), anyList(), isNull());
     }
 
     @Test
@@ -448,7 +448,7 @@ class ServicoServiceTest {
 
         assertThrows(IllegalArgumentException.class, () -> service.cadastrar(f, false, "ana"));
 
-        verify(registro, never()).registrar(any(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(registro, never()).registrar(any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -456,7 +456,7 @@ class ServicoServiceTest {
         semParecidos();
         when(repository.saveAndFlush(any(Servico.class))).thenAnswer(i -> i.getArgument(0));
         doThrow(new RuntimeException("falha ao gravar")).when(registro)
-                .registrar(any(), any(), any(), any(), any(), any(), any(), any(), any());
+                .registrar(any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
 
         Servico salvo = service.cadastrar(form(), false, "ana");
 
@@ -476,7 +476,7 @@ class ServicoServiceTest {
 
         assertSame(existente, devolvido);
         verify(registro).registrar(eq("ana"), eq("Concretagem"), isNull(), isNull(), isNull(),
-                eq(ResultadoConsulta.SUGERIDO), eq(DecisaoConsulta.REUTILIZOU_EXISTENTE), eq(7), anyList());
+                eq(ResultadoConsulta.SUGERIDO), eq(DecisaoConsulta.REUTILIZOU_EXISTENTE), eq(7), anyList(), isNull());
     }
 
     @Test
@@ -485,6 +485,106 @@ class ServicoServiceTest {
 
         assertThrows(java.util.NoSuchElementException.class, () -> service.registrarReutilizacao("ana", "x", 99));
 
-        verify(registro, never()).registrar(any(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(registro, never()).registrar(any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    // --- contestação do bloqueio por texto ---
+
+    private void bloqueadoPorTexto() {
+        condicaoAtiva("HN", "Hora normal");
+        when(repository.findByCodigoPadronizado(anyString())).thenReturn(Optional.empty());
+        when(repository.buscarSimilares(anyString(), anyDouble(), anyInt())).thenReturn(List.of());
+        when(repository.buscarDuplicado(anyString(), anyDouble(), anyString(), anyString()))
+                .thenReturn(Optional.of(similarComId(1, "CONC_CONCRE_HN4399103", 0.85, "Hora normal", "4399103")));
+    }
+
+    @Test
+    void cadastrar_bloqueadoPorTexto_comJustificativa_cadastraEGravaContestou() {
+        bloqueadoPorTexto();
+        when(repository.saveAndFlush(any(Servico.class))).thenAnswer(i -> {
+            Servico s = i.getArgument(0);
+            s.setId(50);
+            return s;
+        });
+        NovoServicoForm f = form();
+        f.setJustificativaOutroServico("  Capacidade diferente: 20 cv  ");
+
+        Servico salvo = service.cadastrar(f, false, "ana");
+
+        assertEquals(50, salvo.getId());
+        verify(registro).registrar(eq("ana"), anyString(), anyString(), anyString(), anyString(),
+                eq(ResultadoConsulta.CADASTRADO), eq(DecisaoConsulta.CONTESTOU_BLOQUEIO), eq(50), anyList(),
+                eq("Capacidade diferente: 20 cv"));
+    }
+
+    @Test
+    void cadastrar_bloqueadoPorTexto_justificativaEmBranco_continuaBloqueado() {
+        bloqueadoPorTexto();
+        NovoServicoForm f = form();
+        f.setJustificativaOutroServico("   ");
+
+        assertThrows(CadastroRejeitadoException.class, () -> service.cadastrar(f, true, "ana"));
+
+        verify(repository, never()).saveAndFlush(any());
+        verify(registro).registrar(eq("ana"), anyString(), anyString(), anyString(), anyString(),
+                eq(ResultadoConsulta.BLOQUEADO), isNull(), isNull(), anyList(), isNull());
+    }
+
+    @Test
+    void cadastrar_bloqueadoPorTexto_justificativaCurta_lancaIllegalArgumentSemSalvarNemRegistrar() {
+        bloqueadoPorTexto();
+        NovoServicoForm f = form();
+        f.setJustificativaOutroServico("outro");
+
+        assertThrows(IllegalArgumentException.class, () -> service.cadastrar(f, false, "ana"));
+
+        verify(repository, never()).saveAndFlush(any());
+        verify(registro, never()).registrar(any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void cadastrar_codigoJaExiste_justificativaNaoLibera() {
+        condicaoAtiva("HN", "Hora normal");
+        when(repository.findByCodigoPadronizado("CONC_CONCRE_HN4399103")).thenReturn(Optional.of(new Servico()));
+        when(repository.buscarSimilares(anyString(), anyDouble(), anyInt())).thenReturn(List.of());
+        NovoServicoForm f = form();
+        f.setJustificativaOutroServico("É outro serviço, com certeza");
+
+        assertThrows(CadastroRejeitadoException.class, () -> service.cadastrar(f, true, "ana"));
+
+        verify(repository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void cadastrar_sinonimoAprovado_justificativaNaoLibera() {
+        condicaoAtiva("HN", "Hora normal");
+        Servico existente = new Servico();
+        existente.setId(1);
+        existente.setCodigoPadronizado("CONC_CONCRE_HN4399103");
+        when(sinonimoServicoService.reconhecer(anyString(), anyString(), anyString()))
+                .thenReturn(Optional.of(existente));
+        NovoServicoForm f = form();
+        f.setJustificativaOutroServico("É outro serviço, com certeza");
+
+        assertThrows(CadastroRejeitadoException.class, () -> service.cadastrar(f, true, "ana"));
+
+        verify(repository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void cadastrar_semBloqueio_justificativaEhIgnoradaECadastroNaoViraContestacao() {
+        semParecidos();
+        when(repository.saveAndFlush(any(Servico.class))).thenAnswer(i -> {
+            Servico s = i.getArgument(0);
+            s.setId(51);
+            return s;
+        });
+        NovoServicoForm f = form();
+        f.setJustificativaOutroServico("Texto sem necessidade");
+
+        service.cadastrar(f, false, "ana");
+
+        verify(registro).registrar(eq("ana"), anyString(), anyString(), anyString(), anyString(),
+                eq(ResultadoConsulta.CADASTRADO), eq(DecisaoConsulta.CADASTROU_NOVO), eq(51), anyList(), isNull());
     }
 }

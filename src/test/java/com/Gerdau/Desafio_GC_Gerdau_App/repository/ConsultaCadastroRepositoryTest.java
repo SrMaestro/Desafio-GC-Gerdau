@@ -97,4 +97,18 @@ class ConsultaCadastroRepositoryTest {
         assertThat(repository.countByDecisao(DecisaoConsulta.REUTILIZOU_EXISTENTE)).isEqualTo(reutilizadas + 1);
         assertThat(repository.countByDecisao(DecisaoConsulta.CADASTROU_NOVO)).isEqualTo(novas + 1);
     }
+
+    @Test
+    void guardaAContestacaoDoBloqueioComAJustificativa() {
+        ConsultaCadastro c = consulta("Bomba 20 cv", ResultadoConsulta.CADASTRADO);
+        c.setDecisao(DecisaoConsulta.CONTESTOU_BLOQUEIO);
+        c.setJustificativa("Capacidade diferente da bomba de 10 cv");
+        Long id = repository.saveAndFlush(c).getId();
+        em.clear();
+
+        ConsultaCadastro achada = repository.findComSugestoesById(id).orElseThrow();
+
+        assertThat(achada.getDecisao()).isEqualTo(DecisaoConsulta.CONTESTOU_BLOQUEIO);
+        assertThat(achada.getJustificativa()).isEqualTo("Capacidade diferente da bomba de 10 cv");
+    }
 }

@@ -9,6 +9,7 @@ cadastro -> gera código -> compara (pg_trgm) -> bloqueia | pede confirmação |
 1. O código é gerado em maiúsculas: `abreviatura + complemento + "_" + sufixo da condição + CNAE`.
 2. Bloqueio: o código já existe, **ou** há serviço com similaridade de texto ≥ 0,8, mesma condição e mesmo CNAE.
    A busca desse serviço é própria e filtra a condição e o CNAE no banco (`ServicoRepository.buscarDuplicado`); ela não depende dos 5 parecidos mostrados como sugestão. Isso importa porque o mesmo texto costuma existir em várias das 14 condições, e os 5 mais parecidos podem ser todos de outras condições. Quando bloqueia, o serviço duplicado aparece em primeiro lugar nas sugestões, mesmo que não estivesse entre os 5.
+   **Contestação:** o bloqueio por texto parecido pode ser contestado. O comprador diz que é outro serviço e escreve uma justificativa (mínimo de 10 caracteres, máximo de 500); o cadastro segue e a justificativa fica no histórico de consultas, com o nome dele. **Não** se contesta o bloqueio por código idêntico (o código precisa ser diferente: mude a abreviatura ou o complemento) nem o por sinônimo aprovado. Na API, é o campo `justificativaOutroServico` do corpo do `POST /servicos`.
 3. Confirmação: há serviços com similaridade ≥ 0,4 que não bloqueiam. O cadastro só segue com `confirmar=true`.
    O 0,4 precisa ficar acima do limiar de similaridade do `pg_trgm` (padrão 0,3, visto em `SELECT show_limit()`), pois a consulta usa o operador `%` para aproveitar o índice e ele já corta nesse limiar. Com `LIMIAR_SUGESTAO` em 0,3 ou menos, a busca perde em silêncio os parecidos abaixo de 0,3; o teste `LimiarSimilaridadeTest` falha para avisar.
 4. O código gerado não pode passar de 40 caracteres.
@@ -27,6 +28,7 @@ Cada tentativa de cadastro individual (tela ou API) grava uma linha em `consulta
 | Cadastrado sem parecidos | `CADASTRADO` | `CADASTROU_NOVO` |
 | Cadastrado com parecidos e `confirmar=true` | `CADASTRADO` | `CONFIRMOU_MESMO_ASSIM` |
 | Clique em "Usar este código" numa sugestão | `SUGERIDO` | `REUTILIZOU_EXISTENTE` |
+| Bloqueio por texto parecido contestado com justificativa | `CADASTRADO` | `CONTESTOU_BLOQUEIO` (a justificativa fica em `consultas_cadastro.justificativa`) |
 
 - Erros de validação (código acima de 40 caracteres, NBS ou condição desconhecidos) não geram registro.
 - O registro é melhor esforço: se a gravação falhar, o cadastro segue normalmente e a falha vai para o log.
@@ -44,7 +46,7 @@ A tela inicial mostra quatro indicadores, calculados em tempo real sobre `consul
 | Sem correspondência (código novo) | `decisao = CADASTROU_NOVO`, isto é, cadastrado sem nenhum parecido |
 | Duplicidade evitada | (barrados + reaproveitados) ÷ total de tentativas, arredondado para inteiro; sem tentativas, "—" |
 
-Uma tentativa bloqueada que o comprador repete conta de novo: o indicador mede tentativas, não pessoas nem serviços distintos. A importação em massa não entra nestes números.
+Uma tentativa bloqueada que o comprador repete conta de novo, inclusive a que ele depois contesta (a tentativa bloqueada e o cadastro seguinte são duas linhas): o indicador mede tentativas, não pessoas nem serviços distintos. A importação em massa não entra nestes números.
 
 ## Busca de NBS (fall-back)
 

@@ -30,7 +30,7 @@ public class RegistroConsultaService {
 
     public void registrar(String usuario, String textoBreve, String condicao, String cnae, String codigoGerado,
                           ResultadoConsulta resultado, DecisaoConsulta decisao, Integer servicoId,
-                          List<SimilarDto> sugestoes) {
+                          List<SimilarDto> sugestoes, String justificativa) {
         try {
             ConsultaCadastro consulta = new ConsultaCadastro();
             consulta.setUsuario(usuario);
@@ -41,6 +41,7 @@ public class RegistroConsultaService {
             consulta.setResultado(resultado);
             consulta.setDecisao(decisao);
             consulta.setServicoId(servicoId);
+            consulta.setJustificativa(justificativa);
             if (sugestoes != null) {
                 for (SimilarDto s : sugestoes) {
                     SugestaoConsulta sugestao = new SugestaoConsulta();

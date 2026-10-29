@@ -39,6 +39,13 @@ public class NovoServicoForm {
     @Size(max = 100)
     private String criadorCodigo;
 
+    /**
+     * Preenchida só para contestar um bloqueio por texto parecido ("é outro serviço"); nos demais casos é ignorada.
+     * Não faz parte do serviço: vai para o histórico de consultas.
+     */
+    @Size(max = 500)
+    private String justificativaOutroServico;
+
     /** Código NBS escolhido na busca; opcional. */
     @Size(max = 20)
     private String codigoNbs;

@@ -16,6 +16,8 @@
             <dt>Código gerado</dt><dd th:text="${consulta.codigoGerado} ?: '—'"></dd>
             <dt>Resultado</dt><dd th:text="${consulta.resultado.rotulo}"></dd>
             <dt>Decisão</dt><dd th:text="${consulta.decisao != null} ? ${consulta.decisao.rotulo} : '—'"></dd>
+            <dt th:if="${consulta.justificativa != null}">Justificativa</dt>
+            <dd th:if="${consulta.justificativa != null}" th:text="${consulta.justificativa}"></dd>
             <dt>Serviço resultante</dt>
             <dd>
                 <a th:if="${consulta.servicoId != null}" th:href="@{/ui/servicos/{id}(id=${consulta.servicoId})}"

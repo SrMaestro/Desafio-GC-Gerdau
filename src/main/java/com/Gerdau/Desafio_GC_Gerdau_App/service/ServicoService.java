@@ -35,6 +35,7 @@ public class ServicoService {
     static final int TAMANHO_MAX_CODIGO = 40;
     private static final int MAX_SUGESTOES = 5;
     private static final int TAMANHO_MIN_BUSCA = 3;
+    private static final int TAMANHO_MIN_JUSTIFICATIVA = 10;
 
     private final ServicoRepository repository;
     private final CatNbsRepository catNbsRepository;
@@ -143,12 +144,16 @@ public class ServicoService {
             throw new IllegalArgumentException(
                     "Código gerado excede " + TAMANHO_MAX_CODIGO + " caracteres: " + analise.codigoGerado());
         }
+        String contestacao = null;
         if (analise.bloqueado()) {
-            registrar(usuario, form, condicao, analise, ResultadoConsulta.BLOQUEADO, null, null);
-            throw new CadastroRejeitadoException(analise);
-        }
-        if (analise.requerConfirmacao() && !confirmarMesmoAssim) {
-            registrar(usuario, form, condicao, analise, ResultadoConsulta.REQUER_CONFIRMACAO, null, null);
+            // só o bloqueio por texto parecido pode ser contestado, e a justificativa é obrigatória
+            contestacao = analise.contestavel() ? justificativaDaContestacao(form) : null;
+            if (contestacao == null) {
+                registrar(usuario, form, condicao, analise, ResultadoConsulta.BLOQUEADO, null, null, null);
+                throw new CadastroRejeitadoException(analise);
+            }
+        } else if (analise.requerConfirmacao() && !confirmarMesmoAssim) {
+            registrar(usuario, form, condicao, analise, ResultadoConsulta.REQUER_CONFIRMACAO, null, null, null);
             throw new CadastroRejeitadoException(analise);
         }
 
@@ -160,13 +165,27 @@ public class ServicoService {
             // corrida: outro usuário criou o mesmo código entre a análise e o insert
             AnaliseSimilaridade bloqueio = new AnaliseSimilaridade(
                     analise.codigoGerado(), true, analise.similares(), true, analise.reconhecidoComo());
-            registrar(usuario, form, condicao, bloqueio, ResultadoConsulta.BLOQUEADO, null, null);
+            registrar(usuario, form, condicao, bloqueio, ResultadoConsulta.BLOQUEADO, null, null, null);
             throw new CadastroRejeitadoException(bloqueio);
         }
-        registrar(usuario, form, condicao, analise, ResultadoConsulta.CADASTRADO,
-                analise.requerConfirmacao() ? DecisaoConsulta.CONFIRMOU_MESMO_ASSIM : DecisaoConsulta.CADASTROU_NOVO,
-                salvo.getId());
+        DecisaoConsulta decisao = contestacao != null ? DecisaoConsulta.CONTESTOU_BLOQUEIO
+                : analise.requerConfirmacao() ? DecisaoConsulta.CONFIRMOU_MESMO_ASSIM
+                : DecisaoConsulta.CADASTROU_NOVO;
+        registrar(usuario, form, condicao, analise, ResultadoConsulta.CADASTRADO, decisao, salvo.getId(), contestacao);
         return salvo;
+    }
+
+    /** A justificativa sem espaços nas pontas; {@code null} se não veio; erro se veio curta demais para explicar algo. */
+    private static String justificativaDaContestacao(NovoServicoForm form) {
+        String texto = form.getJustificativaOutroServico() == null ? "" : form.getJustificativaOutroServico().trim();
+        if (texto.isEmpty()) {
+            return null;
+        }
+        if (texto.length() < TAMANHO_MIN_JUSTIFICATIVA) {
+            throw new IllegalArgumentException("Explique em pelo menos " + TAMANHO_MIN_JUSTIFICATIVA
+                    + " caracteres por que é outro serviço");
+        }
+        return texto;
     }
 
     /** O comprador escolheu reaproveitar um serviço sugerido em vez de cadastrar outro. */
@@ -174,22 +193,24 @@ public class ServicoService {
         Servico escolhido = repository.findById(servicoId).orElseThrow();
         String texto = textoBreve.trim();
         registrarSemFalhar(usuario, texto, null, null, null, ResultadoConsulta.SUGERIDO,
-                DecisaoConsulta.REUTILIZOU_EXISTENTE, escolhido.getId(), similares(texto));
+                DecisaoConsulta.REUTILIZOU_EXISTENTE, escolhido.getId(), similares(texto), null);
         return escolhido;
     }
 
     private void registrar(String usuario, NovoServicoForm form, CatHorario condicao, AnaliseSimilaridade analise,
-                           ResultadoConsulta resultado, DecisaoConsulta decisao, Integer servicoId) {
+                           ResultadoConsulta resultado, DecisaoConsulta decisao, Integer servicoId,
+                           String justificativa) {
         registrarSemFalhar(usuario, form.getTextoBreve().trim(), condicao.getDescricaoHorario(), form.getCnae(),
-                analise.codigoGerado(), resultado, decisao, servicoId, analise.similares());
+                analise.codigoGerado(), resultado, decisao, servicoId, analise.similares(), justificativa);
     }
 
     /** O histórico é secundário: se não gravar, o cadastro segue e a falha vai para o log. */
     private void registrarSemFalhar(String usuario, String texto, String condicao, String cnae, String codigo,
                                     ResultadoConsulta resultado, DecisaoConsulta decisao, Integer servicoId,
-                                    List<SimilarDto> sugestoes) {
+                                    List<SimilarDto> sugestoes, String justificativa) {
         try {
-            registro.registrar(usuario, texto, condicao, cnae, codigo, resultado, decisao, servicoId, sugestoes);
+            registro.registrar(usuario, texto, condicao, cnae, codigo, resultado, decisao, servicoId, sugestoes,
+                    justificativa);
         } catch (RuntimeException e) {
             log.warn("Falha ao registrar a consulta de cadastro ({}): {}", resultado, e.toString());
         }

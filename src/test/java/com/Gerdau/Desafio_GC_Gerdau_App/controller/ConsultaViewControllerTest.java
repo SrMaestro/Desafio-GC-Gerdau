@@ -126,4 +126,16 @@ class ConsultaViewControllerTest {
         mvc.perform(get("/ui/consultas"))
                 .andExpect(content().string(containsString("href=\"/ui/consultas\"")));
     }
+
+    @Test
+    void detalhe_mostraAJustificativaDaContestacao() throws Exception {
+        ConsultaCadastro c = consulta(5, "Bomba 20 cv", ResultadoConsulta.CADASTRADO, DecisaoConsulta.CONTESTOU_BLOQUEIO);
+        c.setJustificativa("Capacidade diferente <da> de 10 cv");
+        when(repository.findComSugestoesById(5L)).thenReturn(Optional.of(c));
+
+        mvc.perform(get("/ui/consultas/5"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Contestou o bloqueio")))
+                .andExpect(content().string(containsString("Capacidade diferente &lt;da&gt; de 10 cv")));
+    }
 }

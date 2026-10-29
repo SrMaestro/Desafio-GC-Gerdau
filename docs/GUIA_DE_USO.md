@@ -40,6 +40,10 @@ O código é montado assim: `ABREVIATURA` + `COMPLEMENTO` + `_` + `SUFIXO DA CON
 | Texto parecido (40% a 80%) | **Pede confirmação.** Mostra os similares; confirme só se for outro serviço |
 | Nada parecido | Cadastra |
 
+### Quando o bloqueio está errado: "É outro serviço"
+
+Se o sistema bloquear por texto parecido, mas for mesmo outro serviço (por exemplo, uma bomba de 20 cv quando já existe a de 10 cv), preencha **Explique a diferença** (pelo menos 10 caracteres) e clique em **É outro serviço: cadastrar**. O cadastro segue, e a sua explicação fica registrada com o seu nome para o aprovador conferir em **Consultas**. Não dá para contestar o bloqueio quando o **código já existe** (nesse caso, mude a abreviatura ou o complemento) nem quando o texto já foi ligado a um serviço pelo aprovador.
+
 ### Usar um código que já existe
 
 Enquanto você digita o texto breve, e também depois de um cadastro que pediu confirmação, o sistema lista os serviços parecidos. Cada um tem o botão **Usar este código**: se for o serviço que você procurava, clique nele. Nada novo é cadastrado; o sistema abre o serviço escolhido para você copiar o código, e a escolha fica registrada. O botão funciona mesmo com o formulário incompleto.
