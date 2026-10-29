@@ -22,7 +22,17 @@ document.addEventListener('DOMContentLoaded', () => {
             score.textContent = `${Math.round(s.score * 100)}% parecido`;
             const codigo = document.createElement('code');
             codigo.textContent = s.codigoPadronizado;
-            li.append(link, codigo, score);
+            // Botão dentro do formulário: leva o texto digitado e o token CSRF, e formnovalidate dispensa os outros campos
+            const usar = document.createElement('button');
+            usar.type = 'submit';
+            usar.className = 'usar';
+            usar.name = 'servicoId';
+            usar.value = s.id;
+            usar.textContent = 'Usar este código';
+            usar.setAttribute('formaction', campo.dataset.urlReutilizar);
+            usar.setAttribute('formmethod', 'post');
+            usar.setAttribute('formnovalidate', '');
+            li.append(link, codigo, score, usar);
             lista.appendChild(li);
         });
         caixa.hidden = similares.length === 0;

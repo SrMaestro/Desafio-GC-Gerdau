@@ -12,6 +12,7 @@
         </div>
     </div>
 
+    <div th:if="${erro}" class="aviso bloqueio" role="alert" th:text="${erro}"></div>
     <div th:if="${analise != null and analise.bloqueado}" class="aviso bloqueio" role="alert">
         <strong>Cadastro bloqueado.</strong>
         <span th:if="${analise.reconhecidoComo != null}">Este texto já é o serviço <code th:text="${analise.reconhecidoComo}"></code>. Use esse código.</span>
@@ -39,7 +40,7 @@
                 </label>
                 <label class="campo">Texto breve
                     <input th:field="*{textoBreve}" maxlength="255" required autocomplete="off"
-                           th:attr="data-url=@{/servicos/similares}">
+                           th:attr="data-url=@{/servicos/similares},data-url-reutilizar=@{/ui/servicos/reutilizar}">
                     <small class="dica">Descreva o serviço com suas palavras. É com este texto que o sistema procura duplicados.</small>
                     <small class="erro" th:errors="*{textoBreve}"></small>
                 </label>
@@ -119,6 +120,8 @@
                         <a th:href="@{/ui/servicos/{id}(id=${s.id})}" th:text="${s.textoBreve}"></a>
                         <code th:text="${s.codigoPadronizado}"></code>
                         <span class="score" th:text="${#numbers.formatDecimal(s.score * 100, 1, 0)} + '% parecido'"></span>
+                        <button type="submit" class="usar" name="servicoId" th:value="${s.id}"
+                                th:formaction="@{/ui/servicos/reutilizar}" formmethod="post" formnovalidate>Usar este código</button>
                     </li>
                 </ul>
             </section>

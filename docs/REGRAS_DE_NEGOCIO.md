@@ -15,6 +15,23 @@ cadastro -> gera código -> compara (pg_trgm) -> bloqueia | pede confirmação |
 6. Se informado, o código NBS precisa existir em `cat_nbs`.
 7. Antes da similaridade, o sistema procura um **sinônimo aprovado** (ver "Importação em massa"): se o texto, a condição e o CNAE já foram ligados a um serviço, o cadastro é bloqueado e mostra o código desse serviço.
 
+## Registro das consultas de cadastro
+
+Cada tentativa de cadastro individual (tela ou API) grava uma linha em `consultas_cadastro`, com o usuário logado, o texto, a condição e o CNAE consultados, o código gerado, as sugestões mostradas (`consulta_cadastro_sugestoes`) e, quando houver, o serviço resultante.
+
+| Situação | `resultado` | `decisao` |
+|----------|-------------|-----------|
+| Duplicado (inclui sinônimo aprovado e corrida de unicidade) | `BLOQUEADO` | — |
+| Há parecidos e não veio `confirmar` | `REQUER_CONFIRMACAO` | — |
+| Cadastrado sem parecidos | `CADASTRADO` | `CADASTROU_NOVO` |
+| Cadastrado com parecidos e `confirmar=true` | `CADASTRADO` | `CONFIRMOU_MESMO_ASSIM` |
+| Clique em "Usar este código" numa sugestão | `SUGERIDO` | `REUTILIZOU_EXISTENTE` |
+
+- Erros de validação (código acima de 40 caracteres, NBS ou condição desconhecidos) não geram registro.
+- O registro é melhor esforço: se a gravação falhar, o cadastro segue normalmente e a falha vai para o log.
+- A importação em massa não usa esta tabela; ela tem o próprio rastro (quem conferiu, quem decidiu, motivo).
+- O aprovador consulta o histórico em `/ui/consultas` (últimas 200).
+
 ## Busca de NBS (fall-back)
 
 1. **Exata**: o nome normalizado (minúsculo, sem acento, espaços colapsados) tem mapeamento `APROVADO` no De-Para.

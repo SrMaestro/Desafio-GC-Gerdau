@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -59,8 +60,9 @@ public class ServicoController {
 
     @PostMapping
     public ResponseEntity<Servico> criar(@Valid @RequestBody NovoServicoForm form,
-                                         @RequestParam(defaultValue = "false") boolean confirmar) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.cadastrar(form, confirmar));
+                                         @RequestParam(defaultValue = "false") boolean confirmar,
+                                         Principal principal) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.cadastrar(form, confirmar, principal.getName()));
     }
 
     @ExceptionHandler(CadastroRejeitadoException.class)

@@ -20,7 +20,8 @@ Resolve o problema de códigos de serviço duplicados (TAP do Desafio GC 2026) n
 2. **Busca de NBS**: o comprador digita o serviço (mesmo com erro) e recebe o código NBS oficial, por busca exata no De-Para ou por sugestões de similaridade.
 3. **Smart Key**: junta o NBS ao sufixo de horário (ex.: `1.01.01-HN`).
 4. **De-Para com revisão**: confirmações de usuários viram mapeamentos `PENDENTE`; um revisor aprova, rejeita ou revoga, com histórico. Só `APROVADO` vale como busca exata.
-5. **Importação em massa**: o comprador envia uma planilha (`.csv`/`.xlsx`, até 20.000 linhas e 10 MB); o sistema aplica o filtro a cada linha em segundo plano, o comprador confere o resultado e envia ao **aprovador**, que decide. Nada entra na base sem essa aprovação. O que o aprovador liga a um serviço existente vira **sinônimo** e passa a bloquear o cadastro individual daquele texto.
+5. **Registro das consultas**: toda tentativa de cadastro individual (bloqueada, que pediu confirmação ou cadastrada) e toda reutilização de um código sugerido ficam gravadas, e o aprovador as confere em `/ui/consultas`.
+6. **Importação em massa**: o comprador envia uma planilha (`.csv`/`.xlsx`, até 20.000 linhas e 10 MB); o sistema aplica o filtro a cada linha em segundo plano, o comprador confere o resultado e envia ao **aprovador**, que decide. Nada entra na base sem essa aprovação. O que o aprovador liga a um serviço existente vira **sinônimo** e passa a bloquear o cadastro individual daquele texto.
 
 Passo a passo de uso: [docs/GUIA_DE_USO.md](docs/GUIA_DE_USO.md). Regras de negócio e decisões: [docs/REGRAS_DE_NEGOCIO.md](docs/REGRAS_DE_NEGOCIO.md).
 
@@ -36,7 +37,7 @@ src/main/java/com/Gerdau/Desafio_GC_Gerdau_App/
 ├── dto/          requests e responses
 └── exception/    CadastroRejeitadoException, DeParaNaoEncontradoException
 src/main/resources/
-├── db/migration/ migrations Flyway (V1 a V11)
+├── db/migration/ migrations Flyway (V1 a V12)
 ├── templates/    telas (busca, servicos, formulário, revisão, importação, aprovação)
 └── static/       css e js
 ```
@@ -110,6 +111,7 @@ O schema do banco é versionado em `src/main/resources/db/migration`. Ao iniciar
 | `V9__usuarios.sql` | Tabela `usuarios` (login) e dois usuários de exemplo |
 | `V10__importacao_em_massa.sql` | `lotes_importacao`, `linhas_importacao` (situação e etapa de cada linha) e `servico_sinonimo` |
 | `V11__conferido_em.sql` | `linhas_importacao.conferido_em`: data da última decisão do comprador na linha |
+| `V12__consultas_cadastro.sql` | `consultas_cadastro` e `consulta_cadastro_sugestoes`: histórico de cada tentativa de cadastro individual |
 
 Para alterar o banco, crie um novo arquivo seguindo a convenção `V{n}__descricao.sql` (ex.: `V3__add_coluna_x.sql`). **Nunca edite uma migration já aplicada**: o Flyway valida o checksum e a aplicação deixa de subir.
 
@@ -120,7 +122,7 @@ Todas as telas e a API exigem login (usuário e senha guardados na tabela `usuar
 | Perfil | Pode |
 |--------|------|
 | `COMPRADOR` | Cadastrar serviço, buscar serviços, buscar NBS, Smart Key, confirmar uma sugestão de NBS e importar planilhas (os próprios lotes) |
-| `APROVADOR` | Tudo o que o comprador faz, mais a revisão do De-Para (`/ui/revisao` e `/api/de-para/**`) e a aprovação de planilhas (`/ui/aprovacao` e `/api/importacoes/aprovacao/**`) |
+| `APROVADOR` | Tudo o que o comprador faz, mais a revisão do De-Para (`/ui/revisao` e `/api/de-para/**`), a aprovação de planilhas (`/ui/aprovacao` e `/api/importacoes/aprovacao/**`) e o histórico de consultas (`/ui/consultas`) |
 
 Sem login, as telas redirecionam para `/login` e a API responde `401`. Com perfil insuficiente a resposta é `403`. Usuários de exemplo (V9) e como trocar as senhas: `docs/GUIA_DE_USO.md`. O revisor gravado no histórico do De-Para é sempre o usuário logado.
 
@@ -132,11 +134,14 @@ Sem login, as telas redirecionam para `/login` e a API responde `401`. Com perfi
 | `/ui/busca` | Busca de NBS e Smart Key |
 | `/ui/servicos/novo` | Cadastro de novo serviço (com filtro de duplicados) |
 | `/ui/servicos/{id}` | Detalhe do serviço |
+| `POST /ui/servicos/reutilizar` | Botão "Usar este código" nas sugestões do cadastro: registra que o comprador reaproveitou um serviço existente e abre o detalhe dele |
 | `/login` | Entrar (única tela sem login) |
 | `/ui/revisao` | Fila de revisão do De-Para (só `APROVADOR`) |
 | `/ui/importacoes` | Enviar planilha e ver os próprios lotes |
 | `/ui/importacoes/{id}` | Conferência do lote: com erro, parecidas, novas, já existiam e repetidas (só o dono) |
 | `/ui/aprovacao` | Lotes com linhas aguardando decisão (só `APROVADOR`) |
+| `/ui/consultas` | Histórico das tentativas de cadastro: o que foi consultado, o que o sistema respondeu e o que o comprador decidiu (só `APROVADOR`) |
+| `/ui/consultas/{id}` | Detalhe de uma consulta, com as sugestões mostradas (só `APROVADOR`) |
 | `/ui/aprovacao/{id}` | Aprovação das linhas de um lote, uma a uma ou em bloco (só `APROVADOR`) |
 
 ## Endpoints

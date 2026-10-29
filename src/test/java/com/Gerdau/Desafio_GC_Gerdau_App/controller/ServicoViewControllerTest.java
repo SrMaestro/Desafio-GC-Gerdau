@@ -203,4 +203,102 @@ class ServicoViewControllerTest {
                 .andExpect(content().string(containsString("resumo-valor\">0<")))
                 .andExpect(content().string(not(containsString("resumo-valor\">—<"))));
     }
+
+    @Test
+    @WithMockUser(username = "ana", roles = "COMPRADOR")
+    void criar_passaOUsuarioLogadoAoServico() throws Exception {
+        com.Gerdau.Desafio_GC_Gerdau_App.model.Servico criado = new com.Gerdau.Desafio_GC_Gerdau_App.model.Servico();
+        criado.setId(5);
+        criado.setCodigoPadronizado("CONC_HN4399103");
+        when(service.cadastrar(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(false),
+                org.mockito.ArgumentMatchers.eq("ana"))).thenReturn(criado);
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/ui/servicos")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
+                        .param("areaServico", "Civil").param("textoBreve", "Concretagem").param("abreviatura", "CONC")
+                        .param("condicao", "HN").param("cnae", "4399103").param("criadorCodigo", "outra pessoa"))
+                .andExpect(status().is3xxRedirection());
+
+        org.mockito.Mockito.verify(service).cadastrar(org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.eq(false), org.mockito.ArgumentMatchers.eq("ana"));
+    }
+
+    private com.Gerdau.Desafio_GC_Gerdau_App.model.Servico servico(int id, String codigo) {
+        com.Gerdau.Desafio_GC_Gerdau_App.model.Servico s = new com.Gerdau.Desafio_GC_Gerdau_App.model.Servico();
+        s.setId(id);
+        s.setCodigoPadronizado(codigo);
+        return s;
+    }
+
+    @Test
+    void reutilizar_registraEVaiParaODetalheComMensagem() throws Exception {
+        when(service.registrarReutilizacao("user", "Solda de tubo", 7)).thenReturn(servico(7, "ABC_HN1234567"));
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/ui/servicos/reutilizar")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
+                        .param("textoBreve", "Solda de tubo").param("servicoId", "7"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl("/ui/servicos/7"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash()
+                        .attribute("mensagem", containsString("ABC_HN1234567")));
+    }
+
+    @Test
+    void reutilizar_servicoInexistente_voltaAoFormularioComErro() throws Exception {
+        when(service.registrarReutilizacao("user", "Solda", 99)).thenThrow(new java.util.NoSuchElementException());
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/ui/servicos/reutilizar")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
+                        .param("textoBreve", "Solda").param("servicoId", "99"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl("/ui/servicos/novo"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash()
+                        .attribute("erro", "Serviço não encontrado."));
+    }
+
+    @Test
+    void reutilizar_semCsrf_eRecusado() throws Exception {
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/ui/servicos/reutilizar")
+                        .param("textoBreve", "Solda").param("servicoId", "7"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void formulario_comParecidos_mostraBotaoUsarEsteCodigo() throws Exception {
+        when(repository.findAreas()).thenReturn(List.of("Civil"));
+        when(service.cadastrar(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyBoolean(),
+                org.mockito.ArgumentMatchers.anyString()))
+                .thenThrow(new com.Gerdau.Desafio_GC_Gerdau_App.exception.CadastroRejeitadoException(
+                        new com.Gerdau.Desafio_GC_Gerdau_App.dto.AnaliseSimilaridade("COD", false,
+                                List.of(new com.Gerdau.Desafio_GC_Gerdau_App.dto.AnaliseSimilaridade.SimilarDto(
+                                        7, "Solda de tubo", "SOLD_HN1234567", 0.6)), false, null)));
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/ui/servicos")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
+                        .param("areaServico", "Civil").param("textoBreve", "Solda de tubo").param("abreviatura", "SOLD")
+                        .param("condicao", "HN").param("cnae", "1234567"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Usar este código")))
+                .andExpect(content().string(containsString("formaction=\"/ui/servicos/reutilizar\"")))
+                .andExpect(content().string(containsString("formnovalidate")))
+                .andExpect(content().string(containsString("name=\"servicoId\"")));
+    }
+
+    @Test
+    void formulario_comFlashDeErro_mostraAviso() throws Exception {
+        when(repository.findAreas()).thenReturn(List.of());
+
+        mvc.perform(get("/ui/servicos/novo").flashAttr("erro", "Serviço não encontrado."))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Serviço não encontrado.")));
+    }
+
+    @Test
+    void formulario_expoeAUrlDoBotaoUsarEsteCodigoParaAListaAoDigitar() throws Exception {
+        when(repository.findAreas()).thenReturn(List.of());
+
+        mvc.perform(get("/ui/servicos/novo"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-url-reutilizar=\"/ui/servicos/reutilizar\"")));
+    }
 }

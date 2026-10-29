@@ -18,6 +18,7 @@
         <a th:href="@{/ui/busca}" th:aria-current="${ativo == 'busca'} ? 'page'">Buscar NBS</a>
         <a th:href="@{/ui/importacoes}" th:aria-current="${ativo == 'importar'} ? 'page'">Importar</a>
         <a th:if="${ehAprovador}" th:href="@{/ui/revisao}" th:aria-current="${ativo == 'revisao'} ? 'page'">Revisão</a>
+        <a th:if="${ehAprovador}" th:href="@{/ui/consultas}" th:aria-current="${ativo == 'consultas'} ? 'page'">Consultas</a>
         <a th:if="${ehAprovador}" th:href="@{/ui/aprovacao}" th:aria-current="${ativo == 'aprovacoes'} ? 'page'">Aprovações</a>
     </nav>
     <div class="usuario" th:if="${usuarioLogado}">

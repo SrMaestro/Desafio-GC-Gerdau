@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.NoSuchElementException;
 
 @Controller
 public class ServicoViewController {
@@ -90,12 +91,12 @@ public class ServicoViewController {
     @PostMapping("/ui/servicos")
     public String criar(@Valid @ModelAttribute("form") NovoServicoForm form, BindingResult binding,
                         @RequestParam(defaultValue = "false") boolean confirmar,
-                        Model model, RedirectAttributes redirect) {
+                        Authentication authentication, Model model, RedirectAttributes redirect) {
         if (binding.hasErrors()) {
             return formulario(model);
         }
         try {
-            Servico criado = service.cadastrar(form, confirmar);
+            Servico criado = service.cadastrar(form, confirmar, authentication.getName());
             redirect.addFlashAttribute("mensagem", "Serviço " + criado.getCodigoPadronizado() + " cadastrado.");
             return "redirect:/ui/servicos/" + criado.getId();
         } catch (CadastroRejeitadoException e) {
@@ -104,6 +105,21 @@ public class ServicoViewController {
         } catch (IllegalArgumentException e) {
             binding.reject("codigo.invalido", e.getMessage());
             return formulario(model);
+        }
+    }
+
+    /** O comprador escolheu reaproveitar um serviço sugerido: registra a decisão e mostra o serviço escolhido. */
+    @PostMapping("/ui/servicos/reutilizar")
+    public String reutilizar(@RequestParam String textoBreve, @RequestParam Integer servicoId,
+                             Authentication authentication, RedirectAttributes redirect) {
+        try {
+            Servico escolhido = service.registrarReutilizacao(authentication.getName(), textoBreve, servicoId);
+            redirect.addFlashAttribute("mensagem", "Código " + escolhido.getCodigoPadronizado()
+                    + " reutilizado. Nenhum serviço novo foi cadastrado.");
+            return "redirect:/ui/servicos/" + escolhido.getId();
+        } catch (NoSuchElementException e) {
+            redirect.addFlashAttribute("erro", "Serviço não encontrado.");
+            return "redirect:/ui/servicos/novo";
         }
     }
 

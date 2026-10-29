@@ -6,7 +6,7 @@ Para quem usa o sistema no dia a dia. Não é preciso conhecer o projeto.
 
 Abra o sistema e entre com seu usuário e senha. Há dois perfis: **comprador** (cadastra, busca e importa planilhas) e **aprovador** (faz o mesmo e também aprova planilhas e revisa o De-Para). 
 
-A navegação fica no **menu lateral** (no celular, uma barra no topo): **Serviços**, **Buscar NBS** e **Importar** para todos, e **Revisão** e **Aprovações** só para o aprovador. A página em que você está aparece destacada. Seu nome e o botão **Sair** ficam no rodapé do menu; use **Sair** ao terminar.
+A navegação fica no **menu lateral** (no celular, uma barra no topo): **Serviços**, **Buscar NBS** e **Importar** para todos, e **Revisão**, **Consultas** e **Aprovações** só para o aprovador. A página em que você está aparece destacada. Seu nome e o botão **Sair** ficam no rodapé do menu; use **Sair** ao terminar.
 
 Usuários de exemplo, criados na instalação: `comprador` / `comprador123` e `aprovador` / `aprovador123`. **Troque essas senhas antes de usar de verdade.** Ainda não há tela para isso: a equipe técnica gera um novo hash BCrypt e atualiza a coluna `senha_hash` da tabela `usuarios`; para desativar alguém, `ativo = FALSE`.
 
@@ -37,6 +37,12 @@ O código é montado assim: `ABREVIATURA` + `COMPLEMENTO` + `_` + `SUFIXO DA CON
 | Código já existe, ou texto muito parecido (80% ou mais) com a mesma condição e o mesmo CNAE | **Bloqueado.** Mostra o serviço existente: use-o em vez de criar outro |
 | Texto parecido (40% a 80%) | **Pede confirmação.** Mostra os similares; confirme só se for outro serviço |
 | Nada parecido | Cadastra |
+
+### Usar um código que já existe
+
+Enquanto você digita o texto breve, e também depois de um cadastro que pediu confirmação, o sistema lista os serviços parecidos. Cada um tem o botão **Usar este código**: se for o serviço que você procurava, clique nele. Nada novo é cadastrado; o sistema abre o serviço escolhido para você copiar o código, e a escolha fica registrada. O botão funciona mesmo com o formulário incompleto.
+
+Toda tentativa de cadastro (bloqueada, que pediu confirmação ou cadastrada) e todo clique em **Usar este código** ficam registrados com o seu usuário, o que o sistema sugeriu e o que você decidiu.
 
 ## 2. Achar o código NBS (busca)
 
@@ -109,6 +115,10 @@ Só o aprovador vê **Aprovações** no menu (`/ui/aprovacao`).
 4. O que acontece ao aprovar: linha **nova** (ou parecida decidida como "outro serviço") cria o serviço com o código proposto; linha **parecida** decidida como "mesmo serviço" não cria serviço, grava o texto como **sinônimo** do serviço existente. Dali em diante, esse texto (com a mesma condição e o mesmo CNAE) é reconhecido sozinho: a importação o marca como "já existia" e o cadastro individual o **bloqueia** mostrando o código existente.
 5. Depois da aprovação em bloco a tela mostra quantas foram aprovadas, quantas foram para conflito e quantas **não puderam ser processadas agora**; essas continuam aguardando e podem ser aprovadas de novo.
 6. O bloco **em conflito** (recolhido) lista as linhas que não puderam virar código, com o motivo. Os motivos mais comuns: alguém cadastrou o mesmo código depois da importação; a linha é **nova** mas o texto ficou 80% ou mais parecido, com a mesma condição e o mesmo CNAE, com um serviço já na base (inclusive um aprovado instantes antes no mesmo lote, por exemplo duas linhas com o mesmo texto e códigos diferentes): "Parecido com X (similaridade N%) já na base; verifique se é duplicado"; ou a linha foi marcada como "mesmo serviço" mas o serviço parecido é de outra condição ou CNAE ("O serviço parecido (X) é de outra condição/CNAE..."). Elas ficam fora das ações em bloco e não têm botões; o comprador vê o motivo na tela dele e deve corrigir e enviar de novo num novo lote.
+
+## 4b. Conferir as consultas de cadastro (aprovador)
+
+Em **Consultas** (`/ui/consultas`) o aprovador vê as 200 tentativas de cadastro mais recentes: quando, quem, o texto consultado, o resultado (bloqueado, pediu confirmação, cadastrado) e a decisão (cadastrou novo, cadastrou mesmo assim, reutilizou código existente). **Ver detalhe** mostra o código gerado, o serviço resultante e as sugestões que o sistema apresentou, cada uma com a semelhança.
 
 ## 5. Revisar sugestões (aprovador)
 

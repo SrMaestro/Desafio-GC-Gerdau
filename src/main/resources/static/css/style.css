@@ -88,6 +88,8 @@ td.titulo a:hover { text-decoration: underline; }
 .codigo code { font-family: var(--mono); font-size: .9rem; background: var(--papel); padding: .15rem .45rem; border-radius: 2px; white-space: nowrap; }
 .copiar { padding: .15rem .55rem; font-size: .8rem; background: var(--superficie); border: 1px solid var(--linha); border-radius: 3px; color: var(--azul); }
 .copiar:hover { border-color: var(--azul); }
+.usar { padding: .15rem .55rem; font-size: .8rem; background: var(--superficie); border: 1px solid var(--azul); border-radius: 3px; color: var(--azul); cursor: pointer; }
+.usar:hover { background: var(--azul); color: #fff; }
 .copiar.copiado { background: var(--azul); border-color: var(--azul); color: #fff; }
 
 .vazio td { padding: 2rem; text-align: center; color: var(--texto-suave); }

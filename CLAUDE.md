@@ -33,7 +33,7 @@ Camadas clássicas em `src/main/java/com/Gerdau/Desafio_GC_Gerdau_App/`: `contro
 
 Quatro serviços formam o fluxo de negócio (ver `docs/REGRAS_DE_NEGOCIO.md` para limiares e regras exatas):
 
-- **ServicoService**: cadastro. Gera o código (`abreviatura + complemento + "_" + sufixo da condição + CNAE`, máx. 40 caracteres), compara o texto com serviços existentes e decide bloquear, pedir confirmação (`?confirmar=true`) ou cadastrar. Bloqueio concorrente é garantido pela restrição de unicidade do banco, não só pela checagem em código.
+- **ServicoService**: cadastro. Gera o código (`abreviatura + complemento + "_" + sufixo da condição + CNAE`, máx. 40 caracteres), compara o texto com serviços existentes e decide bloquear, pedir confirmação (`?confirmar=true`) ou cadastrar. Bloqueio concorrente é garantido pela restrição de unicidade do banco, não só pela checagem em código. Cada tentativa fica registrada em `consultas_cadastro` via `RegistroConsultaService` (melhor esforço: falhar ao gravar nunca atrapalha o cadastro); o botão "Usar este código" grava a reutilização por `registrarReutilizacao`.
 - **BuscaNbsService**: dado um texto, tenta primeiro match exato no De-Para `APROVADO` (nome normalizado: minúsculo, sem acento) e senão sugere NBS por similaridade.
 - **SmartKeyService**: `<NBS>-<sufixo do horário>`, validado contra `cat_nbs` e `cat_horarios`.
 - **DeParaService**: ciclo `PENDENTE → APROVADO / REJEITADO / REVOGADO`; toda mudança grava em `dicionario_de_para_historico`. Só um `APROVADO` por nome; confirmação nunca altera um aprovado.
@@ -48,7 +48,7 @@ Spring Security com sessão e tela `/login`. Usuários na tabela `usuarios` (V9,
 
 ## Banco e migrations
 
-- `ddl-auto=validate`: o Hibernate não cria schema. Qualquer mudança em entidade exige uma migration `V{n}__descricao.sql` em `src/main/resources/db/migration` (hoje V1–V11). **Nunca edite uma migration já aplicada** (falha de checksum do Flyway); crie uma nova.
+- `ddl-auto=validate`: o Hibernate não cria schema. Qualquer mudança em entidade exige uma migration `V{n}__descricao.sql` em `src/main/resources/db/migration` (hoje V1–V12). **Nunca edite uma migration já aplicada** (falha de checksum do Flyway); crie uma nova.
 - As condições (hora normal, hora extra, posto mensal...) vivem só em `cat_horarios`. Condição nova = `INSERT` numa migration; condição aposentada = `ativo = FALSE` (nunca apagar). `servicos_mock.id1_condicao` guarda o texto da condição na hora do cadastro, sem FK, então serviços antigos não mudam quando o catálogo muda.
 - A conexão vem do `.env` (importado por `spring.config.import`) via `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`. A app roda fora do Docker, então o host é `localhost`.
 - Se o Flyway reclamar de schema sem histórico, ou o Postgres de `data-db` for de outra versão/senha: `docker compose down`, apagar `data-db` e subir de novo (apaga os dados).

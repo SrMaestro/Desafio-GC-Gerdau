@@ -3,6 +3,7 @@ package com.Gerdau.Desafio_GC_Gerdau_App.controller;
 import com.Gerdau.Desafio_GC_Gerdau_App.config.SecurityConfig;
 import com.Gerdau.Desafio_GC_Gerdau_App.service.DeParaService;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.CatNbsRepository;
+import com.Gerdau.Desafio_GC_Gerdau_App.repository.ConsultaCadastroRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -22,7 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest({DeParaController.class, RevisaoViewController.class})
+@WebMvcTest({DeParaController.class, RevisaoViewController.class, ConsultaViewController.class})
 @Import(SecurityConfig.class)
 class AcessoPorPerfilTest {
 
@@ -34,6 +35,9 @@ class AcessoPorPerfilTest {
 
     @MockitoBean
     CatNbsRepository catNbsRepository;
+
+    @MockitoBean
+    ConsultaCadastroRepository consultaRepository;
 
     private static final String CONFIRMACAO = "{\"nomeDigitado\":\"Motor\",\"codigoNbs\":\"1.01\"}";
 
@@ -95,5 +99,19 @@ class AcessoPorPerfilTest {
         mvc.perform(post("/api/de-para/1/aprovar")
                         .contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "COMPRADOR")
+    void comprador_naoAcessaConsultas() throws Exception {
+        mvc.perform(get("/ui/consultas")).andExpect(status().isForbidden());
+        mvc.perform(get("/ui/consultas/1")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void semLogin_consultasRedirecionaParaLogin() throws Exception {
+        mvc.perform(get("/ui/consultas"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login"));
     }
 }

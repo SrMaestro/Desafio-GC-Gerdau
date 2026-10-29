@@ -6,10 +6,14 @@ import com.Gerdau.Desafio_GC_Gerdau_App.dto.NovoServicoForm;
 import com.Gerdau.Desafio_GC_Gerdau_App.dto.ServicoSimilar;
 import com.Gerdau.Desafio_GC_Gerdau_App.exception.CadastroRejeitadoException;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.CatHorario;
+import com.Gerdau.Desafio_GC_Gerdau_App.model.DecisaoConsulta;
+import com.Gerdau.Desafio_GC_Gerdau_App.model.ResultadoConsulta;
 import com.Gerdau.Desafio_GC_Gerdau_App.model.Servico;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.CatHorarioRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.CatNbsRepository;
 import com.Gerdau.Desafio_GC_Gerdau_App.repository.ServicoRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +25,8 @@ import java.util.Optional;
 
 @Service
 public class ServicoService {
+
+    private static final Logger log = LoggerFactory.getLogger(ServicoService.class);
 
     /** A partir daqui o serviço é sugerido como "parecido". */
     static final double LIMIAR_SUGESTAO = 0.4;
@@ -34,11 +40,13 @@ public class ServicoService {
     private final CatNbsRepository catNbsRepository;
     private final CatHorarioRepository catHorarioRepository;
     private final SinonimoServicoService sinonimoServicoService;
+    private final RegistroConsultaService registro;
 
     public ServicoService(ServicoRepository repository, CatNbsRepository catNbsRepository,
                           CatHorarioRepository catHorarioRepository,
-                          SinonimoServicoService sinonimoServicoService) {
+                          SinonimoServicoService sinonimoServicoService, RegistroConsultaService registro) {
         this.sinonimoServicoService = sinonimoServicoService;
+        this.registro = registro;
         this.repository = repository;
         this.catNbsRepository = catNbsRepository;
         this.catHorarioRepository = catHorarioRepository;
@@ -119,7 +127,8 @@ public class ServicoService {
                 .max(Comparator.comparingDouble(ServicoSimilar::getScore));
     }
 
-    public Servico cadastrar(NovoServicoForm form, boolean confirmarMesmoAssim) {
+    /** Cada tentativa que chega à análise fica registrada (ver {@link RegistroConsultaService}); erro de validação não. */
+    public Servico cadastrar(NovoServicoForm form, boolean confirmarMesmoAssim, String usuario) {
         String codigoNbs = codigoNbs(form);
         if (codigoNbs != null && !catNbsRepository.existsById(codigoNbs)) {
             throw new IllegalArgumentException("Código NBS desconhecido: " + codigoNbs);
@@ -130,19 +139,58 @@ public class ServicoService {
             throw new IllegalArgumentException(
                     "Código gerado excede " + TAMANHO_MAX_CODIGO + " caracteres: " + analise.codigoGerado());
         }
-        if (analise.bloqueado() || (analise.requerConfirmacao() && !confirmarMesmoAssim)) {
+        if (analise.bloqueado()) {
+            registrar(usuario, form, condicao, analise, ResultadoConsulta.BLOQUEADO, null, null);
+            throw new CadastroRejeitadoException(analise);
+        }
+        if (analise.requerConfirmacao() && !confirmarMesmoAssim) {
+            registrar(usuario, form, condicao, analise, ResultadoConsulta.REQUER_CONFIRMACAO, null, null);
             throw new CadastroRejeitadoException(analise);
         }
 
         Servico servico = novoServico(form, condicao, analise.codigoGerado());
+        Servico salvo;
         try {
-            return repository.saveAndFlush(servico);
+            salvo = repository.saveAndFlush(servico);
         } catch (DataIntegrityViolationException e) {
             // corrida: outro usuário criou o mesmo código entre a análise e o insert
-            throw new CadastroRejeitadoException(new AnaliseSimilaridade(
-                    analise.codigoGerado(), true, analise.similares(), true, analise.reconhecidoComo()));
+            AnaliseSimilaridade bloqueio = new AnaliseSimilaridade(
+                    analise.codigoGerado(), true, analise.similares(), true, analise.reconhecidoComo());
+            registrar(usuario, form, condicao, bloqueio, ResultadoConsulta.BLOQUEADO, null, null);
+            throw new CadastroRejeitadoException(bloqueio);
+        }
+        registrar(usuario, form, condicao, analise, ResultadoConsulta.CADASTRADO,
+                analise.requerConfirmacao() ? DecisaoConsulta.CONFIRMOU_MESMO_ASSIM : DecisaoConsulta.CADASTROU_NOVO,
+                salvo.getId());
+        return salvo;
+    }
+
+    /** O comprador escolheu reaproveitar um serviço sugerido em vez de cadastrar outro. */
+    public Servico registrarReutilizacao(String usuario, String textoBreve, Integer servicoId) {
+        Servico escolhido = repository.findById(servicoId).orElseThrow();
+        String texto = textoBreve.trim();
+        registrarSemFalhar(usuario, texto, null, null, null, ResultadoConsulta.SUGERIDO,
+                DecisaoConsulta.REUTILIZOU_EXISTENTE, escolhido.getId(), similares(texto));
+        return escolhido;
+    }
+
+    private void registrar(String usuario, NovoServicoForm form, CatHorario condicao, AnaliseSimilaridade analise,
+                           ResultadoConsulta resultado, DecisaoConsulta decisao, Integer servicoId) {
+        registrarSemFalhar(usuario, form.getTextoBreve().trim(), condicao.getDescricaoHorario(), form.getCnae(),
+                analise.codigoGerado(), resultado, decisao, servicoId, analise.similares());
+    }
+
+    /** O histórico é secundário: se não gravar, o cadastro segue e a falha vai para o log. */
+    private void registrarSemFalhar(String usuario, String texto, String condicao, String cnae, String codigo,
+                                    ResultadoConsulta resultado, DecisaoConsulta decisao, Integer servicoId,
+                                    List<SimilarDto> sugestoes) {
+        try {
+            registro.registrar(usuario, texto, condicao, cnae, codigo, resultado, decisao, servicoId, sugestoes);
+        } catch (RuntimeException e) {
+            log.warn("Falha ao registrar a consulta de cadastro ({}): {}", resultado, e.toString());
         }
     }
+
     /**
      * Monta (sem gravar) o serviço como o cadastro grava: textos sem espaços nas pontas, abreviatura e complemento
      * em maiúsculas, condição pela descrição do catálogo. Também usado na aprovação da importação em massa.

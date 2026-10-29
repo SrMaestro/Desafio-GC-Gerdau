@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Consultas')}"></head>
+<body class="app">
+<link rel="stylesheet" th:href="@{/css/revisao.css}">
+<th:block th:replace="~{layout :: menu('consultas')}"/>
+<main>
+    <div class="topo">
+        <div>
+            <h1>Consultas de cadastro</h1>
+            <p>Cada tentativa de cadastrar um serviço: o que foi consultado, o que o sistema respondeu e o que o comprador decidiu. Mostra as 200 mais recentes.</p>
+        </div>
+    </div>
+
+    <p th:if="${#lists.isEmpty(consultas)}" class="vazio-msg">Nenhuma consulta registrada ainda.</p>
+
+    <div class="tabela-wrap" th:unless="${#lists.isEmpty(consultas)}">
+        <table class="revisao">
+            <thead>
+            <tr><th>Quando</th><th>Quem</th><th>Texto consultado</th><th>Resultado</th><th>Decisão</th><th></th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="c : ${consultas}">
+                <td th:text="${#temporals.format(c.criadoEm, 'dd/MM/yyyy HH:mm')}"></td>
+                <td th:text="${c.usuario}"></td>
+                <td th:text="${c.textoBreve}"></td>
+                <td th:text="${c.resultado.rotulo}"></td>
+                <td th:text="${c.decisao != null} ? ${c.decisao.rotulo} : '—'"></td>
+                <td><a th:href="@{/ui/consultas/{id}(id=${c.id})}">Ver detalhe</a></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Consulta de cadastro')}"></head>
+<body class="app">
+<link rel="stylesheet" th:href="@{/css/revisao.css}">
+<th:block th:replace="~{layout :: menu('consultas')}"/>
+<main>
+    <p><a th:href="@{/ui/consultas}">&larr; Voltar</a></p>
+    <div class="card">
+        <h2 th:text="${consulta.textoBreve}"></h2>
+        <dl>
+            <dt>Quando</dt><dd th:text="${#temporals.format(consulta.criadoEm, 'dd/MM/yyyy HH:mm')}"></dd>
+            <dt>Quem</dt><dd th:text="${consulta.usuario}"></dd>
+            <dt>Condição</dt><dd th:text="${consulta.condicao} ?: '—'"></dd>
+            <dt>CNAE</dt><dd th:text="${consulta.cnae} ?: '—'"></dd>
+            <dt>Código gerado</dt><dd th:text="${consulta.codigoGerado} ?: '—'"></dd>
+            <dt>Resultado</dt><dd th:text="${consulta.resultado.rotulo}"></dd>
+            <dt>Decisão</dt><dd th:text="${consulta.decisao != null} ? ${consulta.decisao.rotulo} : '—'"></dd>
+            <dt>Serviço resultante</dt>
+            <dd>
+                <a th:if="${consulta.servicoId != null}" th:href="@{/ui/servicos/{id}(id=${consulta.servicoId})}"
+                   th:text="'Serviço ' + ${consulta.servicoId}"></a>
+                <span th:if="${consulta.servicoId == null}">—</span>
+            </dd>
+        </dl>
+    </div>
+
+    <h2>Sugestões mostradas <span class="contador" th:text="'(' + ${#lists.size(consulta.sugestoes)} + ')'"></span></h2>
+    <p th:if="${#lists.isEmpty(consulta.sugestoes)}" class="vazio-msg">O sistema não encontrou serviços parecidos.</p>
+    <div class="tabela-wrap" th:unless="${#lists.isEmpty(consulta.sugestoes)}">
+        <table class="revisao">
+            <thead>
+            <tr><th>Serviço</th><th>Código</th><th>Semelhança</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="s : ${consulta.sugestoes}">
+                <td><a th:href="@{/ui/servicos/{id}(id=${s.servicoId})}" th:text="${s.textoBreve}"></a></td>
+                <td><code th:text="${s.codigoPadronizado}"></code></td>
+                <td th:text="${#numbers.formatDecimal(s.score * 100, 1, 0)} + '% parecido'"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>
