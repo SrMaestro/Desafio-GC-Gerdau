@@ -117,6 +117,8 @@ Para alterar o banco, crie um novo arquivo seguindo a convenção `V{n}__descric
 
 ## Login e perfis
 
+As telas usam as fontes Barlow (títulos) e Open Sans (texto), carregadas do Google Fonts em `templates/layout.html`. Sem acesso à internet, o navegador usa a fonte padrão do sistema e a tela continua funcionando; para uso fechado na rede da Gerdau, vale hospedar as fontes junto da aplicação.
+
 Todas as telas e a API exigem login (usuário e senha guardados na tabela `usuarios`, senha com BCrypt). Há dois perfis:
 
 | Perfil | Pode |

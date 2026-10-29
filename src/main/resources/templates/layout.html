@@ -6,13 +6,16 @@
     <meta name="_csrf" th:content="${_csrf?.token}">
     <meta name="_csrf_header" th:content="${_csrf?.headerName}">
     <title th:text="${title}">Serviços</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@600;700;800&family=Open+Sans:wght@400;600;700&display=swap">
     <link rel="stylesheet" th:href="@{/css/style.css}">
     <script th:src="@{/js/app.js}" defer></script>
     <script th:src="@{/js/busca.js}" defer></script>
 </head>
 <body>
 <aside class="menu" th:fragment="menu(ativo)">
-    <a class="marca" th:href="@{/}">Catálogo de Serviços</a>
+    <a class="marca" th:href="@{/}"><small>Geração Caldeira</small>Catálogo de Serviços</a>
     <nav aria-label="Principal">
         <a th:href="@{/}" th:aria-current="${ativo == 'servicos'} ? 'page'">Serviços</a>
         <a th:href="@{/ui/busca}" th:aria-current="${ativo == 'busca'} ? 'page'">Buscar NBS</a>
