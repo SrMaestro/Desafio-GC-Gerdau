@@ -8,7 +8,7 @@
     <title th:text="${title}">Serviços</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@600;700;800&family=Open+Sans:wght@400;600;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
     <link rel="stylesheet" th:href="@{/css/style.css}">
     <script th:src="@{/js/app.js}" defer></script>
     <script th:src="@{/js/busca.js}" defer></script>
@@ -17,12 +17,12 @@
 <aside class="menu" th:fragment="menu(ativo)">
     <a class="marca" th:href="@{/}"><small>Geração Caldeira</small>Catálogo de Serviços</a>
     <nav aria-label="Principal">
-        <a th:href="@{/}" th:aria-current="${ativo == 'servicos'} ? 'page'">Serviços</a>
-        <a th:href="@{/ui/busca}" th:aria-current="${ativo == 'busca'} ? 'page'">Buscar NBS</a>
-        <a th:href="@{/ui/importacoes}" th:aria-current="${ativo == 'importar'} ? 'page'">Importar</a>
-        <a th:if="${ehAprovador}" th:href="@{/ui/revisao}" th:aria-current="${ativo == 'revisao'} ? 'page'">Revisão</a>
-        <a th:if="${ehAprovador}" th:href="@{/ui/consultas}" th:aria-current="${ativo == 'consultas'} ? 'page'">Consultas</a>
-        <a th:if="${ehAprovador}" th:href="@{/ui/aprovacao}" th:aria-current="${ativo == 'aprovacoes'} ? 'page'">Aprovações</a>
+        <a th:href="@{/}" th:aria-current="${ativo == 'servicos'} ? 'page'"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4h10M3 8h10M3 12h10"/></svg>Serviços</a>
+        <a th:href="@{/ui/busca}" th:aria-current="${ativo == 'busca'} ? 'page'"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4"/><path d="M10 10l3.5 3.5"/></svg>Buscar NBS</a>
+        <a th:href="@{/ui/importacoes}" th:aria-current="${ativo == 'importar'} ? 'page'"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 11V2M4.5 5.5L8 2l3.5 3.5M2.5 10v3.5h11V10"/></svg>Importar</a>
+        <a th:if="${ehAprovador}" th:href="@{/ui/revisao}" th:aria-current="${ativo == 'revisao'} ? 'page'"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"/></svg>Revisão</a>
+        <a th:if="${ehAprovador}" th:href="@{/ui/consultas}" th:aria-current="${ativo == 'consultas'} ? 'page'"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="2" width="10" height="12" rx="1.5"/><path d="M5.5 6h5M5.5 9h5"/></svg>Consultas</a>
+        <a th:if="${ehAprovador}" th:href="@{/ui/aprovacao}" th:aria-current="${ativo == 'aprovacoes'} ? 'page'"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2l5 2v4c0 3-2.2 5-5 6-2.8-1-5-3-5-6V4z"/></svg>Aprovações</a>
     </nav>
     <div class="usuario" th:if="${usuarioLogado}">
         <span class="nome" th:text="${usuarioLogado}" th:title="${usuarioLogado}"></span>
