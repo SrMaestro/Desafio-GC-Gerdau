@@ -165,7 +165,7 @@ Sem login, as telas redirecionam para `/login` e a API responde `401`. Com perfi
 
 ## Telas
 
-As telas usam as fontes Barlow (títulos) e Open Sans (texto), carregadas do Google Fonts em `templates/layout.html`. Sem acesso à internet, o navegador usa a fonte padrão do sistema e a tela continua funcionando; para uso fechado na rede da Gerdau, vale hospedar as fontes junto da aplicação.
+As telas usam Inter (texto) e JetBrains Mono (códigos), hospedadas junto da aplicação em `static/fonts` e declaradas em `static/css/fontes.css`. Não há chamada a serviços externos, então funciona na rede fechada da Gerdau.
 
 | Rota | Tela |
 |------|------|

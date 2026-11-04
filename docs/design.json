@@ -1,0 +1,363 @@
+{
+  "$schema": "design-tokens",
+  "name": "Catálogo de Serviços · Geração Caldeira — design alvo",
+  "version": "3.0.0",
+  "origem": "Estrutura de 'Captura de tela de 2026-11-01 13-41-01.png' (referência 'Datum') com as cores da Gerdau amostradas de GerdauReference.png. Aplicado em static/css e templates.",
+  "estadoAtual": "Implementado em style.css, importacao.css, revisao.css e layout.html.",
+  "principios": [
+    "Azul marinho para estrutura, amarelo só para a ação principal",
+    "Verde-azulado como acento e foco",
+    "Cor de estado só em selos pequenos",
+    "Código sempre em monoespaçada"
+  ],
+  "color": {
+    "fundo": {
+      "moldura": {
+        "value": "#e4e4e4",
+        "uso": "área externa da captura, não faz parte do app"
+      },
+      "pagina": {
+        "value": "#f1f4f8"
+      },
+      "menu": {
+        "value": "#0f3363",
+        "uso": "menu lateral azul com texto branco"
+      },
+      "superficie": {
+        "value": "#ffffff",
+        "uso": "barra superior, cards, tabela, campo de busca"
+      }
+    },
+    "texto": {
+      "primario": {
+        "value": "#111111"
+      },
+      "secundario": {
+        "value": "#555555",
+        "uso": "subtítulos, descrições"
+      },
+      "suave": {
+        "value": "#8a8a8a",
+        "uso": "cabeçalho de tabela, atalhos, texto de apoio"
+      }
+    },
+    "borda": {
+      "padrao": {
+        "value": "#e6e6e6"
+      },
+      "forte": {
+        "value": "#d4d4d4",
+        "uso": "botão secundário"
+      }
+    },
+    "acao": {
+      "primaria": {
+        "value": "#ffcc00"
+      },
+      "primariaTexto": {
+        "value": "#0f3363"
+      },
+      "itemAtivoMenu": {
+        "value": "rgba(255,255,255,.18)"
+      }
+    },
+    "destaque": {
+      "verdeAzulado": {
+        "value": "#03939d"
+      },
+      "fundo": {
+        "value": "#e0f3f4"
+      }
+    },
+    "estado": {
+      "critico": {
+        "fundo": "#fde4e4",
+        "texto": "#b3261e",
+        "uso": "Incompleto, Vencido"
+      },
+      "atencao": {
+        "fundo": "#fdf1b8",
+        "texto": "#6b5a00",
+        "uso": "A vencer"
+      },
+      "sucesso": {
+        "fundo": "#dff3e4",
+        "texto": "#1d6b3a",
+        "uso": "Concluído, Entregue"
+      },
+      "pontoCritico": {
+        "value": "#c0392b",
+        "uso": "bolinha de notificação e do rodapé dos cards"
+      },
+      "pontoNeutro": {
+        "value": "#555555"
+      }
+    },
+    "mapeamentoDoProjeto": {
+      "critico": "bloqueado, rejeitado, conflito, erro",
+      "atencao": "pendente, parecida, aguardando decisão",
+      "sucesso": "aprovado, cadastrado, concluído",
+      "nota": "Sugestão minha; a captura não trata dessas situações"
+    },
+    "marca": {
+      "azul": {
+        "value": "#0f3363",
+        "uso": "menu, links, títulos, chip ativo, placa do código"
+      },
+      "azulEscuro": {
+        "value": "#0a2547"
+      },
+      "amarelo": {
+        "value": "#ffcc00",
+        "uso": "botão primário, borda do menu, ícone do item ativo"
+      },
+      "amareloHover": {
+        "value": "#e6b800"
+      },
+      "amareloTexto": {
+        "value": "#0f3363",
+        "uso": "texto sobre o amarelo"
+      },
+      "verdeAzulado": {
+        "value": "#03939d",
+        "uso": "acentos, foco, avisos, condição no código"
+      },
+      "verdeAzuladoFundo": {
+        "value": "#e0f3f4"
+      }
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "texto": "Inter, system-ui, -apple-system, \"Segoe UI\", sans-serif",
+      "mono": "\"JetBrains Mono\", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+      "nota": "Famílias estimadas: a captura parece sans neutra (tipo Inter) e monoespaçada nos códigos"
+    },
+    "scale": {
+      "tituloPagina": {
+        "size": "1.5rem",
+        "weight": 600,
+        "letterSpacing": "-.02em",
+        "color": "texto.primario"
+      },
+      "subtituloPagina": {
+        "size": ".8rem",
+        "weight": 400,
+        "color": "texto.secundario"
+      },
+      "barraSuperior": {
+        "size": ".8rem",
+        "weight": 500
+      },
+      "numeroResumo": {
+        "size": "1.75rem",
+        "weight": 600
+      },
+      "rotuloResumo": {
+        "size": ".65rem",
+        "weight": 600,
+        "letterSpacing": ".06em",
+        "transform": "uppercase",
+        "color": "destaque.roxo"
+      },
+      "descricaoResumo": {
+        "size": ".72rem",
+        "color": "texto.secundario"
+      },
+      "itemMenu": {
+        "size": ".8rem",
+        "weight": 500
+      },
+      "cabecalhoTabela": {
+        "size": ".62rem",
+        "weight": 500,
+        "letterSpacing": ".08em",
+        "transform": "uppercase",
+        "color": "texto.suave"
+      },
+      "celulaTabela": {
+        "size": ".75rem"
+      },
+      "codigo": {
+        "family": "mono",
+        "size": ".72rem"
+      },
+      "selo": {
+        "size": ".68rem",
+        "weight": 500
+      }
+    }
+  },
+  "spacing": {
+    "unidade": "rem",
+    "escala": {
+      "xs": ".25rem",
+      "sm": ".5rem",
+      "md": "1rem",
+      "lg": "1.5rem",
+      "xl": "2rem"
+    },
+    "paginaPadding": "1.5rem",
+    "gapCards": "1rem",
+    "celulaTabela": ".7rem 1rem",
+    "itemMenu": ".5rem .6rem"
+  },
+  "radius": {
+    "controle": "6px",
+    "card": "10px",
+    "selo": "4px",
+    "menuAtivo": "6px"
+  },
+  "shadow": {
+    "card": "none",
+    "nota": "Separação por borda de 1px, sem sombra"
+  },
+  "layout": {
+    "estrutura": "menu lateral + coluna principal com barra superior",
+    "menuLargura": "160px",
+    "barraSuperior": {
+      "altura": "2.5rem",
+      "fundo": "superficie",
+      "conteudo": "nome da seção à esquerda; busca, notificações e tema à direita"
+    },
+    "cabecalhoDePagina": "título e subtítulo à esquerda; botão secundário e botão primário à direita",
+    "resumo": "cartões de indicador com rótulo, número e linha de apoio; quebram conforme a largura",
+    "tabela": "card único com abas no topo e contagem de resultados à direita",
+    "menuRodape": [
+      "card de aviso roxo",
+      "usuário com avatar de iniciais e seta"
+    ]
+  },
+  "components": {
+    "menu": {
+      "busca": "campo com ícone, texto 'Search' e atalho ⌘K à direita",
+      "item": {
+        "icone": "linha fina 16px",
+        "gap": ".6rem",
+        "ativo": "fundo itemAtivoMenu, radius menuAtivo",
+        "contador": "número cinza à direita",
+        "notificacao": "bolinha vermelha à direita"
+      },
+      "fundo": "azul marinho, texto branco, borda direita 3px amarela"
+    },
+    "botaoPrimario": {
+      "fundo": "amarelo",
+      "texto": "azul marinho",
+      "peso": 700,
+      "radius": "controle",
+      "hover": "amareloHover"
+    },
+    "botaoSecundario": {
+      "fundo": "superficie",
+      "borda": "borda.forte",
+      "texto": "texto.primario",
+      "radius": "controle",
+      "padding": ".4rem .9rem"
+    },
+    "cardResumo": {
+      "fundo": "superficie",
+      "borda": "borda.padrao",
+      "radius": "card",
+      "estrutura": [
+        "ícone + rótulo em maiúsculas roxo",
+        "número grande",
+        "descrição",
+        "rodapé com bolinha de cor e nota"
+      ]
+    },
+    "abas": {
+      "item": "texto + contagem em cinza",
+      "ativa": "fundo azul marinho, texto branco",
+      "inativa": "sem fundo",
+      "area": "dentro do card da tabela, acima do cabeçalho"
+    },
+    "tabela": {
+      "fundo": "superficie",
+      "cabecalho": "maiúsculas, texto.suave, sem fundo próprio, borda inferior",
+      "linha": "borda inferior borda.padrao, sem zebra",
+      "colunaCodigo": "primeira coluna em mono",
+      "datas": "formato curto, em mono quando alinhadas por coluna",
+      "vazio": "traço '–'",
+      "rolagem": "horizontal quando a última coluna passa da largura"
+    },
+    "selo": {
+      "formato": "fundo de estado + texto de estado, radius selo, padding .15rem .5rem",
+      "comPonto": "bolinha da cor do texto antes do texto",
+      "variantes": [
+        "critico",
+        "atencao",
+        "sucesso"
+      ]
+    },
+    "avisoNoMenu": {
+      "fundo": "verdeAzuladoFundo",
+      "borda": "roxo claro",
+      "radius": "card",
+      "conteudo": "rótulo roxo, data em destaque, nota pequena"
+    },
+    "avatar": {
+      "formato": "círculo cinza com iniciais",
+      "tamanho": "1.5rem"
+    },
+    "campoBusca": {
+      "fundo": "superficie",
+      "borda": "borda.padrao",
+      "radius": "controle",
+      "icone": "lupa à esquerda"
+    }
+  },
+  "aplicacaoNasPaginas": {
+    "login": "mesma paleta clara, card central, botão primário preto",
+    "servicos": "cabeçalho com 'Novo serviço' (primário) e 'Buscar NBS' (secundário); chips de área viram abas com contagem; tabela com código em mono",
+    "servicoForm": "campos em cards brancos; a placa do código pode usar fundo #111111 com a régua de 40 posições",
+    "servicoDetalhe": "card branco com lista de campos",
+    "busca": "campo de busca grande; sugestões em tabela com selo de score",
+    "importacoes": "cards de resumo do lote (total, parecidas, conflitos, erros) e tabela de lotes com selo de situação",
+    "importacaoLote": "abas por situação das linhas, com contagem; tabela com selos",
+    "revisao": "abas Pendentes e Aprovados com contagem; ações em botão secundário; conflito em selo crítico",
+    "consultas": "tabela com selo de resultado (bloqueado, parecido, cadastrado)",
+    "aprovacao": "mesma estrutura de importacaoLote, com 'Decidir de uma vez' como botão primário"
+  },
+  "menuDoProjeto": [
+    {
+      "item": "Serviços",
+      "rota": "/"
+    },
+    {
+      "item": "Buscar NBS",
+      "rota": "/ui/busca"
+    },
+    {
+      "item": "Importar",
+      "rota": "/ui/importacoes"
+    },
+    {
+      "item": "Revisão",
+      "rota": "/ui/revisao",
+      "perfil": "APROVADOR"
+    },
+    {
+      "item": "Consultas",
+      "rota": "/ui/consultas",
+      "perfil": "APROVADOR"
+    },
+    {
+      "item": "Aprovações",
+      "rota": "/ui/aprovacao",
+      "perfil": "APROVADOR"
+    }
+  ],
+  "diferencasParaOSiteAtual": [
+    "Fontes: Barlow + Open Sans → Inter + JetBrains Mono",
+    "Cantos: 3–4px → 6–10px",
+    "Sombras de card → bordas finas",
+    "Menu com ícones",
+    "Botão laranja → amarelo Gerdau",
+    "Chips de área com visual de aba"
+  ],
+  "pendencias": [
+    "Barra superior, abas com contagem, busca ⌘K e aviso no rodapé do menu não implementados",
+    "Variáveis legadas --azul, --azul-escuro e --brasa mantidas com novos valores",
+    "Modo escuro sem referência"
+  ]
+}

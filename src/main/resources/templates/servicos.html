@@ -3,89 +3,88 @@
 <head th:replace="~{layout :: head('Serviços')}"></head>
 <body class="app">
 <th:block th:replace="~{layout :: menu('servicos')}"/>
-<main>
+<main class="larga">
     <div class="topo">
         <div>
             <h1>Serviços</h1>
             <p>Busque pelo nome, área ou código e copie o código padronizado.</p>
         </div>
-        <span><a th:href="@{/ui/busca}">Buscar código NBS</a>
+        <span><a class="botao secundario" th:href="@{/ui/busca}">Buscar código NBS</a>
             <a class="botao" th:href="@{/ui/servicos/novo}">Novo serviço</a></span>
     </div>
 
-    <section class="resumo" aria-label="Resumo">
-        <div class="resumo-card">
-            <span class="resumo-rotulo">Serviços cadastrados</span>
+    <section class="kpis" aria-label="Indicadores do catálogo">
+        <div class="kpi">
+            <span class="kpi-rotulo">Serviços cadastrados</span>
             <span class="resumo-valor" th:text="${resumo.servicos} ?: '—'">0</span>
+            <span class="kpi-apoio" th:text="'em ' + ${#lists.size(areas)} + ' áreas'">em 0 áreas</span>
         </div>
-        <div class="resumo-card destaque">
-            <span class="resumo-rotulo">Mapeamentos pendentes</span>
+        <div class="kpi atencao">
+            <span class="kpi-rotulo">Mapeamentos pendentes</span>
             <span class="resumo-valor" th:text="${resumo.pendentes} ?: '—'">0</span>
+            <span class="kpi-apoio">aguardando decisão</span>
         </div>
-        <div class="resumo-card" th:if="${ehAprovador}">
-            <span class="resumo-rotulo">Linhas aguardando aprovação</span>
+        <div class="kpi" th:if="${ehAprovador}">
+            <span class="kpi-rotulo">Linhas aguardando aprovação</span>
             <span class="resumo-valor" th:text="${resumo.aguardandoAprovacao} ?: '—'">0</span>
+            <span class="kpi-apoio">de planilhas já enviadas</span>
         </div>
-    </section>
-
-    <section class="resumo" aria-label="Indicadores de cadastro">
-        <div class="resumo-card">
-            <span class="resumo-rotulo">Duplicados barrados</span>
+        <div class="kpi">
+            <span class="kpi-rotulo">Duplicados barrados</span>
             <span class="resumo-valor" th:text="${indicadores.barradas} ?: '—'">0</span>
+            <span class="kpi-apoio" th:text="${indicadores.reutilizadas} + (${indicadores.reutilizadas == 1} ? ' código reaproveitado' : ' códigos reaproveitados')">0 códigos reaproveitados</span>
         </div>
-        <div class="resumo-card">
-            <span class="resumo-rotulo">Códigos reaproveitados</span>
-            <span class="resumo-valor" th:text="${indicadores.reutilizadas} ?: '—'">0</span>
-        </div>
-        <div class="resumo-card">
-            <span class="resumo-rotulo">Sem correspondência (código novo)</span>
-            <span class="resumo-valor" th:text="${indicadores.semCorrespondencia} ?: '—'">0</span>
-        </div>
-        <div class="resumo-card destaque">
-            <span class="resumo-rotulo">Duplicidade evitada</span>
+        <div class="kpi evitada">
+            <span class="kpi-rotulo">Duplicidade evitada</span>
             <span class="resumo-valor" th:text="${indicadores.percentualEvitado != null} ? ${indicadores.percentualEvitado} + '%' : '—'">0</span>
+            <span class="kpi-apoio" th:text="${indicadores.semCorrespondencia} + ' sem correspondência (código novo)'">0 sem correspondência (código novo)</span>
         </div>
     </section>
 
-    <form method="get" th:action="@{/}" role="search">
-        <input type="hidden" name="area" th:value="${areaSelecionada}" th:if="${areaSelecionada != ''}">
-        <input type="search" id="busca" name="q" class="busca" aria-label="Buscar serviços" th:value="${q}"
-               placeholder="Buscar serviço, área, código ou CNAE (Enter para buscar)" autocomplete="off">
-    </form>
+    <div class="caixa-lista">
+        <form method="get" th:action="@{/}" role="search" class="busca-form">
+            <input type="hidden" name="area" th:value="${areaSelecionada}" th:if="${areaSelecionada != ''}">
+            <input type="search" id="busca" name="q" class="busca" aria-label="Buscar serviços" th:value="${q}"
+                   placeholder="Buscar serviço, área, código ou CNAE (Enter para buscar)" autocomplete="off">
+        </form>
 
-    <nav class="filtros" aria-label="Filtrar por área">
-        <a class="chip" th:href="@{/}" th:attr="aria-current=${areaSelecionada == ''} ? 'true' : null">Todas</a>
-        <a class="chip" th:each="a : ${areas}" th:href="@{/(area=${a})}" th:text="${a}"
-           th:attr="aria-current=${a == areaSelecionada} ? 'true' : null"></a>
-    </nav>
+        <nav class="abas" aria-label="Filtrar por área">
+            <a class="aba" th:href="@{/(q=${q})}" th:attr="aria-current=${areaSelecionada == ''} ? 'true' : null"><span>Todas</span><em th:text="${totalGeral}">0</em></a>
+            <a class="aba" th:each="a : ${areas}" th:href="@{/(area=${a},q=${q})}"
+               th:attr="aria-current=${a == areaSelecionada} ? 'true' : null"><span th:text="${a}"></span><em th:text="${contagens.getOrDefault(a, 0L)}">0</em></a>
+            <p class="contador" id="contador" aria-live="polite"
+               th:text="${totalPaginas > 1} ? 'Mostrando ' + ${de} + ' a ' + ${ate} + ' de ' + ${total} + ' serviços' : 'Mostrando ' + ${total} + ' de ' + ${total} + ' serviços'">Mostrando 0 de 0 serviços</p>
+        </nav>
 
-    <p class="contador" id="contador" aria-live="polite"
-       th:text="${totalPaginas > 1} ? ${de} + ' a ' + ${ate} + ' de ' + ${total} + ' serviços' : ${total} + ' serviços'">0 serviços</p>
-
-    <div class="tabela-wrap">
-        <table id="tabela-servicos">
-            <thead>
-            <tr><th>ID</th><th>Área</th><th>Texto breve</th><th>Código padronizado</th><th>CNAE</th><th>Criador</th></tr>
-            </thead>
-            <tbody>
-            <tr th:each="s : ${servicos}" data-linha>
-                <td class="id" th:text="${s.id}"></td>
-                <td class="area" th:text="${s.areaServico}"></td>
-                <td class="titulo"><a th:href="@{/ui/servicos/{id}(id=${s.id})}" th:text="${s.textoBreve}"></a></td>
-                <td class="codigo-celula">
-                    <span class="codigo">
-                        <code th:text="${s.codigoPadronizado}"></code>
-                        <button type="button" class="copiar" th:data-codigo="${s.codigoPadronizado}"
-                                th:aria-label="'Copiar código ' + ${s.codigoPadronizado}">Copiar</button>
-                    </span>
-                </td>
-                <td class="cnae" th:text="${s.id2Cnae}"></td>
-                <td class="criador" th:text="${s.criadorCodigo} ?: '—'"></td>
-            </tr>
-            <tr class="vazio" th:if="${#lists.isEmpty(servicos) and q != ''}"><td colspan="6">Nenhum serviço corresponde à busca. Tente outro termo.</td></tr>
-            <tr class="vazio" th:if="${#lists.isEmpty(servicos) and q == ''}"><td colspan="6">Nenhum serviço nesta área.</td></tr>
-            </tbody>
-        </table>
+        <div class="tabela-wrap">
+            <table id="tabela-servicos">
+                <thead>
+                <tr><th>Código</th><th>Serviço</th><th>Área</th><th>Condição</th><th>CNAE</th><th>Criador</th><th>ID</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="s : ${servicos}" data-linha>
+                    <td class="codigo-celula">
+                        <span class="codigo">
+                            <code data-segmentar th:text="${s.codigoPadronizado}"
+                                  th:attr="data-abrev=${s.abreviatura},data-compl=${s.complemento},data-cnae=${s.id2Cnae}"></code>
+                            <button type="button" class="copiar" th:data-codigo="${s.codigoPadronizado}"
+                                    th:aria-label="'Copiar código ' + ${s.codigoPadronizado}">Copiar</button>
+                        </span>
+                    </td>
+                    <td class="titulo"><a th:href="@{/ui/servicos/{id}(id=${s.id})}" th:text="${s.textoBreve}"></a></td>
+                    <td class="area" th:text="${s.areaServico}"></td>
+                    <td class="condicao" th:with="cond=${s.id1Condicao ?: ''}"><span class="selo"
+                        th:classappend="${#strings.containsIgnoreCase(cond, 'adicional')} ? 'selo-adicional' : (${#strings.containsIgnoreCase(cond, 'extra')} ? 'selo-extra' : (${#strings.containsIgnoreCase(cond, 'normal')} ? 'selo-normal' : 'selo-outra'))"
+                        th:text="${cond}"></span></td>
+                    <td class="cnae" th:text="${s.id2Cnae}"></td>
+                    <td class="criador" th:text="${s.criadorCodigo} ?: '—'"></td>
+                    <td class="id" th:text="${s.id}"></td>
+                </tr>
+                <tr class="vazio" th:if="${#lists.isEmpty(servicos) and q != ''}"><td colspan="7">Nenhum serviço corresponde à busca. Tente outro termo.</td></tr>
+                <tr class="vazio" th:if="${#lists.isEmpty(servicos) and q == ''}"><td colspan="7">Nenhum serviço nesta área.</td></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <nav class="paginacao" aria-label="Paginação" th:if="${totalPaginas > 1}">

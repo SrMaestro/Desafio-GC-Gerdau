@@ -23,8 +23,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.text.Normalizer;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 @Controller
@@ -69,6 +71,10 @@ public class ServicoViewController {
         model.addAttribute("ate", (numero - 1) * TAMANHO_PAGINA + resultado.getNumberOfElements());
         model.addAttribute("q", q == null ? "" : q.trim());
         model.addAttribute("areas", repository.findAreas());
+        Map<String, Long> contagens = new HashMap<>();
+        repository.contarPorArea(termo).forEach(c -> contagens.put(c.getArea(), c.getTotal()));
+        model.addAttribute("contagens", contagens);
+        model.addAttribute("totalGeral", contagens.values().stream().mapToLong(Long::longValue).sum());
         model.addAttribute("areaSelecionada", areaFiltro);
         model.addAttribute("resumo", resumoService.resumo(ehAprovador(authentication)));
         model.addAttribute("indicadores", resumoService.indicadores());

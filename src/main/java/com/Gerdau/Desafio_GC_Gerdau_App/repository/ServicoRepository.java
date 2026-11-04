@@ -42,6 +42,19 @@ public interface ServicoRepository extends JpaRepository<Servico, Integer> {
     @Query("SELECT DISTINCT s.areaServico FROM Servico s ORDER BY s.areaServico")
     List<String> findAreas();
 
+    /** Quantos serviços cada área tem entre os que a busca {@code termo} encontra ({@code ""} = sem busca). */
+    @Query(value = "SELECT s.area_servico AS area, count(*) AS total FROM servicos_mock s"
+            + " WHERE (:termo = '' OR position(:termo IN " + TEXTO_PESQUISAVEL + ") > 0)"
+            + " GROUP BY s.area_servico", nativeQuery = true)
+    List<ContagemPorArea> contarPorArea(@Param("termo") String termo);
+
+    /** Linha de {@link #contarPorArea}. */
+    interface ContagemPorArea {
+        String getArea();
+
+        long getTotal();
+    }
+
     List<Servico> findByCriadorCodigo(String criadorCodigo);
 
     List<Servico> findByAbreviatura(String abreviatura);

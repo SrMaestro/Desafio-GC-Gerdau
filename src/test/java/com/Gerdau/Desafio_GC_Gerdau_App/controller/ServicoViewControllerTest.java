@@ -320,12 +320,11 @@ class ServicoViewControllerTest {
 
         mvc.perform(get("/"))
                 .andExpect(content().string(containsString("Duplicados barrados")))
-                .andExpect(content().string(containsString("Códigos reaproveitados")))
-                .andExpect(content().string(containsString("Sem correspondência")))
+                .andExpect(content().string(containsString("sem correspondência")))
                 .andExpect(content().string(containsString("Duplicidade evitada")))
                 .andExpect(content().string(containsString("resumo-valor\">12<")))
-                .andExpect(content().string(containsString("resumo-valor\">8<")))
-                .andExpect(content().string(containsString("resumo-valor\">15<")))
+                .andExpect(content().string(containsString("8 códigos reaproveitados")))
+                .andExpect(content().string(containsString("15 sem correspondência (código novo)")))
                 .andExpect(content().string(containsString("resumo-valor\">50%<")));
     }
 

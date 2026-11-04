@@ -52,3 +52,9 @@ Spring Security com sessão e tela `/login`. Usuários na tabela `usuarios` (V9,
 - As condições (hora normal, hora extra, posto mensal...) vivem só em `cat_horarios`. Condição nova = `INSERT` numa migration; condição aposentada = `ativo = FALSE` (nunca apagar). `servicos_mock.id1_condicao` guarda o texto da condição na hora do cadastro, sem FK, então serviços antigos não mudam quando o catálogo muda.
 - A conexão vem do `.env` (importado por `spring.config.import`) via `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`. A app roda fora do Docker, então o host é `localhost`.
 - Se o Flyway reclamar de schema sem histórico, ou o Postgres de `data-db` for de outra versão/senha: `docker compose down`, apagar `data-db` e subir de novo (apaga os dados).
+
+## Visual (CSS e templates)
+
+- Tokens do design (cores, princípios) em `docs/design.json`; mapa das telas em `docs/MAPA_DO_SITE.md`. Consulte antes de mexer em estilo.
+- As variáveis (`--azul`, `--destaque`, `--linha`...) ficam no `:root` de `static/css/style.css`; use-as em vez de cores soltas. `importacao.css` e `revisao.css` cobrem só essas telas.
+- As regras genéricas de `table`/`th`/`td` em `style.css` são compartilhadas por `revisao.html`, `consultas.html` e `consulta-detalhe.html` (`table.revisao`). Estilo novo de tabela deve ser escopado por id ou classe, nunca alterar as regras genéricas.
