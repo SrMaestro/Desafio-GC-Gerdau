@@ -221,7 +221,7 @@
       "conteudo": "nome da seção à esquerda; busca, notificações e tema à direita"
     },
     "cabecalhoDePagina": "título e subtítulo à esquerda; botão secundário e botão primário à direita",
-    "resumo": "4 cards lado a lado, mesma largura",
+    "resumo": "cartões de indicador com rótulo, número e linha de apoio; quebram conforme a largura",
     "tabela": "card único com abas no topo e contagem de resultados à direita",
     "menuRodape": [
       "card de aviso roxo",

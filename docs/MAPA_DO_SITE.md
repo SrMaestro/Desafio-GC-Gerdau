@@ -27,7 +27,7 @@ O `layout.html` também define o `head` (fontes Barlow/Open Sans, `style.css`, `
 
 | Rota | Template | Perfil | Descrição |
 |---|---|---|---|
-| `/` | `servicos.html` | todos | Lista paginada de serviços, com busca por texto e filtro por área (chips). Botões "Novo serviço" e "Buscar NBS". |
+| `/` | `servicos.html` | todos | Lista paginada de serviços, com indicadores no topo e, numa caixa só, busca por texto, abas por área com contagem (que respeita a busca) e tabela com selo de condição. JS: `app.js` (colore as partes do código). Botões "Novo serviço" e "Buscar NBS". |
 | `/ui/servicos/novo` | `servico-form.html` | todos | Formulário de cadastro. Mostra o código gerado, o NBS escolhido e os serviços parecidos; permite "Usar este código" ou confirmar o cadastro. JS: `form.js`, `similares.js`. |
 | `POST /ui/servicos` | (redireciona) | todos | Cria o serviço e vai para o detalhe. |
 | `POST /ui/servicos/reutilizar` | (redireciona) | todos | Registra a reutilização de um código existente. |

@@ -6,6 +6,7 @@
     --acao-hover: #e6b800;
     --destaque: #03939d;
     --destaque-fundo: #e0f3f4;
+    --destaque-texto: #027a83;
     --brasa: #03939d;
     --papel: #f1f4f8;
     --raio: 10px;
@@ -19,7 +20,7 @@
     --atencao-fundo: #fdf1b8;
     --superficie: #fff;
     --texto: #111111;
-    --texto-suave: #8a8a8a;
+    --texto-suave: #6b6b6b;
     --texto-medio: #555555;
     --linha: #e6e6e6;
     --linha-forte: #d4d4d4;
@@ -36,7 +37,7 @@ body.app { display: grid; grid-template-columns: 208px minmax(0, 1fr); min-heigh
 body.app > main { width: 100%; }
 .menu { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 1.25rem; padding: 1.25rem .75rem; background: var(--azul); color: #fff; border-right: 3px solid var(--acao); }
 .menu .marca { color: #fff; text-decoration: none; font-family: var(--fonte-titulo); font-weight: 600; font-size: 1rem; letter-spacing: -.02em; line-height: 1.2; padding: 0 .5rem; }
-.menu .marca small { display: block; margin-bottom: .2rem; font-weight: 600; font-size: .6rem; letter-spacing: .1em; text-transform: uppercase; color: var(--acao); }
+.menu .marca small { display: block; margin-bottom: .2rem; font-weight: 600; font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--acao); }
 .menu nav { display: flex; flex-direction: column; gap: .25rem; }
 .menu nav a { display: flex; align-items: center; gap: .6rem; color: #fff; opacity: .85; text-decoration: none; font-size: .85rem; font-weight: 500; padding: .5rem .6rem; border-radius: var(--raio-controle); }
 .menu nav a svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
@@ -63,13 +64,7 @@ button:hover:not(:disabled) { border-color: var(--azul); }
 dt { font-weight: 600; margin-top: .8rem; color: var(--texto-suave); }
 dd { margin: 0; }
 
-/* Cards de resumo */
-.resumo { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
-.resumo-card { display: flex; flex-direction: column; gap: .25rem; padding: 1rem 1.1rem; background: var(--superficie); border: 1px solid var(--linha); border-radius: var(--raio); }
-.resumo-card.destaque { border-color: var(--destaque); background: var(--destaque-fundo); }
-.resumo-rotulo { color: var(--destaque); font-size: .68rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
 .resumo-valor { font-family: var(--fonte-titulo); font-size: 1.75rem; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
-.resumo-card.destaque .resumo-valor { color: var(--destaque); }
 
 /* Listagem */
 .topo { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
@@ -84,18 +79,13 @@ dd { margin: 0; }
 .busca { display: block; width: 100%; padding: .85rem 1rem; font-size: 1.1rem; border: 2px solid var(--linha); border-radius: var(--raio); background: var(--superficie); box-shadow: var(--sombra); }
 .busca:focus { border-color: var(--azul); outline-offset: 0; }
 
-.filtros { display: flex; flex-wrap: wrap; gap: .5rem; margin: .9rem 0 1rem; }
-.chip { display: inline-block; padding: .3rem .85rem; border: 1px solid transparent; border-radius: var(--raio-controle); background: var(--superficie); color: var(--texto); text-decoration: none; font-size: .95rem; }
-.chip:hover { background: var(--item-ativo); }
-.chip[aria-current="true"]:hover { background: var(--azul); }
-.chip[aria-current="true"] { background: var(--azul); border-color: var(--azul); color: #fff; font-weight: 600; }
 
 .contador { margin: 0 0 .5rem; color: var(--texto-suave); font-size: .95rem; }
 
 .tabela-wrap { background: var(--superficie); border: 1px solid var(--linha); border-radius: var(--raio); box-shadow: var(--sombra); overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: .7rem 1rem; font-size: .85rem; text-align: left; border-bottom: 1px solid var(--linha); vertical-align: middle; }
-thead th { position: sticky; top: 0; background: var(--superficie); color: var(--texto-suave); font-weight: 500; font-size: .66rem; text-transform: uppercase; letter-spacing: .08em; white-space: nowrap; }
+thead th { position: sticky; top: 0; background: var(--superficie); color: var(--texto-suave); font-weight: 500; font-size: .76rem; white-space: nowrap; }
 tbody tr:hover td { background: var(--papel); }
 tbody tr:last-child td { border-bottom: 0; }
 td.id { color: var(--texto-suave); font-variant-numeric: tabular-nums; }
@@ -131,6 +121,7 @@ td.titulo a:hover { text-decoration: underline; }
     tbody tr[data-linha][hidden] { display: none; }
     tbody tr[data-linha] td { display: block; padding: 0; border: 0; }
     td.titulo { grid-column: 1 / -1; }
+    td.titulo { order: -1; }
     td.id { grid-column: 2; grid-row: 2; text-align: right; }
     td.id::before { content: "#"; }
     td.area { grid-column: 1; grid-row: 2; }
@@ -143,7 +134,7 @@ td.titulo a:hover { text-decoration: underline; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-    .copiar, .chip, .botao { transition: background-color .15s, border-color .15s, color .15s; }
+    .copiar, .aba, .botao { transition: background-color .15s, border-color .15s, color .15s; }
 }
 
 /* Busca de NBS */
@@ -172,7 +163,7 @@ td.titulo a:hover { text-decoration: underline; }
 /* Formulário de novo serviço */
 :root {
     --parte-abrev: #0f3363;
-    --parte-compl: #8a8a8a;
+    --parte-compl: #6b6b6b;
     --parte-cond: #03939d;
     --parte-cnae: #b3261e;
     --alerta: #b3261e;
@@ -271,3 +262,75 @@ body.login input:focus { border-color: var(--azul); outline-offset: 0; }
 body.login button[type="submit"] { padding: .7rem 1rem; background: var(--acao); border-color: var(--acao); color: var(--acao-texto); font-weight: 700; }
 body.login button[type="submit"]:hover { background: var(--acao-hover); border-color: var(--acao-hover); }
 @media (max-width: 720px) { .card dl { grid-template-columns: minmax(0, 1fr); gap: .15rem; } .card dl dd { margin-bottom: .6rem; } }
+
+/* Serviços: indicadores, caixa com busca + abas + tabela */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: .75rem; margin-bottom: 1.25rem; }
+.kpi { display: flex; flex-direction: column; gap: .1rem; padding: .8rem 1rem; background: var(--superficie); border: 1px solid var(--linha); border-radius: var(--raio); }
+.kpi-rotulo { color: var(--destaque-texto); font-size: .8rem; font-weight: 600; }
+.kpi .resumo-valor { font-size: 1.75rem; }
+.kpi-apoio { color: var(--texto-suave); font-size: .78rem; }
+.kpi.atencao .resumo-valor { color: var(--atencao); }
+.kpi.evitada { background: var(--destaque-fundo); border-color: var(--destaque); }
+.kpi.evitada .resumo-valor { color: var(--destaque-texto); }
+
+.caixa-lista { background: var(--superficie); border: 1px solid var(--linha); border-radius: var(--raio); overflow: hidden; }
+.caixa-lista .busca-form { padding: .75rem .9rem; border-bottom: 1px solid var(--linha); }
+.caixa-lista .busca { padding: .55rem .8rem; font-size: .95rem; border-width: 1px; border-color: var(--linha-forte); border-radius: var(--raio-controle); background: var(--papel); }
+.caixa-lista .busca:focus { background: var(--superficie); }
+.abas { display: flex; flex-wrap: wrap; align-items: center; gap: .15rem; padding: .5rem .9rem; border-bottom: 1px solid var(--linha); }
+.aba { display: inline-flex; align-items: baseline; gap: .35rem; padding: .3rem .7rem; border-radius: var(--raio-controle); color: var(--texto-medio); text-decoration: none; font-size: .85rem; }
+.aba em { font-style: normal; font-size: .75rem; color: var(--texto-suave); font-variant-numeric: tabular-nums; }
+.aba:hover { background: var(--papel); }
+.aba[aria-current="true"] { background: var(--item-ativo); color: var(--azul); font-weight: 600; }
+.abas .contador { margin: 0 0 0 auto; padding-left: 1rem; font-size: .8rem; }
+.caixa-lista .tabela-wrap { border: 0; border-radius: 0; }
+
+/* partes do código (a segmentação é feita em app.js) */
+code .p-abrev { color: var(--azul); font-weight: 600; }
+code .p-compl { color: var(--texto-medio); }
+code .p-cond { color: var(--destaque-texto); }
+code .p-cnae { color: var(--alerta); }
+code .p-sep { color: var(--texto-suave); }
+
+/* selo da condição */
+.selo { display: inline-block; padding: .12rem .55rem; border-radius: 6px; font-size: .76rem; font-weight: 600; white-space: nowrap; }
+.selo-normal { background: var(--item-ativo); color: var(--azul); }
+.selo-extra { background: var(--atencao-fundo); color: var(--atencao); }
+.selo-adicional { background: var(--destaque-fundo); color: var(--destaque-texto); }
+.selo-outra { background: var(--papel); color: var(--texto-medio); }
+
+@media (max-width: 720px) {
+    .abas .contador { flex-basis: 100%; margin: .35rem 0 0; padding: 0; }
+    td.condicao { grid-column: 1 / -1; }
+}
+
+/* Lista de serviços: página mais larga e tabela sem rolagem lateral */
+main.larga { max-width: 1680px; }
+#tabela-servicos th, #tabela-servicos td { padding: .65rem .7rem; }
+#tabela-servicos th:first-child, #tabela-servicos td:first-child { padding-left: 1rem; }
+#tabela-servicos th:last-child, #tabela-servicos td:last-child { padding-right: 1rem; }
+#tabela-servicos td { white-space: nowrap; }
+#tabela-servicos td.titulo { white-space: normal; width: 100%; min-width: 13rem; }
+#tabela-servicos .codigo code { font-size: .82rem; }
+#tabela-servicos .copiar { padding: .1rem .45rem; font-size: .75rem; }
+@media (min-width: 721px) and (max-width: 1400px) {
+    #tabela-servicos td.condicao .selo { white-space: normal; }
+    #tabela-servicos th:nth-child(7), #tabela-servicos td:nth-child(7) { display: none; }
+    #tabela-servicos th:nth-child(6), #tabela-servicos td:nth-child(6) { padding-right: 1rem; }
+}
+@media (min-width: 721px) and (max-width: 1150px) {
+    #tabela-servicos th:nth-child(5), #tabela-servicos td:nth-child(5),
+    #tabela-servicos th:nth-child(6), #tabela-servicos td:nth-child(6) { display: none; }
+    #tabela-servicos th:nth-child(4), #tabela-servicos td:nth-child(4) { padding-right: 1rem; }
+}
+@media (min-width: 721px) and (max-width: 1000px) {
+    #tabela-servicos th:nth-child(3), #tabela-servicos td:nth-child(3) { display: none; }
+    #tabela-servicos td.titulo { min-width: 9rem; }
+    #tabela-servicos .codigo { flex-wrap: wrap; gap: .3rem; }
+}
+
+/* Alinhamento: o Copiar fica na borda direita da coluna (todos na mesma vertical) e o texto da área alinha com o cabeçalho */
+@media (min-width: 721px) {
+    #tabela-servicos .codigo { display: flex; justify-content: space-between; gap: .75rem; }
+    #tabela-servicos td.area::before { display: none; }
+}

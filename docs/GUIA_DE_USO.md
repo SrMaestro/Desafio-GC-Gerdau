@@ -12,13 +12,13 @@ Usuários de exemplo, criados na instalação: `comprador` / `comprador123` e `a
 
 ## Resumo na tela de Serviços
 
-No topo da lista de **Serviços** há três cards: **Serviços cadastrados** (total do catálogo), **Mapeamentos pendentes** (sugestões do De-Para ainda sem decisão) e, só para o aprovador, **Linhas aguardando aprovação** (linhas de planilhas já enviadas, esperando decisão). Se um número não puder ser lido na hora, o card mostra "—" e o resto da tela funciona normalmente.
+No topo da lista de **Serviços** ficam os indicadores, em cartões com o número e uma linha de apoio. Os três primeiros são: **Serviços cadastrados** (total do catálogo), **Mapeamentos pendentes** (sugestões do De-Para ainda sem decisão) e, só para o aprovador, **Linhas aguardando aprovação** (linhas de planilhas já enviadas, esperando decisão). Se um número não puder ser lido na hora, o indicador mostra "—" e o resto da tela funciona normalmente.
 
-Logo abaixo há quatro **indicadores de cadastro**, iguais para todos, calculados sobre o registro das tentativas de cadastro: **Duplicados barrados** (tentativas que o sistema bloqueou), **Códigos reaproveitados** (quantas vezes alguém escolheu "Usar este código" em vez de criar outro), **Sem correspondência (código novo)** (cadastros feitos sem nenhum serviço parecido) e **Duplicidade evitada** (a parte das tentativas que não gerou código novo: barradas mais reaproveitadas, sobre o total). Enquanto não houver nenhuma tentativa registrada, a duplicidade evitada mostra "—".
+Os outros são **indicadores de cadastro**, iguais para todos, calculados sobre o registro das tentativas de cadastro: **Duplicados barrados** (tentativas que o sistema bloqueou), **Duplicidade evitada** (a parte das tentativas que não gerou código novo: barradas mais reaproveitadas, sobre o total). Enquanto não houver nenhuma tentativa registrada, a duplicidade evitada mostra "—". Duas contagens aparecem como linha de apoio: embaixo de **Duplicados barrados**, os **códigos reaproveitados** (quantas vezes alguém escolheu "Usar este código" em vez de criar outro) e, embaixo de **Duplicidade evitada**, os cadastros **sem correspondência (código novo)**, feitos sem nenhum serviço parecido.
 
 ## Procurar um serviço na lista
 
-A lista mostra 25 serviços por vez. Use **Anterior** e **Próxima** no fim da tabela para mudar de página. Para procurar, digite no campo de busca e aperte **Enter**: a busca olha o ID, a área, o texto, o código, o CNAE e o criador, sem diferenciar maiúsculas nem acentos, e vale para a base inteira, não só para a página aberta. Os botões de área filtram a lista; a tecla `/` leva o cursor ao campo de busca.
+A lista mostra 25 serviços por vez. Use **Anterior** e **Próxima** no fim da tabela para mudar de página. Para procurar, digite no campo de busca e aperte **Enter**: a busca olha o ID, a área, o texto, o código, o CNAE e o criador, sem diferenciar maiúsculas nem acentos, e vale para a base inteira, não só para a página aberta. As abas de área filtram a lista e mostram quantos serviços cada área tem entre os que a busca encontrou (sem busca, o total da área). Cada linha mostra o código com as partes coloridas, a área, a condição em um selo colorido, o CNAE e o criador. A tecla `/` leva o cursor ao campo de busca.
 
 ## 1. Cadastrar um novo serviço (comprador)
 
