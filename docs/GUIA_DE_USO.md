@@ -167,7 +167,7 @@ A busca de serviços parecidos usa o operador `%` do `pg_trgm` para aproveitar o
 
 Um passo a passo para conferir, em cerca de 30 minutos, se o sistema faz o que promete. Cada linha diz o que fazer e o que deve acontecer. Se o resultado for diferente, anote o passo, o que você viu e o horário (o aprovador acha a tentativa em **Consultas**), e avise quem cuida do projeto.
 
-**Antes de começar:** o sistema precisa estar no ar (veja "Teste rápido" no [README](../README.md#teste-rápido)) e o banco no estado inicial, com os serviços de exemplo. Os resultados abaixo valem para esse estado. Se alguém já cadastrou coisas, as respostas podem mudar; para voltar ao início, siga "Voltar ao estado inicial" no README. Faça os passos na ordem: alguns usam o que o anterior criou.
+**Antes de começar:** o sistema precisa estar no ar (veja "Rodar na sua máquina" no [README](../README.md#rodar-na-sua-máquina)) e o banco no estado inicial, com os serviços de exemplo. Os resultados abaixo valem para esse estado. Se alguém já cadastrou coisas, as respostas podem mudar; para voltar ao início, siga "Voltar ao estado inicial" no README. Faça os passos na ordem: alguns usam o que o anterior criou.
 
 ### Parte A: comprador (entre como `comprador`)
 

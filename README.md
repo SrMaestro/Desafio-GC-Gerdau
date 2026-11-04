@@ -1,55 +1,65 @@
 # Desafio GC Gerdau App
 
-Aplicação web (telas e API REST) em **Spring Boot**, conectada a um banco **PostgreSQL** executado em container **Docker**. O projeto padroniza códigos de serviço e bloqueia a criação de duplicados.
+Aplicação web que **padroniza códigos de serviço e impede duplicados**. Feita para o Desafio GC 2026 (Gerdau | Geração Caldeira), na trilha Java.
 
-## Tecnologias
+## O problema e a solução
 
-- Java 21
-- Spring Boot 4.1.1 (Web MVC, Data JPA, DevTools)
-- PostgreSQL 16 (Alpine) + pgAdmin 4 via Docker Compose
-- Flyway (migrations do banco)
-- Lombok
-- Maven
-- Apache POI e Commons CSV (leitura de planilhas `.xlsx` e `.csv`)
+Hoje cada comprador cria os próprios códigos de serviço sem nenhum filtro. O resultado são milhares de códigos duplicados e esquecidos. O limite de 40 caracteres do código vem do SAP.
 
-## O que a aplicação faz
+A aplicação coloca um filtro na entrada: antes de criar um código, ela compara o texto digitado com os serviços já existentes. Se for o mesmo serviço, **bloqueia e avisa o comprador**, oferecendo o código que já existe. Se for parecido, pede confirmação. Se for novo, cadastra com o código padronizado.
 
-Resolve o problema de códigos de serviço duplicados (TAP do Desafio GC 2026) na trilha Java:
+## O que ela faz
 
-1. **Cadastro com filtro**: ao criar um serviço, o sistema gera o código padronizado, compara o texto com os serviços existentes (`pg_trgm`) e **bloqueia duplicados**, avisando o comprador. Parecidos pedem confirmação, e o comprador pode contestar um bloqueio por texto dizendo, com justificativa registrada, que é outro serviço.
-2. **Busca de NBS**: o comprador digita o serviço (mesmo com erro) e recebe o código NBS oficial, por busca exata no De-Para ou por sugestões de similaridade.
-3. **Smart Key**: junta o NBS ao sufixo de horário (ex.: `1.0106.19.00-HN`).
-4. **De-Para com revisão**: confirmações de usuários viram mapeamentos `PENDENTE`; um revisor aprova, rejeita ou revoga, com histórico. Só `APROVADO` vale como busca exata.
-5. **Registro das consultas**: toda tentativa de cadastro individual (bloqueada, que pediu confirmação ou cadastrada) e toda reutilização de um código sugerido ficam gravadas, e o aprovador as confere em `/ui/consultas`. Com esse registro, a tela inicial mostra os indicadores: duplicados barrados, códigos reaproveitados, cadastros sem correspondência e a duplicidade evitada.
-6. **Importação em massa**: o comprador envia uma planilha (`.csv`/`.xlsx`, até 20.000 linhas e 10 MB); o sistema aplica o filtro a cada linha em segundo plano, o comprador confere o resultado e envia ao **aprovador**, que decide. Nada entra na base sem essa aprovação. O que o aprovador liga a um serviço existente vira **sinônimo** e passa a bloquear o cadastro individual daquele texto.
+1. **Cadastro com filtro:** gera o código (`abreviatura + complemento + "_" + condição + CNAE`, até 40 caracteres), compara o texto com os existentes (`pg_trgm`) e bloqueia duplicados. Parecidos pedem confirmação. O comprador pode contestar um bloqueio com justificativa, que fica registrada.
+2. **Busca de NBS:** o comprador digita o serviço, mesmo com erro, e recebe o código NBS oficial por busca exata no De-Para ou por sugestões de similaridade.
+3. **Smart Key:** junta o NBS ao sufixo de horário (ex.: `1.0106.19.00-HN`).
+4. **De-Para com revisão:** confirmações de usuários viram mapeamentos `PENDENTE`; um aprovador aprova, rejeita ou revoga, com histórico.
+5. **Registro das consultas e indicadores:** toda tentativa de cadastro fica gravada e o aprovador a confere. A tela inicial mostra duplicados barrados, códigos reaproveitados e cadastros sem correspondência.
+6. **Importação em massa:** o comprador envia uma planilha (`.csv` ou `.xlsx`, até 20.000 linhas e 10 MB), o sistema aplica o filtro em cada linha, o comprador confere e o aprovador decide. Nada entra na base sem aprovação.
 
-Passo a passo de uso: [docs/GUIA_DE_USO.md](docs/GUIA_DE_USO.md). Regras de negócio e decisões: [docs/REGRAS_DE_NEGOCIO.md](docs/REGRAS_DE_NEGOCIO.md). Validação da similaridade (casos corretos, ambíguos e incorretos, limitações): [docs/VALIDACAO_SIMILARIDADE.md](docs/VALIDACAO_SIMILARIDADE.md).
+Para ver cada tela em uso, siga o [guia de uso](docs/GUIA_DE_USO.md).
 
-## Teste rápido
-
-Para a equipe testar a aplicação na própria máquina.
+## Rodar na sua máquina
 
 **Precisa de:** Docker (com Docker Compose) e JDK 21.
 
 ```bash
-cp env.example .env              # primeira vez: troque as senhas por qualquer valor
+git clone <url-do-repositorio>
+cd Desafio-GC-Gerdau-App
+
+cp env.example .env              # troque as duas senhas por qualquer valor
 docker compose up -d             # sobe o banco (e o pgAdmin em :5050)
 export JAVA_HOME=/caminho/do/jdk-21   # só se o seu JDK padrão não for o 21
 ./mvnw spring-boot:run           # espere a mensagem "Started ..."
 ```
 
-Abra **http://localhost:8080** e entre com um dos usuários de exemplo:
+Abra **http://localhost:8080** e entre com um dos usuários abaixo. Na primeira execução o Flyway cria as tabelas e insere os dados de exemplo.
 
 | Usuário | Senha | Perfil |
 |---------|-------|--------|
 | `comprador` | `comprador123` | Cadastra, busca e importa planilhas |
 | `aprovador` | `aprovador123` | Tudo isso, mais aprovar planilhas, revisar o De-Para e ver as consultas |
 
-O passo a passo do teste, com os dados a digitar e o resultado esperado de cada passo, está em [docs/GUIA_DE_USO.md](docs/GUIA_DE_USO.md#5-roteiro-de-teste-para-a-equipe). A planilha de exemplo para o teste de importação é [docs/exemplos/servicos_exemplo.csv](docs/exemplos/servicos_exemplo.csv). Para rodar os testes automáticos: `./mvnw test` (com o banco no ar).
+O catálogo é de **exemplo** (15 serviços): a lista saneada fica com a trilha IA & Dados. Os usuários acima são só para teste, **não use essas senhas fora da sua máquina**.
+
+O `.env` define o banco. Os valores do `env.example` já funcionam; só `DB_PASSWORD` e `PGADMIN_DEFAULT_PASSWORD` vêm vazios e precisam de algum valor:
+
+```env
+DB_NAME=pgsql-db-gerdau
+DB_USER=admin
+DB_PASSWORD=
+DB_PORT=5431
+```
+
+### Como testar
+
+- **Roteiro passo a passo**, com o que digitar e o resultado esperado de cada passo: [docs/GUIA_DE_USO.md](docs/GUIA_DE_USO.md#5-roteiro-de-teste-para-a-equipe).
+- **Planilha de exemplo** para a importação: [docs/exemplos/servicos_exemplo.csv](docs/exemplos/servicos_exemplo.csv).
+- **Testes automáticos:** `./mvnw test` (com o banco no ar).
 
 ### Voltar ao estado inicial
 
-Tudo o que se cadastra durante o teste fica no banco. Para recomeçar com só os serviços de exemplo (**apaga todos os dados**):
+Tudo o que se cadastra fica no banco. Para recomeçar só com os serviços de exemplo (**apaga todos os dados**):
 
 ```bash
 # pare a aplicação (Ctrl+C) e depois:
@@ -59,200 +69,7 @@ docker compose up -d
 ./mvnw spring-boot:run
 ```
 
-Os usuários de exemplo são só para teste. **Não use essas senhas fora da sua máquina.**
-
-## Estrutura
-
-```
-src/main/java/com/Gerdau/Desafio_GC_Gerdau_App/
-├── controller/   REST (/api, /servicos) e telas Thymeleaf (/ui)
-├── service/      ServicoService, BuscaNbsService, DeParaService, SmartKeyService,
-│                 ImportacaoService, ConferenciaService, AprovacaoImportacaoService, SinonimoServicoService
-├── repository/   Spring Data JPA + queries nativas com pg_trgm
-├── model/        entidades e enums (StatusDePara, OrigemDePara)
-├── dto/          requests e responses
-└── exception/    CadastroRejeitadoException, DeParaNaoEncontradoException
-src/main/resources/
-├── db/migration/ migrations Flyway (V1 a V13)
-├── templates/    telas (busca, servicos, formulário, revisão, importação, aprovação)
-└── static/       css e js
-```
-
-## Como executar
-
-### 1. Configurar variáveis de ambiente
-
-Copie o exemplo e preencha as senhas:
-
-```bash
-cp env.example .env
-```
-
-```env
-DB_NAME=pgsql-db-gerdau
-DB_USER=admin
-DB_PASSWORD=sua_senha
-DB_PORT=5431
-
-PGADMIN_DEFAULT_EMAIL=admin@admin.com
-PGADMIN_DEFAULT_PASSWORD=sua_senha
-```
-
-### 2. Subir o banco
-
-```bash
-docker compose up -d
-docker ps
-```
-
-### 3. Rodar a aplicação
-
-```bash
-./mvnw spring-boot:run
-```
-
-Na primeira execução o Flyway cria a tabela e insere os dados mock. A API fica disponível em `http://localhost:8080`.
-
-> O projeto exige **JDK 21+**. Se `./mvnw` acusar `release version 21 not supported`, aponte o `JAVA_HOME` para um JDK 21.
-
-## Configuração do banco
-
-O `application.properties` importa o `.env` e monta a conexão:
-
-```properties
-spring.config.import=optional:file:.env[.properties]
-spring.datasource.url=jdbc:postgresql://localhost:${DB_PORT}/${DB_NAME}
-spring.datasource.username=${DB_USER}
-spring.datasource.password=${DB_PASSWORD}
-spring.jpa.hibernate.ddl-auto=validate
-spring.jpa.open-in-view=false
-```
-
-A aplicação roda fora do Docker, então o host é `localhost` e a porta é a mapeada no compose (`5431`, que aponta para a `5432` interna do container).
-
-## Migrations (Flyway)
-
-O schema do banco é versionado em `src/main/resources/db/migration`. Ao iniciar, o Flyway aplica em ordem as migrations ainda não executadas e registra o histórico na tabela `flyway_schema_history`.
-
-| Arquivo | Conteúdo |
-|---------|----------|
-| `V1__create_servicos_mock.sql` | Tabela `servicos_mock` (unicidade e condições válidas) |
-| `V2__insert_servicos_mock.sql` | 15 serviços mock |
-| `V3__pg_trgm_similaridade.sql` | Extensão `pg_trgm` e índice de similaridade em `servicos_mock` |
-| `V4__dicionario_de_para_revisao.sql` | `cat_nbs`, `dicionario_de_para` e histórico de revisão |
-| `V5__popula_cat_nbs.sql` | Recorte da NBS 2.0 em `cat_nbs` |
-| `V6__cat_horarios.sql` | `cat_horarios` com os sufixos da Smart Key |
-| `V7__servicos_mock_codigo_nbs.sql` | Coluna `codigo_nbs` em `servicos_mock` |
-| `V8__cat_horarios_unica_fonte.sql` | `cat_horarios.ativo` e remoção do `CHECK` de condição em `servicos_mock` |
-| `V9__usuarios.sql` | Tabela `usuarios` (login) e dois usuários de exemplo |
-| `V10__importacao_em_massa.sql` | `lotes_importacao`, `linhas_importacao` (situação e etapa de cada linha) e `servico_sinonimo` |
-| `V11__conferido_em.sql` | `linhas_importacao.conferido_em`: data da última decisão do comprador na linha |
-| `V12__consultas_cadastro.sql` | `consultas_cadastro` e `consulta_cadastro_sugestoes`: histórico de cada tentativa de cadastro individual |
-| `V13__contestacao_do_bloqueio.sql` | `consultas_cadastro.justificativa` e a decisão `CONTESTOU_BLOQUEIO` |
-
-Para alterar o banco, crie um novo arquivo seguindo a convenção `V{n}__descricao.sql` (ex.: `V3__add_coluna_x.sql`). **Nunca edite uma migration já aplicada**: o Flyway valida o checksum e a aplicação deixa de subir.
-
-## Login e perfis
-
-Todas as telas e a API exigem login (usuário e senha guardados na tabela `usuarios`, senha com BCrypt). Há dois perfis:
-
-| Perfil | Pode |
-|--------|------|
-| `COMPRADOR` | Cadastrar serviço, buscar serviços, buscar NBS, Smart Key, confirmar uma sugestão de NBS e importar planilhas (os próprios lotes) |
-| `APROVADOR` | Tudo o que o comprador faz, mais a revisão do De-Para (`/ui/revisao` e `/api/de-para/**`), a aprovação de planilhas (`/ui/aprovacao` e `/api/importacoes/aprovacao/**`) e o histórico de consultas (`/ui/consultas`) |
-
-Sem login, as telas redirecionam para `/login` e a API responde `401`. Com perfil insuficiente a resposta é `403`. Usuários de exemplo (V9) e como trocar as senhas: `docs/GUIA_DE_USO.md`. O revisor gravado no histórico do De-Para é sempre o usuário logado.
-
-## Telas
-
-As telas usam Inter (texto) e JetBrains Mono (códigos), hospedadas junto da aplicação em `static/fonts` e declaradas em `static/css/fontes.css`. Não há chamada a serviços externos, então funciona na rede fechada da Gerdau.
-
-| Rota | Tela |
-|------|------|
-| `/` | Lista de serviços (25 por página, com busca no servidor por `?q=`, filtro `?area=` e `?pagina=`), cards de resumo e indicadores de cadastro |
-| `/ui/busca` | Busca de NBS e Smart Key |
-| `/ui/servicos/novo` | Cadastro de novo serviço (com filtro de duplicados) |
-| `/ui/servicos/{id}` | Detalhe do serviço |
-| `POST /ui/servicos/reutilizar` | Botão "Usar este código" nas sugestões do cadastro: registra que o comprador reaproveitou um serviço existente e abre o detalhe dele |
-| `/login` | Entrar (única tela sem login) |
-| `/ui/revisao` | Fila de revisão do De-Para (só `APROVADOR`) |
-| `/ui/importacoes` | Enviar planilha e ver os próprios lotes |
-| `/ui/importacoes/{id}` | Conferência do lote: com erro, parecidas, novas, já existiam e repetidas (só o dono) |
-| `/ui/aprovacao` | Lotes com linhas aguardando decisão (só `APROVADOR`) |
-| `/ui/consultas` | Histórico das tentativas de cadastro: o que foi consultado, o que o sistema respondeu e o que o comprador decidiu (só `APROVADOR`) |
-| `/ui/consultas/{id}` | Detalhe de uma consulta, com as sugestões mostradas (só `APROVADOR`) |
-| `/ui/aprovacao/{id}` | Aprovação das linhas de um lote, uma a uma ou em bloco (só `APROVADOR`) |
-
-## Endpoints
-
-Todas as rotas exigem login. As de `/api/de-para` (exceto `confirmacoes`) e as de `/api/importacoes/aprovacao` são só do `APROVADOR`. Requisições `POST` precisam do token CSRF (header `X-CSRF-TOKEN`, valor na `<meta name="_csrf">` das telas).
-
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| GET | `/servicos` | Lista todos os serviços |
-| GET | `/servicos/{id}` | Busca um serviço pelo id |
-| GET | `/servicos/area/{area}` | Lista os serviços de uma área |
-| POST | `/servicos/analise` | Simula o cadastro: código gerado, similares e se bloquearia |
-| POST | `/servicos?confirmar=false` | Cadastra. `201` criado; `409` com a análise se bloqueado ou se pede confirmação. Para contestar um bloqueio por texto parecido, envie `justificativaOutroServico` (10 a 500 caracteres) no corpo |
-| GET | `/api/nbs/busca?texto=` | Busca de NBS: `EXATO` (De-Para aprovado) ou `SUGESTOES` |
-| GET | `/api/horarios` | Lista os horários e sufixos |
-| GET | `/api/smart-key?nbs=&horario=` | Monta a Smart Key (`400` se NBS ou horário não existem) |
-| POST | `/api/de-para/confirmacoes` | Registra a confirmação de um usuário como `PENDENTE` |
-| GET | `/api/de-para/fila` | Lista os pendentes |
-| POST | `/api/de-para/{id}/aprovar` | Aprova (o revisor é o usuário logado) |
-| POST | `/api/de-para/{id}/rejeitar` | Rejeita (corpo: `motivo`) |
-| POST | `/api/de-para/{id}/revogar` | Revoga um aprovado (corpo: `motivo`) |
-
-### Importação em massa
-
-O usuário que age vem sempre do login, nunca do corpo. Lote de outro usuário: as consultas (`GET`) respondem `404` (o aprovador vê apenas as linhas enviadas e em conflito), e as ações do comprador sobre ele ou suas linhas (`PUT`/`POST` de correção, decisão, descarte e envio) respondem `403`; linha ou lote inexistente, `404`. Erros do corpo/estado: `400` (dado inválido), `409` (linha já decidida, ou fora da etapa esperada), `403` (perfil). Arquivo inválido ou acima dos limites é recusado com mensagem.
-
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| POST | `/api/importacoes` | Envia o arquivo (`multipart`, campo `arquivo`). `201` com `{"id"}`; o processamento continua em segundo plano |
-| GET | `/api/importacoes` | Os últimos 50 lotes do usuário |
-| GET | `/api/importacoes/{id}` | Progresso e contagem por situação e etapa |
-| GET | `/api/importacoes/{id}/linhas` | Linhas paginadas (`situacao`, `etapa`, `scoreMinimo`, `pagina`, `tamanho` até 500) |
-| PUT | `/api/importacoes/linhas/{id}` | Corrige uma linha e a reclassifica |
-| POST | `/api/importacoes/linhas/{id}/decisao` | Decide uma parecida: `MESMO_SERVICO` ou `OUTRO_SERVICO` |
-| POST | `/api/importacoes/{id}/decisao-em-bloco` | Decide as parecidas com score a partir de `scoreMinimo` |
-| POST | `/api/importacoes/linhas/{id}/descartar` | Descarta a linha |
-| POST | `/api/importacoes/{id}/enviar` | Envia ao aprovador as linhas prontas; devolve `{"enviadas"}` |
-| GET | `/api/importacoes/aprovacao/lotes` | Lotes com linhas enviadas (`APROVADOR`) |
-| POST | `/api/importacoes/aprovacao/linhas/{id}/aprovar` | Aprova uma linha; devolve `APROVADA` ou `CONFLITO` |
-| POST | `/api/importacoes/aprovacao/linhas/{id}/rejeitar` | Rejeita (corpo: `motivo`) |
-| POST | `/api/importacoes/aprovacao/{id}/aprovar-em-bloco` | Aprova as enviadas que atendem ao filtro (`situacoes`, `scoreMinimo`); devolve `aprovadas`, `conflitos`, `falhas` |
-| POST | `/api/importacoes/aprovacao/{id}/rejeitar-em-bloco` | Rejeita em bloco (corpo: `motivo`, e o filtro opcional) |
-
-Formato da planilha, colunas e passo a passo: [docs/GUIA_DE_USO.md](docs/GUIA_DE_USO.md#3-importar-vários-serviços-de-uma-planilha-comprador). Regras: [docs/REGRAS_DE_NEGOCIO.md](docs/REGRAS_DE_NEGOCIO.md#importação-em-massa).
-
-### Exemplos
-
-A API usa a sessão do login. Com `curl`, entre uma vez e guarde o cookie; os `POST` também precisam do token CSRF, que está na `<meta name="_csrf">` das telas.
-
-```bash
-TOKEN=$(curl -s -c cj localhost:8080/login | grep -o 'name="_csrf" value="[^"]*"' | sed 's/.*value="//;s/"//')
-curl -s -o /dev/null -b cj -c cj -d "username=comprador&password=comprador123&_csrf=$TOKEN" localhost:8080/login
-CSRF=$(curl -s -b cj localhost:8080/ui/busca | grep -o '<meta name="_csrf" content="[^"]*"' | sed 's/.*content="//;s/"//')
-
-curl -b cj "localhost:8080/api/nbs/busca?texto=instalaa%20eletrica"
-curl -b cj "localhost:8080/api/smart-key?nbs=1.0106.19.00&horario=HN"
-curl -b cj -X POST localhost:8080/servicos/analise -H "X-CSRF-TOKEN: $CSRF" -H 'Content-Type: application/json' -d '{
-  "areaServico":"Civil","textoBreve":"Concretagem de fundação","abreviatura":"CONC",
-  "complemento":"_CONCRE","condicao":"HN","cnae":"4399103"}'
-```
-
-## Verificando o banco
-
-Pelo terminal:
-
-```bash
-docker exec -it pgsql-db-gerdau psql -U admin -d pgsql-db-gerdau -c "SELECT * FROM servicos_mock;"
-```
-
-Ou pelo pgAdmin em `http://localhost:5050`, com o login definido em `PGADMIN_DEFAULT_EMAIL`/`PGADMIN_DEFAULT_PASSWORD`. Ao registrar o servidor, use o host `pgsql-db-gerdau` e a porta `5432` (rede interna do Docker).
-
-## Problemas comuns
+### Problemas comuns
 
 | Erro | Causa | Solução |
 |------|-------|---------|
@@ -260,6 +77,28 @@ Ou pelo pgAdmin em `http://localhost:5050`, com o login definido em `PGADMIN_DEF
 | `Connection refused` na porta 5431 | Container parado ou reiniciando | `docker ps -a` e `docker logs pgsql-db-gerdau` |
 | `Found non-empty schema(s) "public" but no schema history table` | Banco criado antes do Flyway | `docker compose down`, `sudo rm -rf data-db`, subir novamente |
 | `Validate failed: Migration checksum mismatch` | Migration já aplicada foi editada | Desfazer a edição e criar uma nova migration `V{n}__...` |
-| `Schema-validation: missing column ...` | Entidade `Servico` diferente da tabela | Criar migration para ajustar a tabela ou corrigir a entidade |
 | `initdb: directory exists but is not empty` | `data-db` com dados de outra versão | `docker compose down`, `sudo rm -rf data-db`, subir novamente |
 | `password authentication failed` | Senha do `.env` alterada após a criação do banco | Recriar a pasta `data-db` |
+
+## Resultados e limitações
+
+A similaridade foi validada com 29 casos escritos pela equipe (corretos, ambíguos e incorretos), em [docs/VALIDACAO_SIMILARIDADE.md](docs/VALIDACAO_SIMILARIDADE.md). Os principais pontos:
+
+- A amostra é pequena e fabricada, então **não há taxa de acerto**. A validação deve ser repetida com a base saneada da trilha IA & Dados.
+- Serviços diferentes que só mudam num detalhe curto no fim do nome podem ser bloqueados como duplicados. Por isso o comprador pode contestar o bloqueio, com justificativa registrada.
+- Sinônimos e siglas não são entendidos pela similaridade. Os sinônimos aprovados cobrem parte disso.
+- Os limiares de similaridade (0,4 e 0,8) vêm da prática e devem ser revistos com a base real.
+
+## Documentação
+
+| Documento | Para quê |
+|-----------|----------|
+| [docs/GUIA_DE_USO.md](docs/GUIA_DE_USO.md) | Passo a passo das telas e roteiro de teste |
+| [docs/REGRAS_DE_NEGOCIO.md](docs/REGRAS_DE_NEGOCIO.md) | Limiares, decisões e regras de cada fluxo |
+| [docs/VALIDACAO_SIMILARIDADE.md](docs/VALIDACAO_SIMILARIDADE.md) | Casos testados, resultados e limitações |
+| [docs/REFERENCIA_TECNICA.md](docs/REFERENCIA_TECNICA.md) | Estrutura do código, migrations, telas e endpoints da API |
+| [docs/MAPA_DO_SITE.md](docs/MAPA_DO_SITE.md) | Mapa das telas |
+
+## Tecnologias
+
+Java 21, Spring Boot 4.1 (Web MVC, Data JPA, Security, Thymeleaf), PostgreSQL 16 com `pg_trgm`, Flyway, Lombok, Maven, Apache POI e Commons CSV, Docker Compose.
