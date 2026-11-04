@@ -1,0 +1,158 @@
+# Referência técnica
+
+Detalhes para quem vai mexer no código ou integrar com a API. Para entender o projeto e rodá-lo, comece pelo [README](../README.md).
+
+## Estrutura
+
+```
+src/main/java/com/Gerdau/Desafio_GC_Gerdau_App/
+├── controller/   REST (/api, /servicos) e telas Thymeleaf (/ui)
+├── service/      ServicoService, BuscaNbsService, DeParaService, SmartKeyService,
+│                 ImportacaoService, ConferenciaService, AprovacaoImportacaoService, SinonimoServicoService
+├── repository/   Spring Data JPA + queries nativas com pg_trgm
+├── model/        entidades e enums (StatusDePara, OrigemDePara)
+├── dto/          requests e responses
+└── exception/    CadastroRejeitadoException, DeParaNaoEncontradoException
+src/main/resources/
+├── db/migration/ migrations Flyway (V1 a V13)
+├── templates/    telas (busca, servicos, formulário, revisão, importação, aprovação)
+└── static/       css e js
+```
+
+## Configuração do banco
+
+O `application.properties` importa o `.env` e monta a conexão:
+
+```properties
+spring.config.import=optional:file:.env[.properties]
+spring.datasource.url=jdbc:postgresql://localhost:${DB_PORT}/${DB_NAME}
+spring.datasource.username=${DB_USER}
+spring.datasource.password=${DB_PASSWORD}
+spring.jpa.hibernate.ddl-auto=validate
+spring.jpa.open-in-view=false
+```
+
+A aplicação roda fora do Docker, então o host é `localhost` e a porta é a mapeada no compose (`5431`, que aponta para a `5432` interna do container).
+
+## Migrations (Flyway)
+
+O schema do banco é versionado em `src/main/resources/db/migration`. Ao iniciar, o Flyway aplica em ordem as migrations ainda não executadas e registra o histórico na tabela `flyway_schema_history`.
+
+| Arquivo | Conteúdo |
+|---------|----------|
+| `V1__create_servicos_mock.sql` | Tabela `servicos_mock` (unicidade e condições válidas) |
+| `V2__insert_servicos_mock.sql` | 15 serviços mock |
+| `V3__pg_trgm_similaridade.sql` | Extensão `pg_trgm` e índice de similaridade em `servicos_mock` |
+| `V4__dicionario_de_para_revisao.sql` | `cat_nbs`, `dicionario_de_para` e histórico de revisão |
+| `V5__popula_cat_nbs.sql` | Recorte da NBS 2.0 em `cat_nbs` |
+| `V6__cat_horarios.sql` | `cat_horarios` com os sufixos da Smart Key |
+| `V7__servicos_mock_codigo_nbs.sql` | Coluna `codigo_nbs` em `servicos_mock` |
+| `V8__cat_horarios_unica_fonte.sql` | `cat_horarios.ativo` e remoção do `CHECK` de condição em `servicos_mock` |
+| `V9__usuarios.sql` | Tabela `usuarios` (login) e dois usuários de exemplo |
+| `V10__importacao_em_massa.sql` | `lotes_importacao`, `linhas_importacao` (situação e etapa de cada linha) e `servico_sinonimo` |
+| `V11__conferido_em.sql` | `linhas_importacao.conferido_em`: data da última decisão do comprador na linha |
+| `V12__consultas_cadastro.sql` | `consultas_cadastro` e `consulta_cadastro_sugestoes`: histórico de cada tentativa de cadastro individual |
+| `V13__contestacao_do_bloqueio.sql` | `consultas_cadastro.justificativa` e a decisão `CONTESTOU_BLOQUEIO` |
+
+Para alterar o banco, crie um novo arquivo seguindo a convenção `V{n}__descricao.sql` (ex.: `V3__add_coluna_x.sql`). **Nunca edite uma migration já aplicada**: o Flyway valida o checksum e a aplicação deixa de subir.
+
+## Login e perfis
+
+Todas as telas e a API exigem login (usuário e senha guardados na tabela `usuarios`, senha com BCrypt). Há dois perfis:
+
+| Perfil | Pode |
+|--------|------|
+| `COMPRADOR` | Cadastrar serviço, buscar serviços, buscar NBS, Smart Key, confirmar uma sugestão de NBS e importar planilhas (os próprios lotes) |
+| `APROVADOR` | Tudo o que o comprador faz, mais a revisão do De-Para (`/ui/revisao` e `/api/de-para/**`), a aprovação de planilhas (`/ui/aprovacao` e `/api/importacoes/aprovacao/**`) e o histórico de consultas (`/ui/consultas`) |
+
+Sem login, as telas redirecionam para `/login` e a API responde `401`. Com perfil insuficiente a resposta é `403`. Usuários de exemplo (V9) e como trocar as senhas: [GUIA_DE_USO.md](GUIA_DE_USO.md). O revisor gravado no histórico do De-Para é sempre o usuário logado.
+
+## Telas
+
+As telas usam Inter (texto) e JetBrains Mono (códigos), hospedadas junto da aplicação em `static/fonts` e declaradas em `static/css/fontes.css`. Não há chamada a serviços externos, então funciona na rede fechada da Gerdau.
+
+| Rota | Tela |
+|------|------|
+| `/` | Lista de serviços (25 por página, com busca no servidor por `?q=`, filtro `?area=` e `?pagina=`), cards de resumo e indicadores de cadastro |
+| `/ui/busca` | Busca de NBS e Smart Key |
+| `/ui/servicos/novo` | Cadastro de novo serviço (com filtro de duplicados) |
+| `/ui/servicos/{id}` | Detalhe do serviço |
+| `POST /ui/servicos/reutilizar` | Botão "Usar este código" nas sugestões do cadastro: registra que o comprador reaproveitou um serviço existente e abre o detalhe dele |
+| `/login` | Entrar (única tela sem login) |
+| `/ui/revisao` | Fila de revisão do De-Para (só `APROVADOR`) |
+| `/ui/importacoes` | Enviar planilha e ver os próprios lotes |
+| `/ui/importacoes/{id}` | Conferência do lote: com erro, parecidas, novas, já existiam e repetidas (só o dono) |
+| `/ui/aprovacao` | Lotes com linhas aguardando decisão (só `APROVADOR`) |
+| `/ui/consultas` | Histórico das tentativas de cadastro: o que foi consultado, o que o sistema respondeu e o que o comprador decidiu (só `APROVADOR`) |
+| `/ui/consultas/{id}` | Detalhe de uma consulta, com as sugestões mostradas (só `APROVADOR`) |
+| `/ui/aprovacao/{id}` | Aprovação das linhas de um lote, uma a uma ou em bloco (só `APROVADOR`) |
+
+## Endpoints
+
+Todas as rotas exigem login. As de `/api/de-para` (exceto `confirmacoes`) e as de `/api/importacoes/aprovacao` são só do `APROVADOR`. Requisições `POST` precisam do token CSRF (header `X-CSRF-TOKEN`, valor na `<meta name="_csrf">` das telas).
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/servicos` | Lista todos os serviços |
+| GET | `/servicos/{id}` | Busca um serviço pelo id |
+| GET | `/servicos/area/{area}` | Lista os serviços de uma área |
+| POST | `/servicos/analise` | Simula o cadastro: código gerado, similares e se bloquearia |
+| POST | `/servicos?confirmar=false` | Cadastra. `201` criado; `409` com a análise se bloqueado ou se pede confirmação. Para contestar um bloqueio por texto parecido, envie `justificativaOutroServico` (10 a 500 caracteres) no corpo |
+| GET | `/api/nbs/busca?texto=` | Busca de NBS: `EXATO` (De-Para aprovado) ou `SUGESTOES` |
+| GET | `/api/horarios` | Lista os horários e sufixos |
+| GET | `/api/smart-key?nbs=&horario=` | Monta a Smart Key (`400` se NBS ou horário não existem) |
+| POST | `/api/de-para/confirmacoes` | Registra a confirmação de um usuário como `PENDENTE` |
+| GET | `/api/de-para/fila` | Lista os pendentes |
+| POST | `/api/de-para/{id}/aprovar` | Aprova (o revisor é o usuário logado) |
+| POST | `/api/de-para/{id}/rejeitar` | Rejeita (corpo: `motivo`) |
+| POST | `/api/de-para/{id}/revogar` | Revoga um aprovado (corpo: `motivo`) |
+
+### Importação em massa
+
+O usuário que age vem sempre do login, nunca do corpo. Lote de outro usuário: as consultas (`GET`) respondem `404` (o aprovador vê apenas as linhas enviadas e em conflito), e as ações do comprador sobre ele ou suas linhas (`PUT`/`POST` de correção, decisão, descarte e envio) respondem `403`; linha ou lote inexistente, `404`. Erros do corpo/estado: `400` (dado inválido), `409` (linha já decidida, ou fora da etapa esperada), `403` (perfil). Arquivo inválido ou acima dos limites é recusado com mensagem.
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| POST | `/api/importacoes` | Envia o arquivo (`multipart`, campo `arquivo`). `201` com `{"id"}`; o processamento continua em segundo plano |
+| GET | `/api/importacoes` | Os últimos 50 lotes do usuário |
+| GET | `/api/importacoes/{id}` | Progresso e contagem por situação e etapa |
+| GET | `/api/importacoes/{id}/linhas` | Linhas paginadas (`situacao`, `etapa`, `scoreMinimo`, `pagina`, `tamanho` até 500) |
+| PUT | `/api/importacoes/linhas/{id}` | Corrige uma linha e a reclassifica |
+| POST | `/api/importacoes/linhas/{id}/decisao` | Decide uma parecida: `MESMO_SERVICO` ou `OUTRO_SERVICO` |
+| POST | `/api/importacoes/{id}/decisao-em-bloco` | Decide as parecidas com score a partir de `scoreMinimo` |
+| POST | `/api/importacoes/linhas/{id}/descartar` | Descarta a linha |
+| POST | `/api/importacoes/{id}/enviar` | Envia ao aprovador as linhas prontas; devolve `{"enviadas"}` |
+| GET | `/api/importacoes/aprovacao/lotes` | Lotes com linhas enviadas (`APROVADOR`) |
+| POST | `/api/importacoes/aprovacao/linhas/{id}/aprovar` | Aprova uma linha; devolve `APROVADA` ou `CONFLITO` |
+| POST | `/api/importacoes/aprovacao/linhas/{id}/rejeitar` | Rejeita (corpo: `motivo`) |
+| POST | `/api/importacoes/aprovacao/{id}/aprovar-em-bloco` | Aprova as enviadas que atendem ao filtro (`situacoes`, `scoreMinimo`); devolve `aprovadas`, `conflitos`, `falhas` |
+| POST | `/api/importacoes/aprovacao/{id}/rejeitar-em-bloco` | Rejeita em bloco (corpo: `motivo`, e o filtro opcional) |
+
+Formato da planilha, colunas e passo a passo: [docs/GUIA_DE_USO.md](GUIA_DE_USO.md#3-importar-vários-serviços-de-uma-planilha-comprador). Regras: [docs/REGRAS_DE_NEGOCIO.md](REGRAS_DE_NEGOCIO.md#importação-em-massa).
+
+### Exemplos
+
+A API usa a sessão do login. Com `curl`, entre uma vez e guarde o cookie; os `POST` também precisam do token CSRF, que está na `<meta name="_csrf">` das telas.
+
+```bash
+TOKEN=$(curl -s -c cj localhost:8080/login | grep -o 'name="_csrf" value="[^"]*"' | sed 's/.*value="//;s/"//')
+curl -s -o /dev/null -b cj -c cj -d "username=comprador&password=comprador123&_csrf=$TOKEN" localhost:8080/login
+CSRF=$(curl -s -b cj localhost:8080/ui/busca | grep -o '<meta name="_csrf" content="[^"]*"' | sed 's/.*content="//;s/"//')
+
+curl -b cj "localhost:8080/api/nbs/busca?texto=instalaa%20eletrica"
+curl -b cj "localhost:8080/api/smart-key?nbs=1.0106.19.00&horario=HN"
+curl -b cj -X POST localhost:8080/servicos/analise -H "X-CSRF-TOKEN: $CSRF" -H 'Content-Type: application/json' -d '{
+  "areaServico":"Civil","textoBreve":"Concretagem de fundação","abreviatura":"CONC",
+  "complemento":"_CONCRE","condicao":"HN","cnae":"4399103"}'
+```
+
+## Verificando o banco
+
+Pelo terminal:
+
+```bash
+docker exec -it pgsql-db-gerdau psql -U admin -d pgsql-db-gerdau -c "SELECT * FROM servicos_mock;"
+```
+
+Ou pelo pgAdmin em `http://localhost:5050`, com o login definido em `PGADMIN_DEFAULT_EMAIL`/`PGADMIN_DEFAULT_PASSWORD`. Ao registrar o servidor, use o host `pgsql-db-gerdau` e a porta `5432` (rede interna do Docker).
+
