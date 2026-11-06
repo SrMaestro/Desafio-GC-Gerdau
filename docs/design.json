@@ -1,23 +1,23 @@
 {
   "$schema": "design-tokens",
   "name": "Catálogo de Serviços · Geração Caldeira — design alvo",
-  "version": "4.0.0",
-  "origem": "DESIGN-ibm.md (IBM Carbon). Aplicado em static/css e templates.",
+  "version": "5.0.0",
+  "origem": "DESIGN-meta.md (Meta). Aplicado em static/css e templates. Substitui a versão anterior, baseada no IBM Carbon.",
   "principios": [
-    "Cantos retos (0px) em botões, cards, campos e tabelas",
-    "Um único azul (#0f62fe) para ação, link, foco e item ativo",
-    "Títulos em IBM Plex Sans peso 300; corpo em 400 com tracking de 0,16px",
-    "Hierarquia por linha de 1px e troca de superfície (branco → #f4f4f4), sem sombra",
-    "Campos com fundo cinza e linha inferior; foco com contorno azul de 2px",
-    "Código sempre em IBM Plex Mono"
+    "Botões, abas e selos são pílulas (100px); cards 16px, caixas grandes 24px, painel do código 32px",
+    "Ação principal em preto (branco no tema escuro); o azul cobalto fica em links e destaques, não em botões",
+    "Campos brancos com borda fina de 8px de raio; foco com contorno azul de 2px (#1876f2)",
+    "Busca em pílula cinza; aba ativa em pílula preenchida",
+    "Hierarquia por borda de 1px e raio, sem sombra",
+    "Texto em Montserrat (títulos em peso 500) e código sempre em IBM Plex Mono"
   ],
   "color": {
-    "primario": "#0f62fe", "primarioHover": "#0050e6", "primarioPressionado": "#002d9c",
-    "texto": "#161616", "textoMedio": "#525252", "textoSuave": "#6f6f6f",
-    "fundo": "#ffffff", "superficie1": "#f4f4f4", "linha": "#e0e0e0", "linhaForte": "#8d8d8d",
-    "sucesso": "#198038", "atencao": "#f1c21b", "erro": "#da1e28"
+    "acao": "#000000", "acaoPressionada": "#444950", "cobalto": "#0064e0", "cobaltoEscuro": "#0457cb", "focoCampo": "#1876f2",
+    "texto": "#1c1e21", "textoMedio": "#444950", "textoSuave": "#5d6c7b",
+    "fundo": "#ffffff", "superficieSuave": "#f1f4f7", "linha": "#dee3e9", "linhaForte": "#ced0d4",
+    "sucesso": "#1b7a33", "atencao": "#8a5a00", "erro": "#e41e3f"
   },
-  "fonts": { "texto": "IBM Plex Sans (300, 400, 600)", "codigo": "IBM Plex Mono (400)" },
-  "temaEscuro": { "base": "Carbon Gray 100", "fundo": "#161616", "superficie": "#262626", "texto": "#f4f4f4", "azul": "#78a9ff", "como": "data-tema no <html>, definido por static/js/tema.js" },
-  "radius": { "padrao": "0px", "selo": "2px" }
+  "fonts": { "texto": "Montserrat variável (300 a 900)", "codigo": "IBM Plex Mono (400)" },
+  "temaEscuro": { "nota": "A Meta não publica tokens escuros; estes derivam da paleta dela", "fundo": "#0a1317", "superficie": "#1c1e21", "texto": "#f1f4f7", "azul": "#4da3ff", "acao": "#ffffff", "como": "data-tema no <html>, definido por static/js/tema.js" },
+  "radius": { "pilula": "100px", "card": "16px", "caixa": "24px", "painel": "32px", "campo": "8px" }
 }

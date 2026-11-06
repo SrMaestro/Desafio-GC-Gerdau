@@ -37,10 +37,10 @@ progress { width: 100%; height: 1.2rem; accent-color: var(--destaque); }
 .linhas .detalhe { grid-column: 2; color: var(--texto-suave); font-size: .92rem; overflow-wrap: anywhere; }
 .linhas .detalhe.motivo { color: var(--alerta); }
 .linhas .detalhe.divergente { color: var(--alerta); }
-.linhas code { font-family: var(--mono); background: var(--papel); padding: .1rem .4rem; border-radius: 0; font-size: .88rem; }
-.linhas .estado { font-size: .72rem; padding: .15rem .5rem; border-radius: 0; background: var(--item-ativo); color: var(--texto-medio); font-weight: 500; white-space: nowrap; }
+.linhas code { font-family: var(--mono); background: var(--papel); padding: .1rem .4rem; border-radius: 4px; font-size: .88rem; }
+.linhas .estado { font-size: .72rem; padding: .15rem .5rem; border-radius: 100px; background: var(--item-ativo); color: var(--texto-medio); font-weight: 500; white-space: nowrap; }
 .linhas .acoes { grid-column: 2 / 4; display: flex; flex-wrap: wrap; gap: .5rem; }
-.linhas .acoes button, .em-bloco button, .paginas button { background: var(--superficie); border: 1px solid var(--azul); color: var(--azul); }
+.linhas .acoes button, .em-bloco button, .paginas button { background: var(--superficie); border: 1px solid var(--texto); color: var(--texto); }
 .linhas .acoes button:hover, .em-bloco button:hover:not(:disabled), .paginas button:hover:not(:disabled) { background: var(--destaque-fundo); }
 
 .correcao { grid-column: 2 / 4; display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: .5rem .75rem; background: var(--papel); border-radius: var(--raio-controle); padding: .75rem; }

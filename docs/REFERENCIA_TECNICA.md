@@ -70,9 +70,9 @@ Sem login, as telas redirecionam para `/login` e a API responde `401`. Com perfi
 
 ## Telas
 
-As telas usam IBM Plex Sans (texto) e IBM Plex Mono (códigos), hospedadas junto da aplicação em `static/fonts` e declaradas em `static/css/fontes.css`. Não há chamada a serviços externos, então funciona na rede fechada da Gerdau.
+As telas usam Montserrat (texto, no lugar da Optimistic VF da Meta, que é proprietária) e IBM Plex Mono (códigos), hospedadas junto da aplicação em `static/fonts` e declaradas em `static/css/fontes.css`. Não há chamada a serviços externos, então funciona na rede fechada da Gerdau.
 
-O visual segue o IBM Carbon (`docs/design.json`). O tema claro/escuro é decidido no navegador por `static/js/tema.js`, que grava `data-tema` no `<html>` (preferência do sistema ou escolha guardada no `localStorage`); as cores escuras ficam em `style.css`, sem nada no servidor.
+O visual segue o design system da Meta (`docs/design.json`). O tema claro/escuro é decidido no navegador por `static/js/tema.js`, que grava `data-tema` no `<html>` (preferência do sistema ou escolha guardada no `localStorage`); as cores escuras ficam em `style.css`, sem nada no servidor.
 
 | Rota | Tela |
 |------|------|

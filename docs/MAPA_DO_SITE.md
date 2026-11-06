@@ -15,7 +15,7 @@ Templates em `src/main/resources/templates`; estilos em `static/css`; scripts em
 | Consultas | `/ui/consultas` | só `APROVADOR` |
 | Aprovações | `/ui/aprovacao` | só `APROVADOR` |
 
-O `layout.html` também define o `head` (fontes IBM Plex, `tema.js`, `style.css`, `app.js`, `busca.js`) e o `menu`, que recebe a seção ativa e tem o botão de tema claro/escuro.
+O `layout.html` também define o `head` (fontes Montserrat e IBM Plex Mono, `tema.js`, `style.css`, `app.js`, `busca.js`) e o `menu`, que recebe a seção ativa e tem o botão de tema claro/escuro.
 
 ## Acesso
 
