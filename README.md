@@ -33,7 +33,9 @@ export JAVA_HOME=/caminho/do/jdk-21   # só se o seu JDK padrão não for o 21
 ./mvnw spring-boot:run           # espere a mensagem "Started ..."
 ```
 
-Abra **http://localhost:8080** e entre com um dos usuários abaixo. Na primeira execução o Flyway cria as tabelas e insere os dados de exemplo.
+Abra **http://localhost:8080** e entre com um dos usuários abaixo. Na primeira execução o Flyway cria as tabelas e insere 15 serviços de exemplo.
+
+**Para uma demonstração com dados realistas** (cerca de 330 serviços industriais de siderurgia, com quase-duplicados antigos, histórico de consultas, De-Para e lotes de importação em andamento), suba com o perfil `demo`: `./mvnw spring-boot:run -Dspring-boot.run.profiles=demo`. Os dados vêm de `src/main/resources/db/demo` e só entram nesse perfil. O que a banca vê está em [`docs/GUIA_DE_USO.md`](docs/GUIA_DE_USO.md#roteiro-de-demonstração-dados-realistas).
 
 | Usuário | Senha | Perfil |
 |---------|-------|--------|

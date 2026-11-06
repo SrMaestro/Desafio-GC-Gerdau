@@ -6,12 +6,12 @@ h2 .contador { font-weight: 400; color: var(--texto-suave); font-size: 1rem; }
 table.revisao td { vertical-align: top; }
 table.revisao { background: var(--superficie); }
 table.revisao tr.conflito td { background: var(--alerta-fundo); }
-.selo-conflito { margin-left: .5rem; padding: .1rem .5rem; border-radius: 4px; background: var(--alerta-fundo); color: var(--alerta); font-size: .72rem; font-weight: 500; }
-table.revisao code { font-family: var(--mono); background: var(--papel); padding: .1rem .4rem; border-radius: 4px; }
+.selo-conflito { margin-left: .5rem; padding: .1rem .5rem; border-radius: 0; background: var(--alerta-fundo); color: var(--alerta); font-size: .72rem; font-weight: 500; }
+table.revisao code { font-family: var(--mono); background: var(--papel); padding: .1rem .4rem; border-radius: 0; }
 td.acoes { display: flex; flex-wrap: wrap; gap: .5rem; }
 td.acoes form { display: flex; gap: .4rem; align-items: center; }
-td.acoes input[type="text"] { padding: .35rem .5rem; border: 1px solid var(--linha); border-radius: var(--raio-controle); width: 11rem; }
-td.acoes button { background: var(--superficie); border: 1px solid var(--linha); border-radius: var(--raio-controle); color: var(--azul); }
-td.acoes button:hover { border-color: var(--linha-forte); background: var(--papel); }
-td.acoes button.aprovar { background: var(--acao); border-color: var(--acao); color: var(--acao-texto); font-weight: 700; }
+td.acoes input[type="text"] { padding: .35rem .5rem; border: 0; border-bottom: 1px solid var(--linha-forte); background: var(--papel); width: 11rem; }
+td.acoes button { background: var(--superficie); border: 1px solid var(--azul); border-radius: var(--raio-controle); color: var(--azul); }
+td.acoes button:hover { background: var(--destaque-fundo); }
+td.acoes button.aprovar { background: var(--acao); border-color: var(--acao); color: var(--acao-texto); }
 @media (max-width: 720px) { td.acoes { display: block; } td.acoes form { margin-bottom: .4rem; } }

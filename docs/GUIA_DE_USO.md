@@ -6,7 +6,7 @@ Para quem usa o sistema no dia a dia. Não é preciso conhecer o projeto.
 
 Abra o sistema e entre com seu usuário e senha. Há dois perfis: **comprador** (cadastra, busca e importa planilhas) e **aprovador** (faz o mesmo e também aprova planilhas e revisa o De-Para). 
 
-A navegação fica no **menu lateral** (no celular, uma barra no topo): **Serviços**, **Buscar NBS** e **Importar** para todos, e **Revisão**, **Consultas** e **Aprovações** só para o aprovador. A página em que você está aparece destacada. Seu nome e o botão **Sair** ficam no rodapé do menu; use **Sair** ao terminar.
+A navegação fica no **menu lateral** (no celular, uma barra no topo): **Serviços**, **Buscar NBS** e **Importar** para todos, e **Revisão**, **Consultas** e **Aprovações** só para o aprovador. A página em que você está aparece destacada. Seu nome e o botão **Sair** ficam no rodapé do menu; use **Sair** ao terminar. Logo acima, o botão **Tema escuro** (ou **Tema claro**) troca as cores para cansar menos a vista. A tela começa no tema do seu sistema e lembra a sua escolha neste navegador.
 
 Usuários de exemplo, criados na instalação: `comprador` / `comprador123` e `aprovador` / `aprovador123`. **Troque essas senhas antes de usar de verdade.** Ainda não há tela para isso: a equipe técnica gera um novo hash BCrypt e atualiza a coluna `senha_hash` da tabela `usuarios`; para desativar alguém, `ativo = FALSE`.
 
@@ -167,7 +167,7 @@ A busca de serviços parecidos usa o operador `%` do `pg_trgm` para aproveitar o
 
 Um passo a passo para conferir, em cerca de 30 minutos, se o sistema faz o que promete. Cada linha diz o que fazer e o que deve acontecer. Se o resultado for diferente, anote o passo, o que você viu e o horário (o aprovador acha a tentativa em **Consultas**), e avise quem cuida do projeto.
 
-**Antes de começar:** o sistema precisa estar no ar (veja "Rodar na sua máquina" no [README](../README.md#rodar-na-sua-máquina)) e o banco no estado inicial, com os serviços de exemplo. Os resultados abaixo valem para esse estado. Se alguém já cadastrou coisas, as respostas podem mudar; para voltar ao início, siga "Voltar ao estado inicial" no README. Faça os passos na ordem: alguns usam o que o anterior criou.
+**Antes de começar (importante):** os resultados abaixo valem para o banco só com os 15 serviços de exemplo, ou seja, **sem** o perfil `demo`. Com os dados de demonstração, as contagens e os percentuais mudam. Para a demonstração, use o roteiro da seção seguinte. O sistema precisa estar no ar (veja "Rodar na sua máquina" no [README](../README.md#rodar-na-sua-máquina)) e o banco no estado inicial, com os serviços de exemplo. Os resultados abaixo valem para esse estado. Se alguém já cadastrou coisas, as respostas podem mudar; para voltar ao início, siga "Voltar ao estado inicial" no README. Faça os passos na ordem: alguns usam o que o anterior criou.
 
 ### Parte A: comprador (entre como `comprador`)
 
@@ -271,3 +271,25 @@ Depois:
 
 Os serviços e registros criados ficam no banco. Para repetir o roteiro do zero, siga "Voltar ao estado inicial" no README.
 
+## 6. Roteiro de demonstração (dados realistas)
+
+Suba com o perfil `demo` (`./mvnw spring-boot:run -Dspring-boot.run.profiles=demo`; veja o [README](../README.md#rodar-na-sua-máquina)). O banco passa a ter cerca de 330 serviços de siderurgia em 10 áreas (Civil, Eletromecânica, Refratários, Caldeiraria, Tubulação, Limpeza industrial, Inspeção e ensaios, Automação, Apoio e logística, Segurança), todos no padrão `ABREVIATURA + COMPLEMENTO + _ + CONDIÇÃO + CNAE`. Parte deles é o problema que o TAP descreve: o mesmo serviço escrito de jeitos diferentes, com códigos diferentes, criado antes do filtro.
+
+**Como mostrar o filtro funcionando** (entre como `comprador`, **Novo serviço**, condição **Hora normal**; use o CNAE do serviço original):
+
+| Digite no texto breve | Resultado esperado |
+|-----------------------|--------------------|
+| `Manutenção do redutor de velocidade` (CNAE 3314705) | Bloqueia: já existe `Manutenção de redutor de velocidade` e suas variações antigas |
+| `Limpeza industrial de laminadores` (CNAE 8129000) | Bloqueia, com os dois cadastros antigos de laminador na lista |
+| `Locação de guindaste hidráulico 120 t` (CNAE 7732201, condição **Obs.: Itens que não são mão de obra**) | Bloqueia pelos de 50 t e 80 t; use **É outro serviço** e explique a diferença |
+| `Instalação de eletrocalhas` (CNAE 4321500) | Pede confirmação (parecido, mas não igual) |
+| `Teste de estanqueidade em vaso de pressão` | Passa direto: não existe nada parecido |
+
+**O que o aprovador encontra preenchido** (entre como `aprovador`):
+- **Consultas:** cerca de 60 tentativas dos últimos 45 dias, com bloqueios, confirmações, reaproveitamentos e três bloqueios contestados com justificativa. Os indicadores da tela inicial já têm números.
+- **Aprovações:** o lote `paradas_refratarios_acimaria.csv`, da compradora Mariana, com 10 linhas aguardando decisão (novas, parecidas e "mesmo serviço") e uma em conflito. Há ainda 3 linhas do lote do comprador, o que dá os 13 do indicador da tela inicial.
+- **Revisão:** 8 mapeamentos pendentes no De-Para e 13 aprovados; a busca de NBS por `Manutenção de forno elétrico a arco` acha o aprovado de forma exata.
+
+**O que o comprador encontra** (`comprador`): em **Importar**, o lote `automacao_novos_servicos.csv` pronto para conferir, com 3 linhas com erro para corrigir, 3 parecidas para decidir e 5 prontas para enviar; e o lote `manutencao_mecanica_outubro.xlsx`, já decidido, com linhas aprovadas, rejeitadas, uma em conflito, sinônimos gravados e 3 ainda com o aprovador.
+
+Esses dados só existem no perfil `demo` e não devem ir para produção. Para voltar ao estado inicial: `docker compose down`, apague `data-db` e suba de novo (apaga tudo).

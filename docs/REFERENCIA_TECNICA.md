@@ -15,6 +15,7 @@ src/main/java/com/Gerdau/Desafio_GC_Gerdau_App/
 └── exception/    CadastroRejeitadoException, DeParaNaoEncontradoException
 src/main/resources/
 ├── db/migration/ migrations Flyway (V1 a V13)
+├── db/demo/      dados de demonstração (só com o perfil demo)
 ├── templates/    telas (busca, servicos, formulário, revisão, importação, aprovação)
 └── static/       css e js
 ```
@@ -69,7 +70,9 @@ Sem login, as telas redirecionam para `/login` e a API responde `401`. Com perfi
 
 ## Telas
 
-As telas usam Inter (texto) e JetBrains Mono (códigos), hospedadas junto da aplicação em `static/fonts` e declaradas em `static/css/fontes.css`. Não há chamada a serviços externos, então funciona na rede fechada da Gerdau.
+As telas usam IBM Plex Sans (texto) e IBM Plex Mono (códigos), hospedadas junto da aplicação em `static/fonts` e declaradas em `static/css/fontes.css`. Não há chamada a serviços externos, então funciona na rede fechada da Gerdau.
+
+O visual segue o IBM Carbon (`docs/design.json`). O tema claro/escuro é decidido no navegador por `static/js/tema.js`, que grava `data-tema` no `<html>` (preferência do sistema ou escolha guardada no `localStorage`); as cores escuras ficam em `style.css`, sem nada no servidor.
 
 | Rota | Tela |
 |------|------|
