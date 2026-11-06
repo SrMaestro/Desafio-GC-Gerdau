@@ -126,10 +126,13 @@ public class ServicoService {
     /**
      * Regra de bloqueio do cadastro individual: o serviço de maior score que conta como duplicado (score a partir de
      * {@link #LIMIAR_BLOQUEIO}, mesma condição pela descrição e mesmo CNAE). Também usada na aprovação da importação.
+     * Textos que diferem num detalhe curto (número ou palavra final, como "10 cv" e "20 cv") não contam como duplicado:
+     * ver {@link DetalheDoTexto}. Nesse caso o serviço continua aparecendo como parecido, e o comprador decide.
      */
     static Optional<ServicoSimilar> buscarDuplicado(ServicoRepository repository, String texto,
                                                     String descricaoCondicao, String cnae) {
-        return repository.buscarDuplicado(texto.trim(), LIMIAR_BLOQUEIO, descricaoCondicao, cnae);
+        return repository.buscarDuplicado(texto.trim(), LIMIAR_BLOQUEIO, descricaoCondicao, cnae)
+                .filter(d -> DetalheDoTexto.compativeis(texto, d.getTextoBreve()));
     }
 
     /** Cada tentativa que chega à análise fica registrada (ver {@link RegistroConsultaService}); erro de validação não. */

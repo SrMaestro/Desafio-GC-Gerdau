@@ -20,7 +20,7 @@ Este documento mostra, com números medidos, o que a comparação de textos do s
 
 ## 2. Como foi medido
 
-- **Base usada:** o catálogo de exemplo do repositório, com **21 serviços**. **Não é a base real**: ela tem milhares de registros e vem da trilha IA & Dados. Os números abaixo mostram o comportamento da medida, não a taxa de acerto esperada em produção.
+- **Base usada:** o catálogo de exemplo do repositório (15 serviços na migration `V2`) mais 6 serviços inseridos à mão só para esta medição (por exemplo `Calandragrem...`, `andaime`, `eletricista`), somando **21**. Esses 6 não estão no repositório. **Não é a base real**: ela tem milhares de registros e vem da trilha IA & Dados. Os números abaixo mostram o comportamento da medida, não a taxa de acerto esperada em produção.
 - **Casos:** 25 textos que um comprador poderia digitar, em três grupos, mais 4 pares extras (grupo D). Eles foram escritos pelo autor deste documento.
 - **O que é "o mesmo serviço"** em cada caso foi **julgado pelo autor** a partir do nome. **A equipe que conhece os serviços deve revisar esses julgamentos**, principalmente os do grupo C.
 - **Como reproduzir:** os scripts estão em `docs/validacao/` e rodam só leituras no banco:
@@ -90,7 +90,7 @@ Estes pares não estão no catálogo de exemplo; foram medidos diretamente.
 | Locação de andaime tubular | Locação de andaime fachadeiro | 0,50 | pede confirmação |
 | Pintura epóxi industrial interna | Pintura epóxi industrial externa | **0,88** | **bloquearia** |
 
-**Isto é um erro do sistema:** dois serviços diferentes, com a mesma condição e o mesmo CNAE, seriam bloqueados como duplicados. É a limitação mais séria encontrada (ver seção 5). O comprador pode contestar o bloqueio com uma justificativa, e isso fica registrado.
+**Isto era um erro do sistema:** dois serviços diferentes, com a mesma condição e o mesmo CNAE, eram bloqueados como duplicados (ver seção 5). A tabela acima mostra a medição original. Hoje, a regra do detalhe curto (`DetalheDoTexto`: mesmos números e mesma última palavra para bloquear) faz os pares "10 cv"/"20 cv" e "interna"/"externa" só pedirem confirmação. Sobra a contestação com justificativa para o que escapar da regra.
 
 ### Placar dos 25 casos dos grupos A, B e C
 
@@ -117,14 +117,14 @@ O que se lê daí:
 
 - **Nenhum corte separa perfeitamente os dois grupos.** Entre 0,5 e 0,7 equivalentes e diferentes se misturam. Por isso a faixa de **0,4 a 0,8 é de decisão humana**, e o sistema não decide sozinho nela.
 - **0,8 é um corte seguro nesta amostra** (nenhum falso bloqueio), mas **conservador**: só 7 dos 18 equivalentes passam. O preço é pedir confirmação em muitos casos que são mesmo duplicados.
-- **Ignorar acentos ajudaria bastante:** com ele, 11 dos 18 passariam de 0,8 (contra 7), ainda sem nenhum falso bloqueio nesta amostra. Isto foi só medido, **não está implementado**.
+- **Ignorar acentos ajuda bastante:** com ele, 11 dos 18 passam de 0,8 (contra 7), ainda sem nenhum falso bloqueio nesta amostra. **Implementado na V14**; as colunas "ignorando acentos" da tabela acima descrevem o comportamento atual, e as demais, o de antes. Os scripts em `docs/validacao/` ainda medem a versão antiga (`lower`).
 - O corte de 0,4 não deixa de mostrar nenhum serviço diferente (7 de 7 aparecem). Isso não é erro, porque mostrar não é bloquear, mas pode virar ruído numa base grande.
 
 ## 5. Limitações
 
 1. **Amostra pequena e fabricada.** 21 serviços e 29 casos escritos pelo autor. Não é possível afirmar taxa de acerto. A validação tem que ser repetida com a base saneada da trilha IA & Dados.
-2. **Falso bloqueio por detalhe curto** (grupo D): nomes que diferem em poucas letras no fim (capacidade, lado, número) passam de 0,8. Com a mesma condição e o mesmo CNAE, o sistema bloqueia dois serviços diferentes. **Mitigação implementada:** o comprador pode contestar esse bloqueio ("É outro serviço") com uma justificativa obrigatória, que fica registrada para o aprovador conferir. O sistema continua bloqueando por padrão, e o erro vira uma decisão humana rastreável. Não se contesta o bloqueio por código idêntico nem por sinônimo aprovado.
-3. **Acentos pesam.** A comparação não ignora acentos: "manutencao motor eletrico" cai para 0,51 enquanto sem acento seria 0,89.
+2. **Falso bloqueio por detalhe curto** (grupo D; reduzido pela regra `DetalheDoTexto`, mas não eliminado: detalhes que não sejam número nem a palavra final, como "tubular" no meio do nome, ainda passam): nomes que diferem em poucas letras no fim (capacidade, lado, número) passam de 0,8. Com a mesma condição e o mesmo CNAE, o sistema bloqueia dois serviços diferentes. **Mitigação implementada:** o comprador pode contestar esse bloqueio ("É outro serviço") com uma justificativa obrigatória, que fica registrada para o aprovador conferir. O sistema continua bloqueando por padrão, e o erro vira uma decisão humana rastreável. Não se contesta o bloqueio por código idêntico nem por sinônimo aprovado.
+3. ~~Acentos pesavam~~ **Resolvido na V14.** Antes, "manutencao motor eletrico" caía para 0,51; agora a comparação ignora acentos e dá 0,89. Os veredictos 🟡 "sem acento" das tabelas da seção 3 foram medidos antes e hoje subiriam de nota.
 4. **Sinônimos, siglas e verbos não são entendidos.** "CLP" e "controlador lógico", "soldagem" e "solda", "mobilizar" e "mobilização" só se aproximam pelas letras em comum. O que falta é coberto, em parte, pelos **sinônimos aprovados**: o aprovador liga um texto a um serviço e dali em diante ele é reconhecido. Isso aprende com o uso; não cobre o que ninguém ainda importou.
 5. **Só o `texto_breve` é comparado.** Área, abreviatura e complemento não entram na nota. Dois serviços de áreas diferentes com o mesmo nome contam como parecidos.
 6. **O catálogo pode ter erros e sobreposição.** Há erro de digitação (`Calandragrem`) e entradas vagas (`andaime`, `eletricista`, `soldagem`) que atrapalham a comparação. O saneamento da base é da trilha IA & Dados.
@@ -132,7 +132,7 @@ O que se lê daí:
 
 ## 6. Próximos passos
 
-1. **Ignorar acentos na comparação** (ganho medido na seção 4). Exige migration (extensão `unaccent` ou `translate` e um novo índice, porque o índice atual é sobre `lower(texto_breve)`).
-2. **Reduzir o falso bloqueio do grupo D na origem**, além da contestação que já existe: por exemplo, exigir que números e a última palavra do texto também coincidam antes de bloquear. Acompanhar nos indicadores quantas contestações acontecem diz se vale a pena.
+1. ~~Ignorar acentos na comparação~~ **Feito** (V14: função `normaliza_texto` com `translate` e novo índice). Falta atualizar `docs/validacao/*.sql` e a seção 3 com as notas novas.
+2. ~~Reduzir o falso bloqueio do grupo D na origem~~ **Feito** (`DetalheDoTexto`: só bloqueia se os números e a última palavra coincidirem). Os 3 pares do grupo D que bloqueariam ("10 cv"/"20 cv", "interna"/"externa") passam a pedir confirmação. Segue valendo a contestação para o que escapar; acompanhe nos indicadores quantas contestações acontecem.
 3. **Repetir esta validação com a base saneada** e com casos reais de compradores, e então calibrar os cortes. As consultas registradas em `/ui/consultas` e os indicadores da tela inicial já dão o material: quantas vezes o sistema bloqueou, quantas o comprador reaproveitou o código e quantas vezes cadastrou "mesmo assim" depois de ver as sugestões.
 4. **Ampliar os sinônimos** com as siglas e os termos mais comuns do catálogo real.

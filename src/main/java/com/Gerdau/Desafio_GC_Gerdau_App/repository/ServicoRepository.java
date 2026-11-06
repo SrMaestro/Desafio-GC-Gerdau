@@ -61,17 +61,18 @@ public interface ServicoRepository extends JpaRepository<Servico, Integer> {
 
     /**
      * O operador {@code %} (limiar padrão do pg_trgm, 0,3, abaixo dos 0,4 usados pelo sistema) deixa o Postgres usar o
-     * índice GIN da V3 para descartar o que não se parece; {@code similarity(...) >= :minimo} sozinho obriga a varrer a
+     * índice GIN da V14 (sobre {@code normaliza_texto}, que ignora maiúsculas e acentos) para descartar o que não se
+     * parece; {@code similarity(...) >= :minimo} sozinho obriga a varrer a
      * tabela inteira a cada consulta (medido: ~0,3 s por consulta com 20 mil serviços). O resultado é o mesmo.
      */
     @Query(value = """
             SELECT id_servico AS id, texto_breve AS textoBreve, codigo_padronizado AS codigoPadronizado,
                    id1_condicao AS id1Condicao, id2_cnae AS id2Cnae,
-                   similarity(lower(texto_breve), lower(:texto)) AS score
+                   similarity(normaliza_texto(texto_breve), normaliza_texto(:texto)) AS score
             FROM servicos_mock
             -- % corta pelo limiar do pg_trgm (0,3): :minimo tem que ficar acima dele (LimiarSimilaridadeTest)
-            WHERE lower(texto_breve) % lower(:texto)
-              AND similarity(lower(texto_breve), lower(:texto)) >= :minimo
+            WHERE normaliza_texto(texto_breve) % normaliza_texto(:texto)
+              AND similarity(normaliza_texto(texto_breve), normaliza_texto(:texto)) >= :minimo
             ORDER BY score DESC
             LIMIT :limite
             """, nativeQuery = true)
@@ -87,10 +88,10 @@ public interface ServicoRepository extends JpaRepository<Servico, Integer> {
     @Query(value = """
             SELECT id_servico AS id, texto_breve AS textoBreve, codigo_padronizado AS codigoPadronizado,
                    id1_condicao AS id1Condicao, id2_cnae AS id2Cnae,
-                   similarity(lower(texto_breve), lower(:texto)) AS score
+                   similarity(normaliza_texto(texto_breve), normaliza_texto(:texto)) AS score
             FROM servicos_mock
-            WHERE lower(texto_breve) % lower(:texto)
-              AND similarity(lower(texto_breve), lower(:texto)) >= :minimo
+            WHERE normaliza_texto(texto_breve) % normaliza_texto(:texto)
+              AND similarity(normaliza_texto(texto_breve), normaliza_texto(:texto)) >= :minimo
               AND id1_condicao = :condicao
               AND id2_cnae = :cnae
             ORDER BY score DESC
