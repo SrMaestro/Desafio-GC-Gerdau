@@ -15,7 +15,7 @@ Templates em `src/main/resources/templates`; estilos em `static/css`; scripts em
 | Consultas | `/ui/consultas` | só `APROVADOR` |
 | Aprovações | `/ui/aprovacao` | só `APROVADOR` |
 
-O `layout.html` também define o `head` (fontes Barlow/Open Sans, `style.css`, `app.js`, `busca.js`) e o `menu`, que recebe a seção ativa.
+O `layout.html` também define o `head` (fontes Montserrat e IBM Plex Mono, `tema.js`, `style.css`, `app.js`, `busca.js`) e o `menu`, que recebe a seção ativa e tem o botão de tema claro/escuro.
 
 ## Acesso
 
@@ -69,6 +69,6 @@ Não são telas, mas o JS as consome: `/servicos`, `/api/de-para/**` (só `APROV
 
 ## CSS
 
-- `style.css`: base compartilhada.
+- `style.css`: base compartilhada e tema escuro (bloco `:root[data-tema="dark"]` no fim).
 - `importacao.css`: telas de importação e aprovação.
 - `revisao.css`: tela de revisão.

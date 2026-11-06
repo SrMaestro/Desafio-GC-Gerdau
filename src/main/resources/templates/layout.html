@@ -6,7 +6,8 @@
     <meta name="_csrf" th:content="${_csrf?.token}">
     <meta name="_csrf_header" th:content="${_csrf?.headerName}">
     <title th:text="${title}">Serviços</title>
-    <link rel="preload" th:href="@{/fonts/inter-latin.woff2}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" th:href="@{/fonts/montserrat-wght.woff2}" as="font" type="font/woff2" crossorigin>
+    <script th:src="@{/js/tema.js}"></script>
     <link rel="stylesheet" th:href="@{/css/fontes.css}">
     <link rel="stylesheet" th:href="@{/css/style.css}">
     <script th:src="@{/js/app.js}" defer></script>
@@ -23,6 +24,7 @@
         <a th:if="${ehAprovador}" th:href="@{/ui/consultas}" th:aria-current="${ativo == 'consultas'} ? 'page'"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="2" width="10" height="12" rx="1.5"/><path d="M5.5 6h5M5.5 9h5"/></svg>Consultas</a>
         <a th:if="${ehAprovador}" th:href="@{/ui/aprovacao}" th:aria-current="${ativo == 'aprovacoes'} ? 'page'"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2l5 2v4c0 3-2.2 5-5 6-2.8-1-5-3-5-6V4z"/></svg>Aprovações</a>
     </nav>
+    <button type="button" id="alternar-tema" class="tema" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z"/></svg><span>Tema escuro</span></button>
     <div class="usuario" th:if="${usuarioLogado}">
         <span class="nome" th:text="${usuarioLogado}" th:title="${usuarioLogado}"></span>
         <form method="post" th:action="@{/logout}"><button type="submit">Sair</button></form>

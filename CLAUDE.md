@@ -19,6 +19,7 @@ Origem: TAP do Desafio GC 2026 (Gerdau | Geração Caldeira), em `tap_termo_de_a
 cp env.example .env              # primeira vez: preencher senhas e DB_PORT (padrão 5431)
 docker compose up -d             # sobe PostgreSQL (+ pgAdmin em :5050); dados em ./data-db
 ./mvnw spring-boot:run           # app em http://localhost:8080 (exige JDK 21; ajuste JAVA_HOME se preciso)
+./mvnw spring-boot:run -Dspring-boot.run.profiles=demo   # idem, com os dados de demonstração (db/demo)
 ./mvnw test                      # todos os testes
 ./mvnw test -Dtest=ServicoServiceTest                   # uma classe
 ./mvnw test -Dtest=ServicoServiceTest#nomeDoMetodo      # um método
@@ -42,6 +43,10 @@ Quatro serviços formam o fluxo de negócio (ver `docs/REGRAS_DE_NEGOCIO.md` par
 
 A similaridade de texto é feita no banco com `pg_trgm` por **queries nativas** nos repositories (extensão e índices criados na migration V3). Mudanças nessa lógica normalmente envolvem repository + migration, não só Java.
 
+## Dados de demonstração
+
+Perfil `demo` (`application-demo.properties`) soma `classpath:db/demo` às migrations. Lá fica `R__dados_demonstracao.sql`, uma migration **repetível** (roda uma vez, depois das versionadas, e não conflita com número de versão): serviços industriais, quase-duplicados antigos, consultas, De-Para e três lotes. É gerada por script, e as datas são relativas ao momento em que roda. Mudar o arquivo muda o checksum e o Flyway recusa; para recarregar, recrie o banco. Os testes não usam o perfil.
+
 ## Login e perfis
 
 Spring Security com sessão e tela `/login`. Usuários na tabela `usuarios` (V9, senha BCrypt), perfis `COMPRADOR` e `APROVADOR`. Regras de rota em `config/SecurityConfig`: `/ui/revisao/**` e `/api/de-para/**` só `APROVADOR`, exceto `POST /api/de-para/confirmacoes` (o comprador usa na busca NBS). API sem login responde `401`, telas redirecionam para `/login`. O revisor do De-Para vem do `Principal`, nunca do corpo ou formulário. Testes `@WebMvcTest` precisam de `@Import(SecurityConfig.class)`, `@WithMockUser` e `.with(csrf())` nos `POST`; o JS que faz `POST` envia o token lido das `<meta name="_csrf">` do `layout.html`.
@@ -56,5 +61,5 @@ Spring Security com sessão e tela `/login`. Usuários na tabela `usuarios` (V9,
 ## Visual (CSS e templates)
 
 - Tokens do design (cores, princípios) em `docs/design.json`; mapa das telas em `docs/MAPA_DO_SITE.md`. Consulte antes de mexer em estilo.
-- As variáveis (`--azul`, `--destaque`, `--linha`...) ficam no `:root` de `static/css/style.css`; use-as em vez de cores soltas. `importacao.css` e `revisao.css` cobrem só essas telas.
+- As variáveis (`--azul`, `--destaque`, `--linha`...) ficam no `:root` de `static/css/style.css`; use-as em vez de cores soltas. `importacao.css` e `revisao.css` cobrem só essas telas. O tema escuro redefine essas variáveis em `:root[data-tema="dark"]` (fim de `style.css`), então não use cor fixa nem `#fff`; para fundo da página use `--fundo`.
 - As regras genéricas de `table`/`th`/`td` em `style.css` são compartilhadas por `revisao.html`, `consultas.html` e `consulta-detalhe.html` (`table.revisao`). Estilo novo de tabela deve ser escopado por id ou classe, nunca alterar as regras genéricas.
