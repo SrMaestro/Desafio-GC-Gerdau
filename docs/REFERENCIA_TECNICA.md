@@ -14,7 +14,7 @@ src/main/java/com/Gerdau/Desafio_GC_Gerdau_App/
 ├── dto/          requests e responses
 └── exception/    CadastroRejeitadoException, DeParaNaoEncontradoException
 src/main/resources/
-├── db/migration/ migrations Flyway (V1 a V13)
+├── db/migration/ migrations Flyway (V1 a V14)
 ├── db/demo/      dados de demonstração (só com o perfil demo)
 ├── templates/    telas (busca, servicos, formulário, revisão, importação, aprovação)
 └── static/       css e js
@@ -54,6 +54,7 @@ O schema do banco é versionado em `src/main/resources/db/migration`. Ao iniciar
 | `V11__conferido_em.sql` | `linhas_importacao.conferido_em`: data da última decisão do comprador na linha |
 | `V12__consultas_cadastro.sql` | `consultas_cadastro` e `consulta_cadastro_sugestoes`: histórico de cada tentativa de cadastro individual |
 | `V13__contestacao_do_bloqueio.sql` | `consultas_cadastro.justificativa` e a decisão `CONTESTOU_BLOQUEIO` |
+| `V14__similaridade_sem_acento.sql` | função `normaliza_texto` (minúsculo e sem acento) e o índice trigrama sobre ela, no lugar do índice sobre `lower(texto_breve)` |
 
 Para alterar o banco, crie um novo arquivo seguindo a convenção `V{n}__descricao.sql` (ex.: `V3__add_coluna_x.sql`). **Nunca edite uma migration já aplicada**: o Flyway valida o checksum e a aplicação deixa de subir.
 
