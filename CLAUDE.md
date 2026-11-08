@@ -43,6 +43,10 @@ Quatro serviços formam o fluxo de negócio (ver `docs/REGRAS_DE_NEGOCIO.md` par
 
 A similaridade de texto é feita no banco com `pg_trgm` por **queries nativas** nos repositories (extensão e índices criados na migration V3). Mudanças nessa lógica normalmente envolvem repository + migration, não só Java.
 
+## Monitoramento e governança
+
+`MonitoramentoService` calcula duplicatas possíveis (mesma regra de bloqueio, por self-join com `pg_trgm`), fila, tempo de aprovação e serviços sem NBS; alimenta `/ui/monitoramento` (só `APROVADOR`) e a rotina `@Scheduled` semanal que grava `monitoramento_execucao` (V16). Limites de alerta em `monitoramento.*` no `application.properties`. A V15 tornou `servicos_mock.texto_normalizado` coluna gerada e criou o índice único parcial `uq_servicos_texto_condicao_cnae` (texto + condição + CNAE, fora das `duplicata_legada`). Responsáveis, prazo e mesclagem: `docs/GOVERNANCA.md`.
+
 ## Dados de demonstração
 
 Perfil `demo` (`application-demo.properties`) soma `classpath:db/demo` às migrations. Lá fica `R__dados_demonstracao.sql`, uma migration **repetível** (roda uma vez, depois das versionadas, e não conflita com número de versão): serviços industriais, quase-duplicados antigos, consultas, De-Para e três lotes. É gerada por script, e as datas são relativas ao momento em que roda. Mudar o arquivo muda o checksum e o Flyway recusa; para recarregar, recrie o banco. Os testes não usam o perfil.
@@ -53,7 +57,7 @@ Spring Security com sessão e tela `/login`. Usuários na tabela `usuarios` (V9,
 
 ## Banco e migrations
 
-- `ddl-auto=validate`: o Hibernate não cria schema. Qualquer mudança em entidade exige uma migration `V{n}__descricao.sql` em `src/main/resources/db/migration` (hoje V1–V14). **Nunca edite uma migration já aplicada** (falha de checksum do Flyway); crie uma nova.
+- `ddl-auto=validate`: o Hibernate não cria schema. Qualquer mudança em entidade exige uma migration `V{n}__descricao.sql` em `src/main/resources/db/migration` (hoje V1–V16). **Nunca edite uma migration já aplicada** (falha de checksum do Flyway); crie uma nova.
 - As condições (hora normal, hora extra, posto mensal...) vivem só em `cat_horarios`. Condição nova = `INSERT` numa migration; condição aposentada = `ativo = FALSE` (nunca apagar). `servicos_mock.id1_condicao` guarda o texto da condição na hora do cadastro, sem FK, então serviços antigos não mudam quando o catálogo muda.
 - A conexão vem do `.env` (importado por `spring.config.import`) via `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`. A app roda fora do Docker, então o host é `localhost`.
 - Se o Flyway reclamar de schema sem histórico, ou o Postgres de `data-db` for de outra versão/senha: `docker compose down`, apagar `data-db` e subir de novo (apaga os dados).

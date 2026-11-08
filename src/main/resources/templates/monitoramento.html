@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Monitoramento')}"></head>
+<body class="app">
+<link rel="stylesheet" th:href="@{/css/revisao.css}">
+<th:block th:replace="~{layout :: menu('monitoramento')}"/>
+<main class="larga">
+    <div class="topo">
+        <div>
+            <h1>Monitoramento da base</h1>
+            <p>Qualidade do catálogo: possíveis duplicatas, fila de aprovação e tempo de resposta.
+                A rotina semanal grava um retrato toda segunda.
+                <span th:if="${painel.ultimaExecucao != null}" th:text="'Última rodada: ' + ${#temporals.format(painel.ultimaExecucao, 'dd/MM/yyyy HH:mm')}"></span>
+                <span th:if="${painel.ultimaExecucao == null}">Nenhuma rodada ainda.</span></p>
+        </div>
+    </div>
+
+    <ul class="alertas" th:unless="${#lists.isEmpty(painel.alertas)}" role="alert">
+        <li th:each="a : ${painel.alertas}" th:text="${a}"></li>
+    </ul>
+
+    <section class="kpis" aria-label="Indicadores de qualidade">
+        <div class="kpi atencao">
+            <span class="kpi-rotulo">Duplicatas possíveis</span>
+            <span class="resumo-valor" th:text="${painel.duplicatasPossiveis}">0</span>
+            <span class="kpi-apoio">pares com similaridade ≥ 80%</span>
+        </div>
+        <div class="kpi">
+            <span class="kpi-rotulo">Na fila de aprovação</span>
+            <span class="resumo-valor" th:text="${painel.filaAprovacao}">0</span>
+            <span class="kpi-apoio" th:text="${painel.deParaPendentes} + ' mapeamentos De-Para pendentes'">0</span>
+        </div>
+        <div class="kpi">
+            <span class="kpi-rotulo">Match automático</span>
+            <span class="resumo-valor" th:text="${painel.percentualAutomatico != null} ? ${painel.percentualAutomatico} + '%' : '—'">—</span>
+            <span class="kpi-apoio">linhas de planilha sem decisão humana</span>
+        </div>
+        <div class="kpi">
+            <span class="kpi-rotulo">Tempo médio de aprovação</span>
+            <span class="resumo-valor" th:text="${painel.horasMediaAprovacao != null} ? ${#numbers.formatDecimal(painel.horasMediaAprovacao, 1, 1)} + ' h' : '—'">—</span>
+            <span class="kpi-apoio">do envio à decisão</span>
+        </div>
+        <div class="kpi">
+            <span class="kpi-rotulo">Serviços sem vínculo NBS</span>
+            <span class="resumo-valor" th:text="${painel.servicosSemNbs}">0</span>
+            <span class="kpi-apoio">sem código NBS associado</span>
+        </div>
+    </section>
+
+    <h2>Possíveis duplicatas no catálogo</h2>
+    <p th:if="${#lists.isEmpty(painel.duplicatas)}" class="vazio-msg">Nenhuma duplicata possível encontrada.</p>
+    <div class="tabela-wrap" th:unless="${#lists.isEmpty(painel.duplicatas)}">
+        <table class="revisao">
+            <thead><tr><th>Serviço A</th><th>Serviço B</th><th>Similaridade</th><th>Origem</th></tr></thead>
+            <tbody>
+            <tr th:each="d : ${painel.duplicatas}">
+                <td><span th:text="${d.textoA}"></span><br><small th:text="${d.codigoA}"></small></td>
+                <td><span th:text="${d.textoB}"></span><br><small th:text="${d.codigoB}"></small></td>
+                <td th:text="${#numbers.formatDecimal(d.similaridade * 100, 1, 0)} + '%'"></td>
+                <td th:text="${d.legado} ? 'Legado (já existia)' : 'Novo'"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>
