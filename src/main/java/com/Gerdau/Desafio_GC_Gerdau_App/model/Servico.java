@@ -46,6 +46,10 @@ public class Servico {
     @Column(name = "codigo_nbs", length = 20)
     private String codigoNbs;
 
+    /** Gerada pelo banco (V15): texto_breve sem maiúsculas nem acentos. */
+    @Column(name = "texto_normalizado", insertable = false, updatable = false)
+    private String textoNormalizado;
+
     @Column(name = "data_criacao", insertable = false, updatable = false)
     private LocalDateTime dataCriacao;
 }

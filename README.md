@@ -96,6 +96,7 @@ A similaridade foi validada com 29 casos escritos pela equipe (corretos, ambígu
 | Documento | Para quê |
 |-----------|----------|
 | [docs/GUIA_DE_USO.md](docs/GUIA_DE_USO.md) | Passo a passo das telas e roteiro de teste |
+| [docs/GOVERNANCA.md](docs/GOVERNANCA.md) | Responsáveis, prazo de aprovação, nomenclatura, monitoramento semanal e mesclagem |
 | [docs/REGRAS_DE_NEGOCIO.md](docs/REGRAS_DE_NEGOCIO.md) | Limiares, decisões e regras de cada fluxo |
 | [docs/VALIDACAO_SIMILARIDADE.md](docs/VALIDACAO_SIMILARIDADE.md) | Casos testados, resultados e limitações |
 | [docs/REFERENCIA_TECNICA.md](docs/REFERENCIA_TECNICA.md) | Estrutura do código, migrations, telas e endpoints da API |

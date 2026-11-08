@@ -8,15 +8,16 @@ Detalhes para quem vai mexer no código ou integrar com a API. Para entender o p
 src/main/java/com/Gerdau/Desafio_GC_Gerdau_App/
 ├── controller/   REST (/api, /servicos) e telas Thymeleaf (/ui)
 ├── service/      ServicoService, BuscaNbsService, DeParaService, SmartKeyService,
-│                 ImportacaoService, ConferenciaService, AprovacaoImportacaoService, SinonimoServicoService
+│                 ImportacaoService, ConferenciaService, AprovacaoImportacaoService, SinonimoServicoService,
+│                 MonitoramentoService
 ├── repository/   Spring Data JPA + queries nativas com pg_trgm
 ├── model/        entidades e enums (StatusDePara, OrigemDePara)
 ├── dto/          requests e responses
 └── exception/    CadastroRejeitadoException, DeParaNaoEncontradoException
 src/main/resources/
-├── db/migration/ migrations Flyway (V1 a V14)
+├── db/migration/ migrations Flyway (V1 a V16)
 ├── db/demo/      dados de demonstração (só com o perfil demo)
-├── templates/    telas (busca, servicos, formulário, revisão, importação, aprovação)
+├── templates/    telas (busca, servicos, formulário, revisão, importação, aprovação, monitoramento)
 └── static/       css e js
 ```
 
@@ -55,6 +56,8 @@ O schema do banco é versionado em `src/main/resources/db/migration`. Ao iniciar
 | `V12__consultas_cadastro.sql` | `consultas_cadastro` e `consulta_cadastro_sugestoes`: histórico de cada tentativa de cadastro individual |
 | `V13__contestacao_do_bloqueio.sql` | `consultas_cadastro.justificativa` e a decisão `CONTESTOU_BLOQUEIO` |
 | `V14__similaridade_sem_acento.sql` | função `normaliza_texto` (minúsculo e sem acento) e o índice trigrama sobre ela, no lugar do índice sobre `lower(texto_breve)` |
+| `V15__texto_normalizado_unico.sql` | `servicos_mock.texto_normalizado` (coluna gerada pelo banco), `duplicata_legada` e o índice único parcial `uq_servicos_texto_condicao_cnae` (texto + condição + CNAE, fora das duplicatas legadas) |
+| `V16__monitoramento_execucao.sql` | `monitoramento_execucao`: retrato gravado a cada rodada semanal do monitoramento |
 
 Para alterar o banco, crie um novo arquivo seguindo a convenção `V{n}__descricao.sql` (ex.: `V3__add_coluna_x.sql`). **Nunca edite uma migration já aplicada**: o Flyway valida o checksum e a aplicação deixa de subir.
 
@@ -65,7 +68,7 @@ Todas as telas e a API exigem login (usuário e senha guardados na tabela `usuar
 | Perfil | Pode |
 |--------|------|
 | `COMPRADOR` | Cadastrar serviço, buscar serviços, buscar NBS, Smart Key, confirmar uma sugestão de NBS e importar planilhas (os próprios lotes) |
-| `APROVADOR` | Tudo o que o comprador faz, mais a revisão do De-Para (`/ui/revisao` e `/api/de-para/**`), a aprovação de planilhas (`/ui/aprovacao` e `/api/importacoes/aprovacao/**`) e o histórico de consultas (`/ui/consultas`) |
+| `APROVADOR` | Tudo o que o comprador faz, mais a revisão do De-Para (`/ui/revisao` e `/api/de-para/**`), a aprovação de planilhas (`/ui/aprovacao` e `/api/importacoes/aprovacao/**`) o histórico de consultas (`/ui/consultas`) e o painel de monitoramento (`/ui/monitoramento`) |
 
 Sem login, as telas redirecionam para `/login` e a API responde `401`. Com perfil insuficiente a resposta é `403`. Usuários de exemplo (V9) e como trocar as senhas: [GUIA_DE_USO.md](GUIA_DE_USO.md). O revisor gravado no histórico do De-Para é sempre o usuário logado.
 
@@ -89,7 +92,31 @@ O visual segue o design system da Meta (`docs/design.json`). O tema claro/escuro
 | `/ui/aprovacao` | Lotes com linhas aguardando decisão (só `APROVADOR`) |
 | `/ui/consultas` | Histórico das tentativas de cadastro: o que foi consultado, o que o sistema respondeu e o que o comprador decidiu (só `APROVADOR`) |
 | `/ui/consultas/{id}` | Detalhe de uma consulta, com as sugestões mostradas (só `APROVADOR`) |
+| `/ui/monitoramento` | Qualidade da base: duplicatas possíveis, fila de aprovação, match automático, tempo médio de aprovação, serviços sem NBS e alertas (só `APROVADOR`) |
 | `/ui/aprovacao/{id}` | Aprovação das linhas de um lote, uma a uma ou em bloco (só `APROVADOR`) |
+
+## Monitoramento
+
+`MonitoramentoService` mede a qualidade da base e alimenta `/ui/monitoramento` e uma rotina semanal.
+
+| Indicador | Como é calculado |
+|-----------|------------------|
+| Duplicatas possíveis | Pares de `servicos_mock` com a mesma condição e o mesmo CNAE e similaridade ≥ 0,8 (`ServicoService.LIMIAR_BLOQUEIO`), por self-join com `pg_trgm`; até 200 pares. Cada par traz `legado` se um dos dois é `duplicata_legada` |
+| Fila de aprovação | Linhas de importação na etapa `ENVIADA`; mais os mapeamentos De-Para `PENDENTE` |
+| Match automático | Linhas `EXISTENTE` ou `NOVA` sobre todas as linhas sem `ERRO` |
+| Tempo médio de aprovação | Média de `decidido_em - enviado_em` das linhas `APROVADA` ou `REJEITADA`, em horas |
+| Serviços sem NBS | `servicos_mock` com `codigo_nbs` nulo |
+
+A rotina `rotinaSemanal` (`@Scheduled`, `monitoramento.cron`, padrão segunda às 7h) grava uma linha em `monitoramento_execucao` e registra um `WARN` no log para cada limite ultrapassado. Falha na rotina só vira log. Configuração em `application.properties`:
+
+| Propriedade | Padrão | Alerta quando |
+|-------------|--------|---------------|
+| `monitoramento.cron` | `0 0 7 * * MON` | (horário da rotina) |
+| `monitoramento.limite-duplicatas` | 10 | duplicatas possíveis acima do valor |
+| `monitoramento.limite-fila-aprovacao` | 50 | linhas na fila acima do valor |
+| `monitoramento.limite-horas-aprovacao` | 48 | tempo médio acima do valor, em horas |
+
+Responsáveis e processo de tratamento das duplicatas: [GOVERNANCA.md](GOVERNANCA.md).
 
 ## Endpoints
 

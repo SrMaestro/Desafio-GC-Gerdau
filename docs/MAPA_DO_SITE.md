@@ -13,6 +13,7 @@ Templates em `src/main/resources/templates`; estilos em `static/css`; scripts em
 | Importar | `/ui/importacoes` | todos |
 | Revisão | `/ui/revisao` | só `APROVADOR` |
 | Consultas | `/ui/consultas` | só `APROVADOR` |
+| Monitoramento | `/ui/monitoramento` | só `APROVADOR` |
 | Aprovações | `/ui/aprovacao` | só `APROVADOR` |
 
 O `layout.html` também define o `head` (fontes Montserrat e IBM Plex Mono, `tema.js`, `style.css`, `app.js`, `busca.js`) e o `menu`, que recebe a seção ativa e tem o botão de tema claro/escuro.
@@ -53,6 +54,7 @@ O `layout.html` também define o `head` (fontes Montserrat e IBM Plex Mono, `tem
 | `/ui/revisao` | `revisao.html` | Mapeamentos do De-Para: pendentes e aprovados. Ações `POST /ui/revisao/{id}/aprovar`, `/rejeitar`, `/revogar` (redirecionam de volta). Estilo: `revisao.css`. |
 | `/ui/consultas` | `consultas.html` | Histórico de tentativas de cadastro (`consultas_cadastro`). |
 | `/ui/consultas/{id}` | `consulta-detalhe.html` | Uma consulta: texto, serviço relacionado e sugestões mostradas. |
+| `/ui/monitoramento` | `monitoramento.html` | Qualidade da base: possíveis duplicatas (pares ≥ 80%, legado ou parecida), fila de aprovação, match automático, tempo médio de aprovação, serviços sem NBS e alertas de limite. |
 | `/ui/aprovacao` | `aprovacao-lotes.html` | Lotes de importação enviados para aprovação. JS: `comum.js`, `aprovacao.js`. |
 | `/ui/aprovacao/{id}` | `aprovacao-lote.html` | Linhas aguardando decisão e "Decidir de uma vez". |
 
