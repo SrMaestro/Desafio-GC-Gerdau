@@ -37,7 +37,7 @@ class MonitoramentoViewControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("COD_B")))
                 .andExpect(content().string(containsString("93%")))
-                .andExpect(content().string(containsString("Legado")))
+                .andExpect(content().string(containsString("Idêntica (legado)")))
                 .andExpect(content().string(containsString("85%")))
                 .andExpect(content().string(containsString("Fila de aprovação acima do limite")));
     }

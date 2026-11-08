@@ -29,7 +29,7 @@ Limites (em `application.properties`): `monitoramento.limite-duplicatas` (10), `
 
 ## Duplicatas legadas e mesclagem
 
-A V15 não apaga nada. Entre serviços que já eram duplicados (mesmo texto normalizado, condição e CNAE), o mais antigo vale e os demais ficam com `duplicata_legada = TRUE`; eles aparecem no painel com origem "Legado". Para tratar uma duplicata:
+A V15 não apaga nada. Entre serviços que já eram duplicados (mesmo texto normalizado, condição e CNAE), o mais antigo vale e os demais ficam com `duplicata_legada = TRUE`; eles aparecem no painel com origem "Idêntica (legado)". Para tratar uma duplicata:
 
 1. O steward escolhe o código que fica.
 2. O código descartado **não é apagado**: aposente-o (ou registre o de-para para o que fica) em vez de excluir, para que referências antigas continuem resolvendo.

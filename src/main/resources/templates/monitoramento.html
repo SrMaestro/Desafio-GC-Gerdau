@@ -57,7 +57,7 @@
                 <td><span th:text="${d.textoA}"></span><br><small th:text="${d.codigoA}"></small></td>
                 <td><span th:text="${d.textoB}"></span><br><small th:text="${d.codigoB}"></small></td>
                 <td th:text="${#numbers.formatDecimal(d.similaridade * 100, 1, 0)} + '%'"></td>
-                <td th:text="${d.legado} ? 'Legado (já existia)' : 'Novo'"></td>
+                <td th:text="${d.legado} ? 'Idêntica (legado)' : 'Parecida'"></td>
             </tr>
             </tbody>
         </table>
